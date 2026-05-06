@@ -1,0 +1,503 @@
+.shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 20px;
+  isolation: isolate;
+}
+
+.background {
+  --pointer-x: 50vw;
+  --pointer-y: 50vh;
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 52%, rgba(0, 136, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, #000000 0%, #020509 56%, #000000 100%);
+}
+
+.pointerGlow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  transform: translate(calc(var(--pointer-x) - 50%), calc(var(--pointer-y) - 50%));
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 136, 255, 0.16), transparent 67%);
+  filter: blur(12px);
+  opacity: 0.78;
+  transition: transform 120ms ease-out;
+}
+
+.blueMist {
+  position: absolute;
+  inset: auto -10% -24% -10%;
+  height: 56vh;
+  background:
+    radial-gradient(circle at 38% 48%, rgba(0, 136, 255, 0.22), transparent 32%),
+    radial-gradient(circle at 62% 60%, rgba(31, 181, 255, 0.12), transparent 28%);
+  filter: blur(42px);
+  opacity: 0.74;
+  animation: mistBreath 8s ease-in-out infinite alternate;
+}
+
+.orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 494px;
+  height: 494px;
+  transform: translate(-50%, -50%);
+}
+
+.orbCore,
+.orbRing {
+  position: absolute;
+  inset: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.orbCore {
+  width: 364px;
+  height: 364px;
+  background: #000000;
+  box-shadow:
+    inset 20px 20px 64px rgba(0, 136, 255, 0.3),
+    inset -20px -20px 64px rgba(0, 136, 255, 0.18),
+    0 0 90px rgba(0, 136, 255, 0.13);
+}
+
+.orbRing {
+  border: 1px solid var(--blue);
+  opacity: 0.9;
+  animation: orbit 18s linear infinite;
+}
+
+.orbRingOne {
+  width: 411px;
+  height: 411px;
+}
+
+.orbRingTwo {
+  width: 454px;
+  height: 454px;
+  opacity: 0.5;
+  animation-duration: 26s;
+  animation-direction: reverse;
+}
+
+.orbRingThree {
+  width: 494px;
+  height: 494px;
+  opacity: 0.25;
+  animation-duration: 34s;
+}
+
+.bottomAtmosphere {
+  position: absolute;
+  right: -8%;
+  bottom: -18%;
+  left: -8%;
+  height: 36vh;
+  background: linear-gradient(90deg, transparent, rgba(0, 136, 255, 0.2), transparent);
+  filter: blur(60px);
+  opacity: 0.56;
+}
+
+.historyPanel,
+.editorPanel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--glass);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+}
+
+.historyPanel {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 281px;
+  max-height: calc(100vh - 40px);
+  padding: 22px 0 20px;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.historyHeader h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 450;
+}
+
+.iconButton,
+.mobileHistoryButton,
+.mobileClose,
+.commandButton,
+.emptyState button {
+  border: 0;
+  color: #ffffff;
+  background: rgba(243, 243, 243, 0.16);
+}
+
+.iconButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.searchBox {
+  display: grid;
+  gap: 7px;
+  padding: 18px 20px 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.searchBox input,
+.commandPalette input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  outline: none;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.searchBox input {
+  height: 38px;
+  padding: 0 12px;
+}
+
+.historyList {
+  max-height: calc(100vh - 164px);
+  overflow: auto;
+  padding: 0 0 12px;
+}
+
+.historyGroup {
+  padding: 0 0 12px;
+}
+
+.historyGroup h2 {
+  margin: 0;
+  padding: 10px 20px 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.historyItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: calc(100% - 0px);
+  min-height: 48px;
+  padding: 0 12px 0 20px;
+  border: 0;
+  border-radius: 0;
+  color: #ffffff;
+  background: transparent;
+  text-align: left;
+}
+
+.historyItem:hover,
+.historyItemActive {
+  background: var(--glass-hover);
+}
+
+.historyItem span {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyItem small {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+}
+
+.editorPanel {
+  position: relative;
+  width: min(622px, calc(100vw - 40px));
+  min-height: 629px;
+  margin: 157px auto 80px;
+  padding: 24px 20px 28px;
+  border-radius: 24px;
+}
+
+.editorMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.saveStatus {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.saveStatus[data-status="saved"] {
+  color: var(--success);
+}
+
+.saveStatus[data-status="error"] {
+  color: var(--danger);
+}
+
+.titleInput {
+  width: 100%;
+  margin-bottom: 14px;
+  border: 0;
+  outline: none;
+  color: #ffffff;
+  background: transparent;
+  font-family: var(--font-title);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.titleInput:focus {
+  text-shadow: 0 0 24px rgba(0, 136, 255, 0.24);
+}
+
+.editorControls {
+  position: fixed;
+  top: 526px;
+  left: calc(50% - 295px);
+  z-index: 4;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 16px;
+  background: var(--glass-solid);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
+}
+
+.editorControls button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  color: #ffffff;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.commandButton {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 4;
+  height: 40px;
+  padding: 0 15px;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.commandOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: start center;
+  padding-top: 15vh;
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.commandPalette {
+  width: min(520px, calc(100vw - 32px));
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background: rgba(18, 28, 36, 0.86);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(30px);
+}
+
+.commandPalette input {
+  height: 48px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+.commandList {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.commandList button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px;
+  color: #ffffff;
+  background: transparent;
+}
+
+.commandList button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.commandList small {
+  color: var(--muted);
+}
+
+.emptyState {
+  display: grid;
+  place-items: start;
+  min-height: 360px;
+  align-content: center;
+  color: var(--muted);
+}
+
+.emptyState h2 {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 22px;
+}
+
+.emptyState p {
+  max-width: 360px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.emptyState button {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 14px;
+}
+
+.errorText {
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12px;
+}
+
+.mobileHistoryButton,
+.mobileClose {
+  display: none;
+}
+
+@keyframes orbit {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg) scaleX(1.02);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg) scaleX(1.02);
+  }
+}
+
+@keyframes mistBreath {
+  from {
+    transform: translate3d(-2%, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(2%, -3%, 0) scale(1.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .mobileHistoryButton {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 5;
+    display: block;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 14px;
+  }
+
+  .historyPanel {
+    z-index: 8;
+    top: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: min(318px, calc(100vw - 20px));
+    max-height: none;
+    transform: translateX(calc(-100% - 16px));
+    transition: transform 220ms ease;
+  }
+
+  .historyPanelOpen {
+    transform: translateX(0);
+  }
+
+  .mobileClose {
+    display: block;
+    width: calc(100% - 40px);
+    height: 40px;
+    margin: 0 20px;
+    border-radius: 14px;
+  }
+
+  .editorPanel {
+    width: 100%;
+    min-height: calc(100vh - 28px);
+    margin: 0;
+    padding-top: 68px;
+  }
+
+  .editorControls {
+    top: auto;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .commandButton {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .orb {
+    width: 360px;
+    height: 360px;
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbRing,
+  .blueMist {
+    animation: none;
+  }
+
+  .pointerGlow {
+    transition: none;
+  }
+}
+

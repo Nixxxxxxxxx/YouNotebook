@@ -1,0 +1,71 @@
+.editorFrame {
+  min-height: 360px;
+}
+
+.editor {
+  min-height: 360px;
+  outline: none;
+  color: #ffffff;
+  font-family: var(--font-editor);
+  font-size: 15px;
+  line-height: 1.72;
+  letter-spacing: 0.01em;
+}
+
+.editor :global(*) {
+  margin-top: 0;
+}
+
+.editor :global(h1),
+.editor :global(h2),
+.editor :global(h3) {
+  margin-bottom: 16px;
+  font-family: var(--font-title);
+  font-weight: 650;
+  line-height: 1.24;
+  letter-spacing: -0.02em;
+}
+
+.editor :global(h1) {
+  font-size: 32px;
+}
+
+.editor :global(h2) {
+  font-size: 24px;
+}
+
+.editor :global(h3) {
+  font-size: 19px;
+}
+
+.editor :global(p) {
+  margin-bottom: 14px;
+}
+
+.editor :global(ul),
+.editor :global(ol) {
+  margin-bottom: 16px;
+  padding-left: 22px;
+}
+
+.editor :global(blockquote) {
+  margin: 18px 0;
+  padding: 2px 0 2px 18px;
+  border-left: 2px solid rgba(0, 136, 255, 0.72);
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.editor :global(code) {
+  padding: 2px 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.editor :global(.is-editor-empty:first-child::before) {
+  float: left;
+  height: 0;
+  color: rgba(255, 255, 255, 0.36);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+

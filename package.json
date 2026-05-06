@@ -1,0 +1,35 @@
+{
+  "name": "younotebook",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.23.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "NEXT_TEST_WASM=1 NEXT_TEST_WASM_DIR=./node_modules/@next/swc-wasm-nodejs next dev --webpack",
+    "build": "NEXT_TEST_WASM=1 NEXT_TEST_WASM_DIR=./node_modules/@next/swc-wasm-nodejs next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tiptap/core": "2.27.2",
+    "@tiptap/extension-placeholder": "2.27.2",
+    "@tiptap/extension-underline": "2.27.2",
+    "@tiptap/react": "2.27.2",
+    "@tiptap/starter-kit": "2.27.2",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@next/swc-wasm-nodejs": "16.1.6",
+    "@types/node": "25.5.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.1.6",
+    "typescript": "5.9.3"
+  }
+}
