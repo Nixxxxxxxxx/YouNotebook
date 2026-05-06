@@ -1,12 +1,13 @@
 # Project Rules
 
 ## Goal
-Build YouNotebook v1: a private, local-first personal diary with a calm glass interface, fast writing flow, reliable autosave, and a dynamic abstract background inspired by the Figma layout.
+Build YouNotebook v1: a private, local-first personal diary with a calm glass interface, fast writing flow, reliable autosave, and a pixel-aligned static Figma background.
 
 ## Scope v1
 - One personal diary, no accounts or profiles
 - History list grouped by date: `Сегодня`, `Вчера`, then short dates like `05.04`
-- Rich note editor with title editing, autosave, and basic formatting
+- Rich note editor where the note name is derived from the first heading
+- Autosave and basic formatting
 - Keyboard shortcuts for core writing flows
 - IndexedDB persistence through a storage adapter
 - Manual JSON export and import from the command palette
@@ -19,14 +20,15 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 - Encryption at rest
 - AI features
 - Collaboration
+- Search
 
 ## UX Rules
 - Writing comes first: no save button, no noisy controls, no blocking setup
-- Preserve the Figma mood: black stage, blue orbital abstraction, local glass blur, rounded panels
+- Preserve the Figma mood 1:1: black stage, static blue orbital circle, local glass blur, rounded panels
 - The active note must always be obvious in history
 - Autosave state must be visible but quiet
+- Formatting controls appear only when text is selected
 - Empty states should invite writing, not explain the product at length
-- Respect `prefers-reduced-motion`
 
 ## Engineering Rules
 - TypeScript strict
@@ -43,4 +45,3 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 - Hotkeys work on macOS and non-mac modifier keys
 - App builds without TypeScript errors
 - Core flows do not produce critical console errors
-

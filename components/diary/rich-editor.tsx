@@ -3,7 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle } from "react";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { BubbleMenu, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import type { DiaryContent } from "@/lib/diary/types";
 import styles from "./rich-editor.module.css";
@@ -33,7 +33,10 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         }),
         Underline,
         Placeholder.configure({
-          placeholder: "Запиши то, что стоит сохранить...",
+          placeholder: ({ node }) =>
+            node.type.name === "heading"
+              ? "Заголовок"
+              : "Запиши то, что стоит сохранить...",
         }),
       ],
       content,
@@ -56,9 +59,8 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
         return;
       }
 
-      editor.commands.setContent(content, false);
       window.requestAnimationFrame(() => editor.commands.focus("end"));
-    }, [content, editor, entryId]);
+    }, [editor, entryId]);
 
     useImperativeHandle(
       ref,
@@ -79,6 +81,66 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
       [editor],
     );
 
-    return <EditorContent editor={editor} className={styles.editorFrame} />;
+    return (
+      <div className={styles.editorFrame}>
+        {editor ? (
+          <BubbleMenu
+            editor={editor}
+            className={styles.bubbleMenu}
+            shouldShow={({ editor: currentEditor, from, to }) =>
+              currentEditor.isEditable && from !== to
+            }
+            tippyOptions={{
+              duration: 120,
+              offset: [0, 8],
+              placement: "bottom-start",
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Заголовок"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                editor.chain().focus().toggleHeading({ level: 2 }).run();
+              }}
+            >
+              Aa
+            </button>
+            <button
+              type="button"
+              aria-label="Жирный"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                editor.chain().focus().toggleBold().run();
+              }}
+            >
+              B
+            </button>
+            <button
+              type="button"
+              aria-label="Курсив"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                editor.chain().focus().toggleItalic().run();
+              }}
+            >
+              I
+            </button>
+            <button
+              type="button"
+              aria-label="Подчеркнутый"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                editor.chain().focus().toggleUnderline().run();
+              }}
+            >
+              U
+            </button>
+          </BubbleMenu>
+        ) : null}
+
+        <EditorContent editor={editor} />
+      </div>
+    );
   },
 );

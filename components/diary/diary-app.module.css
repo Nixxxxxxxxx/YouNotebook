@@ -7,103 +7,21 @@
 }
 
 .background {
-  --pointer-x: 50vw;
-  --pointer-y: 50vh;
   position: fixed;
   inset: 0;
   z-index: -2;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 52%, rgba(0, 136, 255, 0.12), transparent 28%),
-    linear-gradient(180deg, #000000 0%, #020509 56%, #000000 100%);
-}
-
-.pointerGlow {
-  position: absolute;
-  width: 520px;
-  height: 520px;
-  transform: translate(calc(var(--pointer-x) - 50%), calc(var(--pointer-y) - 50%));
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(0, 136, 255, 0.16), transparent 67%);
-  filter: blur(12px);
-  opacity: 0.78;
-  transition: transform 120ms ease-out;
-}
-
-.blueMist {
-  position: absolute;
-  inset: auto -10% -24% -10%;
-  height: 56vh;
-  background:
-    radial-gradient(circle at 38% 48%, rgba(0, 136, 255, 0.22), transparent 32%),
-    radial-gradient(circle at 62% 60%, rgba(31, 181, 255, 0.12), transparent 28%);
-  filter: blur(42px);
-  opacity: 0.74;
-  animation: mistBreath 8s ease-in-out infinite alternate;
+  background: #000000;
 }
 
 .orb {
   position: absolute;
-  top: 50%;
   left: 50%;
+  top: 244px;
   width: 494px;
   height: 494px;
-  transform: translate(-50%, -50%);
-}
-
-.orbCore,
-.orbRing {
-  position: absolute;
-  inset: 50%;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.orbCore {
-  width: 364px;
-  height: 364px;
-  background: #000000;
-  box-shadow:
-    inset 20px 20px 64px rgba(0, 136, 255, 0.3),
-    inset -20px -20px 64px rgba(0, 136, 255, 0.18),
-    0 0 90px rgba(0, 136, 255, 0.13);
-}
-
-.orbRing {
-  border: 1px solid var(--blue);
-  opacity: 0.9;
-  animation: orbit 18s linear infinite;
-}
-
-.orbRingOne {
-  width: 411px;
-  height: 411px;
-}
-
-.orbRingTwo {
-  width: 454px;
-  height: 454px;
-  opacity: 0.5;
-  animation-duration: 26s;
-  animation-direction: reverse;
-}
-
-.orbRingThree {
-  width: 494px;
-  height: 494px;
-  opacity: 0.25;
-  animation-duration: 34s;
-}
-
-.bottomAtmosphere {
-  position: absolute;
-  right: -8%;
-  bottom: -18%;
-  left: -8%;
-  height: 36vh;
-  background: linear-gradient(90deg, transparent, rgba(0, 136, 255, 0.2), transparent);
-  filter: blur(60px);
-  opacity: 0.56;
+  transform: translateX(-50%);
+  background: url("/figma/orb.svg") center / 100% 100% no-repeat;
 }
 
 .historyPanel,
@@ -158,15 +76,6 @@
   line-height: 1;
 }
 
-.searchBox {
-  display: grid;
-  gap: 7px;
-  padding: 18px 20px 12px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.searchBox input,
 .commandPalette input {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -176,13 +85,8 @@
   background: rgba(0, 0, 0, 0.18);
 }
 
-.searchBox input {
-  height: 38px;
-  padding: 0 12px;
-}
-
 .historyList {
-  max-height: calc(100vh - 164px);
+  max-height: calc(100vh - 104px);
   overflow: auto;
   padding: 0 0 12px;
 }
@@ -259,49 +163,6 @@
 
 .saveStatus[data-status="error"] {
   color: var(--danger);
-}
-
-.titleInput {
-  width: 100%;
-  margin-bottom: 14px;
-  border: 0;
-  outline: none;
-  color: #ffffff;
-  background: transparent;
-  font-family: var(--font-title);
-  font-size: 18px;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.titleInput:focus {
-  text-shadow: 0 0 24px rgba(0, 136, 255, 0.24);
-}
-
-.editorControls {
-  position: fixed;
-  top: 526px;
-  left: calc(50% - 295px);
-  z-index: 4;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  height: 44px;
-  padding: 0 20px;
-  border-radius: 16px;
-  background: var(--glass-solid);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
-}
-
-.editorControls button {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 0;
-  color: #ffffff;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 650;
 }
 
 .commandButton {
@@ -405,26 +266,6 @@
   display: none;
 }
 
-@keyframes orbit {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg) scaleX(1.02);
-  }
-
-  to {
-    transform: translate(-50%, -50%) rotate(360deg) scaleX(1.02);
-  }
-}
-
-@keyframes mistBreath {
-  from {
-    transform: translate3d(-2%, 0, 0) scale(1);
-  }
-
-  to {
-    transform: translate3d(2%, -3%, 0) scale(1.08);
-  }
-}
-
 @media (max-width: 900px) {
   .shell {
     padding: 14px;
@@ -471,33 +312,15 @@
     padding-top: 68px;
   }
 
-  .editorControls {
-    top: auto;
-    bottom: 22px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
   .commandButton {
     right: 14px;
     bottom: 14px;
   }
 
   .orb {
+    top: 18vh;
     width: 360px;
     height: 360px;
     opacity: 0.7;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .orbRing,
-  .blueMist {
-    animation: none;
-  }
-
-  .pointerGlow {
-    transition: none;
-  }
-}
-

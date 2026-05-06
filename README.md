@@ -1,6 +1,6 @@
 # YouNotebook
 
-Local-first личный дневник по Figma-макету: история заметок, rich editor, автосохранение, хоткеи и живой темный фон.
+Local-first личный дневник по Figma-макету: история заметок, rich editor, автосохранение, хоткеи и статичный фон 1:1 с макетом.
 
 ## Stack
 
@@ -27,4 +27,3 @@ pnpm dev
 ## Storage
 
 Данные v1 хранятся локально в IndexedDB: `younotebook:v1`. Для безопасности есть ручной export/import JSON в command palette.
-

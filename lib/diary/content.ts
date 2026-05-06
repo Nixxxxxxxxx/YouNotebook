@@ -4,7 +4,8 @@ export const EMPTY_CONTENT: DiaryContent = {
   type: "doc",
   content: [
     {
-      type: "paragraph",
+      type: "heading",
+      attrs: { level: 2 },
     },
   ],
 };
@@ -49,7 +50,7 @@ export function deriveTitle(plainText: string) {
     .find(Boolean);
 
   if (!firstLine) {
-    return "Новая заметка";
+    return "Без названия";
   }
 
   return firstLine.length > 72 ? `${firstLine.slice(0, 69)}...` : firstLine;
@@ -58,4 +59,3 @@ export function deriveTitle(plainText: string) {
 export function normalizePlainText(plainText: string) {
   return plainText.replace(/\s+\n/g, "\n").trim();
 }
-

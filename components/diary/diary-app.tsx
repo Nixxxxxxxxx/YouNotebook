@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cloneContent, deriveTitle, EMPTY_CONTENT, WELCOME_CONTENT } from "@/lib/diary/content";
-import { formatEntryTime, formatHistoryDate } from "@/lib/diary/dates";
+import { formatHistoryDate } from "@/lib/diary/dates";
 import { diaryStorage } from "@/lib/diary/storage";
 import type { DiaryContent, DiaryEntry, DiaryExportPayload } from "@/lib/diary/types";
 import { DynamicBackground } from "./dynamic-background";
@@ -49,27 +49,16 @@ export function DiaryApp() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("loading");
-  const [search, setSearch] = useState("");
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editorRef = useRef<RichEditorHandle>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef<PendingPatch | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
   const activeEntry = entries.find((entry) => entry.id === activeId) ?? null;
-  const filteredEntries = entries.filter((entry) => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return true;
-    }
-
-    return `${entry.title} ${entry.plainText}`.toLowerCase().includes(query);
-  });
 
   async function reloadEntries(nextActiveId?: string | null) {
     const [loadedEntries, settings] = await Promise.all([
@@ -154,7 +143,7 @@ export function DiaryApp() {
   async function createEntry() {
     await flushSave();
     const entry = await diaryStorage.createEntry({
-      title: "Новая заметка",
+      title: "Без названия",
       contentJson: cloneContent(EMPTY_CONTENT),
       plainText: "",
     });
@@ -227,23 +216,11 @@ export function DiaryApp() {
     }
 
     const derivedTitle = deriveTitle(plainText);
-    const shouldDeriveTitle =
-      activeEntry.title === "Новая заметка" || activeEntry.title.trim() === "";
 
     queueSave(activeEntry.id, {
       contentJson,
       plainText,
-      title: shouldDeriveTitle ? derivedTitle : activeEntry.title,
-    });
-  }
-
-  function handleTitleChange(title: string) {
-    if (!activeEntry) {
-      return;
-    }
-
-    queueSave(activeEntry.id, {
-      title: title || "Новая заметка",
+      title: derivedTitle,
     });
   }
 
@@ -257,11 +234,6 @@ export function DiaryApp() {
       id: "save",
       title: "Сохранить сейчас",
       hint: "Cmd/Ctrl + S",
-    },
-    {
-      id: "focus-search",
-      title: "Фокус на поиск",
-      hint: "Cmd/Ctrl + F",
     },
     {
       id: "export",
@@ -293,10 +265,6 @@ export function DiaryApp() {
 
     if (commandId === "save") {
       void flushSave();
-    }
-
-    if (commandId === "focus-search") {
-      searchRef.current?.focus();
     }
 
     if (commandId === "export") {
@@ -387,20 +355,18 @@ export function DiaryApp() {
         void flushSave();
       }
 
-      if (key === "f") {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-
       if (key === "b") {
+        event.preventDefault();
         editorRef.current?.toggleBold();
       }
 
       if (key === "i") {
+        event.preventDefault();
         editorRef.current?.toggleItalic();
       }
 
       if (key === "u") {
+        event.preventDefault();
         editorRef.current?.toggleUnderline();
       }
     }
@@ -440,18 +406,8 @@ export function DiaryApp() {
           </button>
         </div>
 
-        <label className={styles.searchBox}>
-          <span>Поиск</span>
-          <input
-            ref={searchRef}
-            value={search}
-            placeholder="Название или строка..."
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
-
         <div className={styles.historyList}>
-          {groupEntries(filteredEntries).map(([label, group]) => (
+          {groupEntries(entries).map(([label, group]) => (
             <section key={label} className={styles.historyGroup}>
               <h2>{label}</h2>
               {group.map((entry) => (
@@ -464,7 +420,7 @@ export function DiaryApp() {
                   onClick={() => void selectEntry(entry)}
                 >
                   <span>{entry.title}</span>
-                  <small>{formatEntryTime(entry.updatedAt)}</small>
+                  <small aria-hidden="true">›</small>
                 </button>
               ))}
             </section>
@@ -495,22 +451,13 @@ export function DiaryApp() {
         </div>
 
         {activeEntry ? (
-          <>
-            <input
-              className={styles.titleInput}
-              value={activeEntry.title}
-              aria-label="Название заметки"
-              onChange={(event) => handleTitleChange(event.target.value)}
-            />
-
-            <RichEditor
-              ref={editorRef}
-              key={activeEntry.id}
-              entryId={activeEntry.id}
-              content={activeEntry.contentJson}
-              onChange={handleEditorChange}
-            />
-          </>
+          <RichEditor
+            ref={editorRef}
+            key={activeEntry.id}
+            entryId={activeEntry.id}
+            content={activeEntry.contentJson}
+            onChange={handleEditorChange}
+          />
         ) : (
           <div className={styles.emptyState}>
             <h2>Здесь пока тихо</h2>
@@ -523,21 +470,6 @@ export function DiaryApp() {
 
         {error ? <p className={styles.errorText}>{error}</p> : null}
       </section>
-
-      <div className={styles.editorControls} aria-label="Панель форматирования">
-        <button type="button" onClick={() => editorRef.current?.focus()}>
-          Aa
-        </button>
-        <button type="button" onClick={() => editorRef.current?.toggleBold()}>
-          B
-        </button>
-        <button type="button" onClick={() => editorRef.current?.toggleItalic()}>
-          I
-        </button>
-        <button type="button" onClick={() => editorRef.current?.toggleUnderline()}>
-          U
-        </button>
-      </div>
 
       <button
         className={styles.commandButton}

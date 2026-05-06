@@ -1,4 +1,5 @@
 .editorFrame {
+  position: relative;
   min-height: 360px;
 }
 
@@ -7,9 +8,9 @@
   outline: none;
   color: #ffffff;
   font-family: var(--font-editor);
-  font-size: 15px;
-  line-height: 1.72;
-  letter-spacing: 0.01em;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.16px;
 }
 
 .editor :global(*) {
@@ -21,25 +22,25 @@
 .editor :global(h3) {
   margin-bottom: 16px;
   font-family: var(--font-title);
-  font-weight: 650;
-  line-height: 1.24;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: 0;
 }
 
 .editor :global(h1) {
-  font-size: 32px;
+  font-size: 22px;
 }
 
 .editor :global(h2) {
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .editor :global(h3) {
-  font-size: 19px;
+  font-size: 16px;
 }
 
 .editor :global(p) {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .editor :global(ul),
@@ -69,3 +70,36 @@
   pointer-events: none;
 }
 
+.bubbleMenu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 156px;
+  height: 44px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: #1e2c37;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+}
+
+.bubbleMenu button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  color: #ffffff;
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.bubbleMenu button:nth-child(3) {
+  font-style: italic;
+}
+
+.bubbleMenu button:nth-child(4) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
