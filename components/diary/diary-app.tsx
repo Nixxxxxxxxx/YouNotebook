@@ -171,21 +171,23 @@ export function DiaryApp() {
     setHistoryOpen(false);
   }
 
-  async function deleteActiveEntry() {
-    if (!activeEntry) {
-      return;
-    }
-
-    const confirmed = window.confirm(`Удалить заметку "${activeEntry.title}"?`);
+  async function deleteEntry(entry: DiaryEntry) {
+    const confirmed = window.confirm(`Удалить заметку "${entry.title}"?`);
 
     if (!confirmed) {
       return;
     }
 
     await flushSave();
-    const nextActiveId = await diaryStorage.deleteEntry(activeEntry.id);
-    setEntries((current) => current.filter((entry) => entry.id !== activeEntry.id));
+    const nextActiveId = await diaryStorage.deleteEntry(entry.id);
+    setEntries((current) => current.filter((item) => item.id !== entry.id));
     setActiveId(nextActiveId);
+  }
+
+  async function deleteActiveEntry() {
+    if (activeEntry) {
+      await deleteEntry(activeEntry);
+    }
   }
 
   async function exportDiary() {
@@ -411,17 +413,29 @@ export function DiaryApp() {
             <section key={label} className={styles.historyGroup}>
               <h2>{label}</h2>
               {group.map((entry) => (
-                <button
+                <div
                   key={entry.id}
-                  className={`${styles.historyItem} ${
+                  className={`${styles.historyRow} ${
                     entry.id === activeId ? styles.historyItemActive : ""
                   }`}
-                  type="button"
-                  onClick={() => void selectEntry(entry)}
                 >
-                  <span>{entry.title}</span>
-                  <small aria-hidden="true">›</small>
-                </button>
+                  <button
+                    className={styles.historyItem}
+                    type="button"
+                    onClick={() => void selectEntry(entry)}
+                  >
+                    <span>{entry.title}</span>
+                    <small aria-hidden="true">›</small>
+                  </button>
+                  <button
+                    className={styles.deleteNoteButton}
+                    type="button"
+                    aria-label={`Удалить заметку ${entry.title}`}
+                    onClick={() => void deleteEntry(entry)}
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </section>
           ))}
