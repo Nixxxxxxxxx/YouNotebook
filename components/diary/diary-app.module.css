@@ -6,22 +6,18 @@
   isolation: isolate;
 }
 
-.background {
-  position: fixed;
-  inset: 0;
+.dottedSurface {
   z-index: -2;
   overflow: hidden;
-  background: #000000;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(0, 136, 255, 0.16), transparent 32%),
+    radial-gradient(circle at 50% 72%, rgba(255, 255, 255, 0.08), transparent 26%),
+    linear-gradient(180deg, #01070d 0%, #000000 60%, #000000 100%);
+  opacity: 0.78;
 }
 
-.orb {
-  position: absolute;
-  left: 50%;
-  top: 244px;
-  width: 494px;
-  height: 494px;
-  transform: translateX(-50%);
-  background: url("/figma/orb.svg") center / 100% 100% no-repeat;
+.dottedSurface canvas {
+  display: block;
 }
 
 .editorPanel {
@@ -429,11 +425,8 @@
     bottom: 14px;
   }
 
-  .orb {
-    top: 18vh;
-    width: 360px;
-    height: 360px;
-    opacity: 0.7;
+  .dottedSurface {
+    opacity: 0.62;
   }
 }
 

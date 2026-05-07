@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "NEXT_TEST_WASM=1 NEXT_TEST_WASM_DIR=./node_modules/@next/swc-wasm-nodejs next dev --webpack",
     "build": "NEXT_TEST_WASM=1 NEXT_TEST_WASM_DIR=./node_modules/@next/swc-wasm-nodejs next build --webpack",
-    "start": "next start",
+    "start": "NEXT_TEST_WASM=1 NEXT_TEST_WASM_DIR=./node_modules/@next/swc-wasm-nodejs next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
@@ -19,17 +19,25 @@
     "@tiptap/extension-underline": "2.27.2",
     "@tiptap/react": "2.27.2",
     "@tiptap/starter-kit": "2.27.2",
+    "clsx": "2.1.1",
     "next": "16.1.6",
+    "next-themes": "0.4.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tailwind-merge": "3.5.0",
+    "three": "0.184.0"
   },
   "devDependencies": {
     "@next/swc-wasm-nodejs": "16.1.6",
     "@types/node": "25.5.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/three": "0.184.1",
+    "autoprefixer": "10.5.0",
     "eslint": "9.39.1",
     "eslint-config-next": "16.1.6",
+    "postcss": "8.5.14",
+    "tailwindcss": "3.4.17",
     "typescript": "5.9.3"
   }
 }

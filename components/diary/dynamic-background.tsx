@@ -1,11 +1,8 @@
 "use client";
 
+import { DottedSurface } from "@/components/ui/dotted-surface";
 import styles from "./diary-app.module.css";
 
 export function DynamicBackground() {
-  return (
-    <div className={styles.background} aria-hidden="true">
-      <div className={styles.orb} />
-    </div>
-  );
+  return <DottedSurface className={styles.dottedSurface} aria-hidden="true" />;
 }
