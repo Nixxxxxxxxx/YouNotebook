@@ -80,6 +80,7 @@
   border-radius: 16px;
   background: #1e2c37;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+  animation: bubbleMenuIn 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .bubbleMenu button {
@@ -93,6 +94,24 @@
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
+  transition:
+    color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bubbleMenu button:hover {
+  color: rgba(255, 255, 255, 0.82);
+  transform: translateY(-1px);
+}
+
+.bubbleMenu button:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.bubbleMenu button:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 3px;
 }
 
 .bubbleMenu button:nth-child(3) {
@@ -102,4 +121,26 @@
 .bubbleMenu button:nth-child(4) {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+@keyframes bubbleMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubbleMenu {
+    animation: none;
+  }
+
+  .bubbleMenu button {
+    transition: none;
+  }
 }
