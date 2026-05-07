@@ -90,10 +90,14 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-    let count = 0;
+    const waveAmplitude = 34;
+    const secondaryWaveAmplitude = 24;
+    const waveSpeed = 0.24;
+    const secondaryWaveSpeed = 0.16;
+    let startTime: number | null = null;
     let animationId = 0;
 
-    const renderFrame = () => {
+    const renderFrame = (elapsedSeconds = 0) => {
       const positionAttribute = geometry.attributes.position;
       const particlePositions = positionAttribute.array as Float32Array;
 
@@ -103,8 +107,9 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
           const index = i * 3;
 
           particlePositions[index + 1] =
-            Math.sin((ix + count) * 0.3) * 50 +
-            Math.sin((iy + count) * 0.5) * 50;
+            Math.sin(ix * 0.3 + elapsedSeconds * waveSpeed) * waveAmplitude +
+            Math.sin(iy * 0.5 + elapsedSeconds * secondaryWaveSpeed) *
+              secondaryWaveAmplitude;
 
           i++;
         }
@@ -112,11 +117,11 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
 
       positionAttribute.needsUpdate = true;
       renderer.render(scene, camera);
-      count += 0.1;
     };
 
-    const animate = () => {
-      renderFrame();
+    const animate = (timestamp: number) => {
+      startTime ??= timestamp;
+      renderFrame((timestamp - startTime) / 1000);
       animationId = window.requestAnimationFrame(animate);
     };
 
@@ -131,7 +136,7 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
     if (prefersReducedMotion) {
       renderFrame();
     } else {
-      animate();
+      animationId = window.requestAnimationFrame(animate);
     }
 
     sceneRef.current = {
