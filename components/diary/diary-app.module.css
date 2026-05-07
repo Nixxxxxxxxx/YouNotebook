@@ -17,7 +17,46 @@
 }
 
 .dottedSurface canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   display: block;
+}
+
+.bookMark {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform: translateY(-236px);
+}
+
+.bookMarkGlow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(620px, 72vw);
+  height: min(620px, 72vw);
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.1),
+    transparent 58%
+  );
+  filter: blur(30px);
+  transform: translate(-50%, -50%);
+}
+
+.bookMark span {
+  position: relative;
+  color: rgba(255, 255, 255, 0.15);
+  font-family: var(--font-title);
+  font-size: clamp(76px, 15vw, 204px);
+  font-weight: 650;
+  letter-spacing: -0.09em;
+  line-height: 0.9;
+  text-shadow: 0 0 64px rgba(0, 136, 255, 0.22);
 }
 
 .editorPanel {
@@ -427,6 +466,14 @@
 
   .dottedSurface {
     opacity: 0.62;
+  }
+
+  .bookMark {
+    transform: translateY(-188px);
+  }
+
+  .bookMark span {
+    font-size: clamp(68px, 26vw, 148px);
   }
 }
 

@@ -7,7 +7,11 @@ import * as THREE from "three";
 
 type DottedSurfaceProps = Omit<React.ComponentProps<"div">, "ref">;
 
-export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
+export function DottedSurface({
+  children,
+  className,
+  ...props
+}: DottedSurfaceProps) {
   const { theme } = useTheme();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -177,6 +181,8 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       ref={containerRef}
       className={cn("pointer-events-none fixed inset-0 -z-1", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }
