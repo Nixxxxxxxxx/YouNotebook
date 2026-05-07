@@ -91,7 +91,7 @@ export const RichEditor = forwardRef<RichEditorHandle, RichEditorProps>(
               currentEditor.isEditable && from !== to
             }
             tippyOptions={{
-              duration: 120,
+              duration: [260, 180],
               offset: [0, 8],
               placement: "bottom-start",
             }}
