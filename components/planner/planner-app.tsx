@@ -34,7 +34,6 @@ import { DynamicBackground } from "@/components/diary/dynamic-background";
 import {
   AddTaskIcon,
   ChevronIcon,
-  DragHandleIcon,
   TaskCheckIcon,
   TrashIcon,
 } from "@/components/icons/app-icons";
@@ -380,7 +379,6 @@ function PlannerTaskRow({
   const {
     attributes,
     listeners,
-    setActivatorNodeRef,
     setNodeRef,
     transform,
     transition,
@@ -459,23 +457,16 @@ function PlannerTaskRow({
       data-dragging={isDragging ? "true" : "false"}
       data-task-row
       style={style}
+      {...attributes}
+      {...listeners}
     >
-      <button
-        ref={setActivatorNodeRef}
-        className={styles.dragHandle}
-        type="button"
-        aria-label={`Перетащить задачу ${task.title || "без названия"}`}
-        {...attributes}
-        {...listeners}
-      >
-        <DragHandleIcon />
-      </button>
       <button
         className={styles.checkbox}
         data-checked={task.completed ? "true" : "false"}
         type="button"
         aria-label={task.completed ? "Отметить невыполненной" : "Выполнить"}
         onClick={onToggle}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <TaskCheckIcon />
       </button>
@@ -504,6 +495,7 @@ function PlannerTaskRow({
         type="button"
         aria-label={`Удалить задачу ${task.title || "без названия"}`}
         onClick={onDelete}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <TrashIcon />
       </button>
@@ -624,7 +616,8 @@ export function PlannerApp() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        delay: 180,
+        tolerance: 6,
       },
     }),
     useSensor(KeyboardSensor, {
