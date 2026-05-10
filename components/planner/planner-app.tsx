@@ -30,6 +30,7 @@ import {
 } from "react";
 import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
+import { AddTaskIcon, ChevronIcon, TaskCheckIcon } from "@/components/icons/app-icons";
 import styles from "./planner-app.module.css";
 
 type PlannerTask = {
@@ -286,7 +287,7 @@ function PlannerCalendar({
           aria-label="Предыдущий месяц"
           onClick={() => onShiftMonth(-1)}
         >
-          ‹
+          <ChevronIcon />
         </button>
         <span>{monthLabel}</span>
         <button
@@ -294,7 +295,7 @@ function PlannerCalendar({
           aria-label="Следующий месяц"
           onClick={() => onShiftMonth(1)}
         >
-          ›
+          <ChevronIcon className={styles.calendarNextIcon} />
         </button>
       </div>
       <div className={styles.calendarGrid}>
@@ -312,43 +313,6 @@ function PlannerCalendar({
         ))}
       </div>
     </aside>
-  );
-}
-
-function AddIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      viewBox="0 0 18 18"
-    >
-      <path
-        d="M9 3.75V14.25M3.75 9H14.25"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      viewBox="0 0 18 18"
-    >
-      <path
-        d="M4.75 9.25L7.45 11.95L13.35 5.95"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.7"
-      />
-    </svg>
   );
 }
 
@@ -436,7 +400,7 @@ function PlannerTaskRow({
         aria-label={task.completed ? "Отметить невыполненной" : "Выполнить"}
         onClick={onToggle}
       >
-        <CheckIcon />
+        <TaskCheckIcon />
       </button>
       <span
         ref={titleRef}
@@ -524,7 +488,7 @@ function DayColumn({
             onClick={onAddTask}
           >
             <span aria-hidden="true">
-              <AddIcon />
+              <AddTaskIcon />
             </span>
             Добавить задачу
           </button>
@@ -541,7 +505,7 @@ function TaskOverlay({ task }: { task: PlannerTask }) {
         className={styles.checkbox}
         data-checked={task.completed ? "true" : "false"}
       >
-        <CheckIcon />
+        <TaskCheckIcon />
       </span>
       <span className={styles.taskTitle}>{task.title}</span>
     </div>

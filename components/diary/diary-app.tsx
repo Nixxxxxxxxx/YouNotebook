@@ -6,6 +6,7 @@ import { formatHistoryDate } from "@/lib/diary/dates";
 import { diaryStorage } from "@/lib/diary/storage";
 import type { DiaryContent, DiaryEntry, DiaryExportPayload } from "@/lib/diary/types";
 import { AppTabs } from "@/components/app-tabs";
+import { AddTaskIcon, ChevronIcon } from "@/components/icons/app-icons";
 import { DynamicBackground } from "./dynamic-background";
 import { RichEditor, type RichEditorHandle } from "./rich-editor";
 import styles from "./diary-app.module.css";
@@ -405,8 +406,12 @@ export function DiaryApp() {
       >
         <div className={styles.historyHeader}>
           <h1>История</h1>
-          <button className={styles.iconButton} type="button" onClick={() => void createEntry()}>
-            +
+          <button
+            className={styles.iconButton}
+            type="button"
+            onClick={() => void createEntry()}
+          >
+            <AddTaskIcon />
           </button>
         </div>
 
@@ -427,7 +432,9 @@ export function DiaryApp() {
                     onClick={() => void selectEntry(entry)}
                   >
                     <span>{entry.title}</span>
-                    <small aria-hidden="true">›</small>
+                    <small aria-hidden="true">
+                      <ChevronIcon />
+                    </small>
                   </button>
                   <button
                     className={styles.deleteNoteButton}
