@@ -128,11 +128,10 @@
   position: fixed;
   top: 106px;
   left: calc(24px + var(--calendar-width) + var(--layout-gap));
-  right: auto;
+  right: 24px;
   bottom: 230px;
   display: grid;
-  width: max-content;
-  grid-template-columns: repeat(6, var(--day-column-width));
+  grid-template-columns: repeat(6, minmax(var(--day-column-width), 1fr));
   border-left: 1px solid rgba(255, 255, 255, 0.14);
 }
 
@@ -455,14 +454,14 @@
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1336px) {
   .shell {
     overflow-x: auto;
   }
 
   .weekBoard {
     right: auto;
-    width: max-content;
+    width: calc(6 * var(--day-column-width));
   }
 
   .sundayNote {
