@@ -28,6 +28,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
 import {
@@ -302,6 +303,7 @@ function PlannerCalendar({
   onSelectDate: (date: Date) => void;
   onShiftMonth: (months: number) => void;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const monthLabel = MONTH_FORMATTER.format(viewDate).replace(/^./, (letter) =>
     letter.toUpperCase(),
   );
@@ -327,17 +329,24 @@ function PlannerCalendar({
       </div>
       <div className={styles.calendarGrid}>
         {cells.map((cell) => (
-          <button
+          <motion.button
             key={cell.id}
             className={cell.selected ? styles.calendarDateActive : ""}
             data-muted={cell.inMonth ? "false" : "true"}
             data-today={cell.isToday ? "true" : "false"}
+            layout={!shouldReduceMotion}
             type="button"
             aria-pressed={cell.selected}
+            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.88 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
+            transition={{
+              duration: 0.18,
+              ease: [0.22, 1, 0.36, 1],
+            }}
             onClick={() => onSelectDate(cell.date)}
           >
             {cell.label}
-          </button>
+          </motion.button>
         ))}
       </div>
     </aside>
@@ -473,9 +482,12 @@ function PlannerTaskRow({
       <span
         ref={titleRef}
         className={styles.taskTitle}
-        contentEditable
+        contentEditable="plaintext-only"
         data-empty={task.title.trim() ? "false" : "true"}
+        dir="auto"
+        aria-multiline="true"
         role="textbox"
+        spellCheck
         suppressContentEditableWarning
         tabIndex={0}
         onBlur={commitTitle}
@@ -501,6 +513,7 @@ function PlannerTaskRow({
 
 function DayColumn({
   day,
+  index,
   editingTaskId,
   tasks,
   onAddTask,
@@ -509,6 +522,7 @@ function DayColumn({
   onToggleTask,
 }: {
   day: PlannerDay;
+  index: number;
   editingTaskId: string | null;
   tasks: PlannerTask[];
   onAddTask: () => void;
@@ -516,14 +530,22 @@ function DayColumn({
   onTitleChange: (taskId: string, title: string) => void;
   onToggleTask: (taskId: string) => void;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const { isOver, setNodeRef } = useDroppable({ id: day.id });
 
   return (
-    <section
+    <motion.section
       ref={setNodeRef}
       className={styles.dayColumn}
       data-over={isOver ? "true" : "false"}
       data-today={day.isToday ? "true" : "false"}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.025,
+        duration: 0.24,
+        ease: [0.22, 1, 0.36, 1],
+      }}
     >
       <h2 aria-label={day.title}>
         <span>{day.weekday}</span>
@@ -550,14 +572,14 @@ function DayColumn({
             type="button"
             onClick={onAddTask}
           >
-            <span aria-hidden="true">
+            <span className={styles.addTaskIcon} aria-hidden="true">
               <AddTaskIcon />
             </span>
-            Добавить задачу
+            <span className={styles.addTaskLabel}>Добавить задачу</span>
           </button>
         </div>
       </SortableContext>
-    </section>
+    </motion.section>
   );
 }
 
@@ -797,10 +819,11 @@ export function PlannerApp() {
         onDragCancel={() => setActiveTaskId(null)}
       >
         <div className={styles.weekBoard}>
-          {days.map((day) => (
+          {days.map((day, index) => (
             <DayColumn
               key={day.id}
               day={day}
+              index={index}
               editingTaskId={editingTaskId}
               tasks={planner[day.id] ?? []}
               onAddTask={() => addTask(day.id)}

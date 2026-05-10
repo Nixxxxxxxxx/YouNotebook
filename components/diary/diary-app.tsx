@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cloneContent, deriveTitle, EMPTY_CONTENT, WELCOME_CONTENT } from "@/lib/diary/content";
 import { formatHistoryDate } from "@/lib/diary/dates";
 import { diaryStorage } from "@/lib/diary/storage";
 import type { DiaryContent, DiaryEntry, DiaryExportPayload } from "@/lib/diary/types";
 import { AppTabs } from "@/components/app-tabs";
-import { AddTaskIcon, ChevronIcon } from "@/components/icons/app-icons";
+import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
 import { DynamicBackground } from "./dynamic-background";
 import { RichEditor, type RichEditorHandle } from "./rich-editor";
 import styles from "./diary-app.module.css";
@@ -48,6 +49,7 @@ function saveJsonFile(payload: DiaryExportPayload) {
 }
 
 export function DiaryApp() {
+  const shouldReduceMotion = useReducedMotion();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("loading");
@@ -401,8 +403,11 @@ export function DiaryApp() {
         История
       </button>
 
-      <aside
+      <motion.aside
         className={`${styles.historyPanel} ${historyOpen ? styles.historyPanelOpen : ""}`}
+        initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
+        animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className={styles.historyHeader}>
           <h1>История</h1>
@@ -419,33 +424,49 @@ export function DiaryApp() {
           {groupEntries(entries).map(([label, group]) => (
             <section key={label} className={styles.historyGroup}>
               <h2>{label}</h2>
-              {group.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`${styles.historyRow} ${
-                    entry.id === activeId ? styles.historyItemActive : ""
-                  }`}
-                >
-                  <button
-                    className={styles.historyItem}
-                    type="button"
-                    onClick={() => void selectEntry(entry)}
+              <AnimatePresence initial={false}>
+                {group.map((entry) => (
+                  <motion.div
+                    key={entry.id}
+                    className={`${styles.historyRow} ${
+                      entry.id === activeId ? styles.historyItemActive : ""
+                    }`}
+                    layout={!shouldReduceMotion}
+                    initial={
+                      shouldReduceMotion
+                        ? false
+                        : { opacity: 0, x: -8, scale: 0.985 }
+                    }
+                    animate={
+                      shouldReduceMotion
+                        ? undefined
+                        : { opacity: 1, x: 0, scale: 1 }
+                    }
+                    exit={
+                      shouldReduceMotion
+                        ? undefined
+                        : { opacity: 0, x: -8, scale: 0.98 }
+                    }
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <span>{entry.title}</span>
-                    <small aria-hidden="true">
-                      <ChevronIcon />
-                    </small>
-                  </button>
-                  <button
-                    className={styles.deleteNoteButton}
-                    type="button"
-                    aria-label={`Удалить заметку ${entry.title}`}
-                    onClick={() => void deleteEntry(entry)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    <button
+                      className={styles.historyItem}
+                      type="button"
+                      onClick={() => void selectEntry(entry)}
+                    >
+                      <span>{entry.title}</span>
+                    </button>
+                    <button
+                      className={styles.deleteNoteButton}
+                      type="button"
+                      aria-label={`Удалить заметку ${entry.title}`}
+                      onClick={() => void deleteEntry(entry)}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </section>
           ))}
         </div>
@@ -457,9 +478,14 @@ export function DiaryApp() {
         >
           Закрыть
         </button>
-      </aside>
+      </motion.aside>
 
-      <section className={styles.editorPanel}>
+      <motion.section
+        className={styles.editorPanel}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+        animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className={styles.editorMeta}>
           <span>Рабочая область</span>
           <span className={styles.saveStatus} data-status={saveStatus}>
@@ -492,7 +518,7 @@ export function DiaryApp() {
         )}
 
         {error ? <p className={styles.errorText}>{error}</p> : null}
-      </section>
+      </motion.section>
 
       <button
         className={styles.commandButton}
@@ -502,34 +528,63 @@ export function DiaryApp() {
         Cmd K
       </button>
 
-      {commandOpen ? (
-        <div className={styles.commandOverlay} role="presentation">
-          <div className={styles.commandPalette} role="dialog" aria-label="Команды">
-            <input
-              autoFocus
-              value={commandSearch}
-              placeholder="Что сделать?"
-              onChange={(event) => setCommandSearch(event.target.value)}
-            />
-            <div className={styles.commandList}>
-              {visibleCommands.map((command) => (
-                <button
-                  key={command.id}
-                  type="button"
-                  onClick={() => {
-                    runCommand(command.id);
-                    setCommandOpen(false);
-                    setCommandSearch("");
-                  }}
-                >
-                  <span>{command.title}</span>
-                  <small>{command.hint}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {commandOpen ? (
+          <motion.div
+            className={styles.commandOverlay}
+            role="presentation"
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.div
+              className={styles.commandPalette}
+              role="dialog"
+              aria-label="Команды"
+              initial={
+                shouldReduceMotion
+                  ? false
+                  : { opacity: 0, y: 12, scale: 0.97 }
+              }
+              animate={
+                shouldReduceMotion
+                  ? undefined
+                  : { opacity: 1, y: 0, scale: 1 }
+              }
+              exit={
+                shouldReduceMotion
+                  ? undefined
+                  : { opacity: 0, y: 8, scale: 0.98 }
+              }
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <input
+                autoFocus
+                value={commandSearch}
+                placeholder="Что сделать?"
+                onChange={(event) => setCommandSearch(event.target.value)}
+              />
+              <div className={styles.commandList}>
+                {visibleCommands.map((command) => (
+                  <button
+                    key={command.id}
+                    type="button"
+                    onClick={() => {
+                      runCommand(command.id);
+                      setCommandOpen(false);
+                      setCommandSearch("");
+                    }}
+                  >
+                    <span>{command.title}</span>
+                    <small>{command.hint}</small>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <input
         ref={fileInputRef}

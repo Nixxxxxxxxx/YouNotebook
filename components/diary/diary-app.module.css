@@ -20,6 +20,7 @@
   max-height: calc(100vh - 124px);
   padding: 0;
   overflow: hidden;
+  transform-origin: top left;
 }
 
 .historyHeader {
@@ -133,6 +134,7 @@
   padding: 0 8px 0 0;
   border-radius: 12px;
   background: transparent;
+  transform-origin: left center;
   transition:
     background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -153,7 +155,7 @@
 
 .historyItem {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   min-height: 48px;
   padding: 0 8px 0 12px;
@@ -170,29 +172,6 @@
   white-space: nowrap;
 }
 
-.historyItem small {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  color: rgba(255, 255, 255, 0.42);
-  transition:
-    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.historyItem small svg {
-  width: 20px;
-  height: 20px;
-  transform: rotate(180deg);
-}
-
-.historyItem:hover small,
-.historyItemActive small {
-  color: rgba(255, 255, 255, 0.72);
-  transform: translateX(2px);
-}
-
 .deleteNoteButton {
   display: grid;
   place-items: center;
@@ -202,14 +181,17 @@
   border-radius: 10px;
   color: rgba(255, 255, 255, 0.48);
   background: transparent;
-  font-size: 18px;
-  line-height: 1;
   opacity: 0;
   transition:
     background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
     color 180ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.deleteNoteButton svg {
+  width: 19px;
+  height: 19px;
 }
 
 .historyRow:hover .deleteNoteButton,
@@ -233,6 +215,7 @@
   min-height: 629px;
   margin: 100px auto 80px;
   padding: 0;
+  transform-origin: top center;
 }
 
 .editorMeta {
@@ -286,6 +269,7 @@
   background: rgba(18, 28, 36, 0.86);
   box-shadow: 0 32px 100px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(30px);
+  transform-origin: top center;
 }
 
 .commandPalette input {
@@ -438,7 +422,6 @@
   .emptyState button,
   .historyItem,
   .historyRow,
-  .historyItem small,
   .deleteNoteButton,
   .commandPalette input,
   .commandList button {
