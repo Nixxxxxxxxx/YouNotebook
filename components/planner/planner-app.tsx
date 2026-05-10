@@ -376,6 +376,7 @@ function PlannerTaskRow({
   onToggle: () => void;
 }) {
   const titleRef = useRef<HTMLSpanElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const {
     attributes,
     listeners,
@@ -421,6 +422,8 @@ function PlannerTaskRow({
   function commitTitle() {
     const title = titleRef.current?.innerText.trim() ?? "";
 
+    setIsEditing(false);
+
     if (!title) {
       onDelete();
       return;
@@ -458,6 +461,7 @@ function PlannerTaskRow({
       ref={setNodeRef}
       className={styles.taskRow}
       data-empty={hasTitle ? "false" : "true"}
+      data-editing={isEditing ? "true" : "false"}
       data-dragging={isDragging ? "true" : "false"}
       data-task-row
       style={style}
@@ -486,6 +490,7 @@ function PlannerTaskRow({
         suppressContentEditableWarning
         tabIndex={0}
         onBlur={commitTitle}
+        onFocus={() => setIsEditing(true)}
         onInput={(event) => {
           const title = event.currentTarget.innerText;
 
@@ -498,7 +503,7 @@ function PlannerTaskRow({
         className={styles.deleteTask}
         type="button"
         aria-label={`Удалить задачу ${task.title || "без названия"}`}
-        disabled={!hasTitle}
+        disabled={!hasTitle || isEditing}
         onClick={onDelete}
         onPointerDown={(event) => event.stopPropagation()}
       >

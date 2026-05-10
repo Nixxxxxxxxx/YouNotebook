@@ -293,6 +293,7 @@
   color: rgba(255, 255, 255, 0.54);
   background: transparent;
   opacity: 0;
+  pointer-events: none;
   transition:
     color 160ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -307,11 +308,12 @@
   transform: translateY(-50%);
 }
 
-.taskRow:hover .deleteTask,
-.taskRow:focus-within .deleteTask {
+.taskRow[data-editing="false"]:hover .deleteTask {
   opacity: 1;
+  pointer-events: auto;
 }
 
+.taskRow[data-editing="true"] .deleteTask,
 .taskRow[data-empty="true"] .deleteTask {
   opacity: 0;
   pointer-events: none;
