@@ -30,7 +30,13 @@ import {
 } from "react";
 import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
-import { AddTaskIcon, ChevronIcon, TaskCheckIcon } from "@/components/icons/app-icons";
+import {
+  AddTaskIcon,
+  ChevronIcon,
+  DragHandleIcon,
+  TaskCheckIcon,
+  TrashIcon,
+} from "@/components/icons/app-icons";
 import styles from "./planner-app.module.css";
 
 type PlannerTask = {
@@ -316,6 +322,16 @@ function PlannerCalendar({
   );
 }
 
+function placeCaretAtEnd(element: HTMLElement) {
+  const range = document.createRange();
+  const selection = window.getSelection();
+
+  range.selectNodeContents(element);
+  range.collapse(false);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
 function PlannerTaskRow({
   autoFocus,
   task,
@@ -346,12 +362,27 @@ function PlannerTaskRow({
   };
 
   useEffect(() => {
+    if (!titleRef.current || document.activeElement === titleRef.current) {
+      return;
+    }
+
+    titleRef.current.innerText = task.title;
+  }, [task.id, task.title]);
+
+  useEffect(() => {
     if (!autoFocus || !titleRef.current) {
       return;
     }
 
     const frame = window.requestAnimationFrame(() => {
-      titleRef.current?.focus();
+      const titleElement = titleRef.current;
+
+      if (!titleElement) {
+        return;
+      }
+
+      titleElement.focus();
+      placeCaretAtEnd(titleElement);
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -366,6 +397,10 @@ function PlannerTaskRow({
     }
 
     onTitleChange(title);
+
+    if (titleRef.current) {
+      titleRef.current.innerText = title;
+    }
   }
 
   function handleTitleKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
@@ -379,6 +414,7 @@ function PlannerTaskRow({
 
       if (titleRef.current) {
         titleRef.current.innerText = task.title;
+        titleRef.current.dataset.empty = task.title.trim() ? "false" : "true";
       }
 
       titleRef.current?.blur();
@@ -393,6 +429,16 @@ function PlannerTaskRow({
       data-task-row
       style={style}
     >
+      <button
+        ref={setActivatorNodeRef}
+        className={styles.dragHandle}
+        type="button"
+        aria-label={`Перетащить задачу ${task.title || "без названия"}`}
+        {...attributes}
+        {...listeners}
+      >
+        <DragHandleIcon />
+      </button>
       <button
         className={styles.checkbox}
         data-checked={task.completed ? "true" : "false"}
@@ -411,30 +457,21 @@ function PlannerTaskRow({
         suppressContentEditableWarning
         tabIndex={0}
         onBlur={commitTitle}
-        onInput={(event) => onTitleChange(event.currentTarget.innerText)}
+        onInput={(event) => {
+          const title = event.currentTarget.innerText;
+
+          event.currentTarget.dataset.empty = title.trim() ? "false" : "true";
+          onTitleChange(title);
+        }}
         onKeyDown={handleTitleKeyDown}
-      >
-        {task.title}
-      </span>
-      <button
-        ref={setActivatorNodeRef}
-        className={styles.dragHandle}
-        type="button"
-        aria-label={`Перетащить задачу ${task.title || "без названия"}`}
-        {...attributes}
-        {...listeners}
-      >
-        <span />
-        <span />
-        <span />
-      </button>
+      />
       <button
         className={styles.deleteTask}
         type="button"
         aria-label={`Удалить задачу ${task.title || "без названия"}`}
         onClick={onDelete}
       >
-        ×
+        <TrashIcon />
       </button>
     </div>
   );

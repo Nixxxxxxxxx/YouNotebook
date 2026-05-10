@@ -161,7 +161,7 @@
 
 .taskRow {
   margin: 0 -6px;
-  padding: 3px 6px;
+  padding: 3px 30px 3px 6px;
   touch-action: none;
 }
 
@@ -234,14 +234,12 @@
 
 .dragHandle,
 .deleteTask {
-  position: absolute;
-  top: 50%;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border: 0;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.54);
   background: transparent;
   opacity: 0;
   transition:
@@ -251,12 +249,19 @@
 }
 
 .dragHandle {
-  right: 26px;
+  position: absolute;
+  top: 50%;
+  left: -22px;
+  border-radius: 8px;
+  cursor: grab;
   transform: translateY(-50%);
 }
 
 .deleteTask {
+  position: absolute;
+  top: 50%;
   right: 4px;
+  border-radius: 8px;
   transform: translateY(-50%);
 }
 
@@ -267,25 +272,19 @@
   opacity: 1;
 }
 
-.dragHandle {
-  cursor: grab;
-}
-
 .dragHandle:active {
   cursor: grabbing;
 }
 
-.dragHandle span {
-  width: 12px;
-  height: 1px;
-  border-radius: 999px;
-  background: currentColor;
+.dragHandle svg,
+.deleteTask svg {
+  width: 24px;
+  height: 24px;
 }
 
-.deleteTask {
-  border-radius: 6px;
-  font-size: 15px;
-  line-height: 1;
+.dragHandle:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .deleteTask:hover {
