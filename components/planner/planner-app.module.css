@@ -83,9 +83,20 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
-.calendarGrid button:not(.calendarDateActive):hover {
+.calendarGrid button:not(.calendarDateActive):not([data-today="true"]):hover {
   background: rgba(255, 255, 255, 0.12);
   transform: translateY(-1px);
+}
+
+.calendarGrid button[data-today="true"] {
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+}
+
+.calendarGrid button[data-today="true"]:hover {
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  transform: none;
 }
 
 .calendarGrid .calendarDateActive {
@@ -93,10 +104,20 @@
   background: #ffffff;
 }
 
+.calendarGrid .calendarDateActive[data-today="true"] {
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+}
+
 .calendarGrid .calendarDateActive:hover {
   color: #000000;
   background: #ffffff;
   transform: none;
+}
+
+.calendarGrid .calendarDateActive[data-today="true"]:hover {
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
 }
 
 .weekBoard {
@@ -127,11 +148,26 @@
 }
 
 .dayColumn h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin: 0 0 12px;
+  padding: 0;
+  border-radius: 999px;
   color: rgba(255, 255, 255, 0.56);
   font-size: 13px;
   font-weight: 400;
   line-height: 16px;
+}
+
+.dayColumn h2 time {
+  font-variant-numeric: tabular-nums;
+}
+
+.dayColumn[data-today="true"] h2 {
+  padding: 3px 9px;
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
 }
 
 .taskList {
@@ -352,7 +388,22 @@
 }
 
 .sundayNote p {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border-radius: 999px;
   color: rgba(255, 255, 255, 0.56);
+}
+
+.sundayNote p time {
+  font-variant-numeric: tabular-nums;
+}
+
+.sundayNote[data-today="true"] p {
+  padding: 3px 10px;
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
 }
 
 .sundayNote strong {

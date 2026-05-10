@@ -50,19 +50,22 @@ type PlannerState = Record<string, PlannerTask[]>;
 type PlannerDay = {
   id: string;
   date: Date;
+  dateLabel: string;
+  isToday: boolean;
   title: string;
+  weekday: string;
 };
 
 type CalendarCell = {
   id: string;
   date: Date;
+  isToday: boolean;
   label: number;
   inMonth: boolean;
   selected: boolean;
 };
 
 const STORAGE_KEY = "younotebook:planner:v2";
-const INITIAL_SELECTED_DATE = new Date(2026, 8, 1);
 const DAY_NAMES = [
   "Понедельник",
   "Вторник",
@@ -75,6 +78,15 @@ const MONTH_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   month: "long",
   year: "numeric",
 });
+const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+  day: "numeric",
+});
+
+function getToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
 
 function toDateKey(date: Date) {
   const year = date.getFullYear();
@@ -111,21 +123,29 @@ function isSameDay(first: Date, second: Date) {
   return toDateKey(first) === toDateKey(second);
 }
 
-function buildWeekDays(selectedDate: Date): PlannerDay[] {
+function buildWeekDays(selectedDate: Date, today = getToday()): PlannerDay[] {
   const monday = startOfWeek(selectedDate);
 
   return DAY_NAMES.map((name, index) => {
     const date = addDays(monday, index);
+    const dateLabel = DAY_NUMBER_FORMATTER.format(date);
 
     return {
       id: toDateKey(date),
       date,
-      title: `${name} ${date.getDate()}`,
+      dateLabel,
+      isToday: isSameDay(date, today),
+      title: `${name} ${dateLabel}`,
+      weekday: name,
     };
   });
 }
 
-function buildCalendarCells(viewDate: Date, selectedDate: Date) {
+function buildCalendarCells(
+  viewDate: Date,
+  selectedDate: Date,
+  today = getToday(),
+) {
   const monthStart = startOfMonth(viewDate);
   const gridStart = startOfWeek(monthStart);
   const cells: CalendarCell[] = [];
@@ -136,6 +156,7 @@ function buildCalendarCells(viewDate: Date, selectedDate: Date) {
     cells.push({
       id: toDateKey(date),
       date,
+      isToday: isSameDay(date, today),
       label: date.getDate(),
       inMonth: date.getMonth() === viewDate.getMonth(),
       selected: isSameDay(date, selectedDate),
@@ -310,6 +331,7 @@ function PlannerCalendar({
             key={cell.id}
             className={cell.selected ? styles.calendarDateActive : ""}
             data-muted={cell.inMonth ? "false" : "true"}
+            data-today={cell.isToday ? "true" : "false"}
             type="button"
             aria-pressed={cell.selected}
             onClick={() => onSelectDate(cell.date)}
@@ -501,8 +523,12 @@ function DayColumn({
       ref={setNodeRef}
       className={styles.dayColumn}
       data-over={isOver ? "true" : "false"}
+      data-today={day.isToday ? "true" : "false"}
     >
-      <h2>{day.title}</h2>
+      <h2 aria-label={day.title}>
+        <span>{day.weekday}</span>
+        <time dateTime={day.id}>{day.dateLabel}</time>
+      </h2>
       <SortableContext
         items={tasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
@@ -550,19 +576,28 @@ function TaskOverlay({ task }: { task: PlannerTask }) {
 }
 
 export function PlannerApp() {
-  const [selectedDate, setSelectedDate] = useState(INITIAL_SELECTED_DATE);
-  const [viewDate, setViewDate] = useState(startOfMonth(INITIAL_SELECTED_DATE));
+  const [today, setToday] = useState(() => getToday());
+  const [selectedDate, setSelectedDate] = useState(() => getToday());
+  const [viewDate, setViewDate] = useState(() => startOfMonth(getToday()));
   const [planner, setPlanner] = useState<PlannerState>(() =>
-    createInitialPlanner(INITIAL_SELECTED_DATE),
+    createInitialPlanner(getToday()),
   );
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
-  const days = useMemo(() => buildWeekDays(selectedDate), [selectedDate]);
-  const calendarCells = useMemo(
-    () => buildCalendarCells(viewDate, selectedDate),
-    [selectedDate, viewDate],
+  const days = useMemo(
+    () => buildWeekDays(selectedDate, today),
+    [selectedDate, today],
   );
+  const calendarCells = useMemo(
+    () => buildCalendarCells(viewDate, selectedDate, today),
+    [selectedDate, today, viewDate],
+  );
+  const sundayDate = useMemo(
+    () => addDays(startOfWeek(selectedDate), 6),
+    [selectedDate],
+  );
+  const isSundayToday = isSameDay(sundayDate, today);
   const activeTask = activeTaskId ? findTask(planner, activeTaskId) : null;
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -577,6 +612,12 @@ export function PlannerApp() {
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
+      const currentDate = getToday();
+
+      setToday(currentDate);
+      setSelectedDate(currentDate);
+      setViewDate(startOfMonth(currentDate));
+
       try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
 
@@ -587,19 +628,43 @@ export function PlannerApp() {
             setPlanner(
               ensurePlannerDays(
                 parsed,
-                buildWeekDays(INITIAL_SELECTED_DATE),
+                buildWeekDays(currentDate, currentDate),
               ),
             );
           }
         }
       } catch {
-        setPlanner(createInitialPlanner(INITIAL_SELECTED_DATE));
+        setPlanner(createInitialPlanner(currentDate));
       } finally {
         setStorageReady(true);
       }
     });
 
     return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    let timeoutId: number | null = null;
+
+    function scheduleTodayRefresh() {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 50);
+
+      timeoutId = window.setTimeout(() => {
+        setToday(getToday());
+        scheduleTodayRefresh();
+      }, tomorrow.getTime() - now.getTime());
+    }
+
+    scheduleTodayRefresh();
+
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -702,7 +767,7 @@ export function PlannerApp() {
   }
 
   function selectDate(date: Date) {
-    const weekDays = buildWeekDays(date);
+    const weekDays = buildWeekDays(date, today);
 
     setSelectedDate(date);
     setViewDate(startOfMonth(date));
@@ -718,7 +783,9 @@ export function PlannerApp() {
         cells={calendarCells}
         viewDate={viewDate}
         onSelectDate={selectDate}
-        onShiftMonth={(months) => setViewDate((current) => addMonths(current, months))}
+        onShiftMonth={(months) =>
+          setViewDate((current) => addMonths(current, months))
+        }
       />
 
       <DndContext
@@ -750,8 +817,16 @@ export function PlannerApp() {
         </DragOverlay>
       </DndContext>
 
-      <section className={styles.sundayNote}>
-        <p>Воскресенье</p>
+      <section
+        className={styles.sundayNote}
+        data-today={isSundayToday ? "true" : "false"}
+      >
+        <p aria-label={`Воскресенье ${DAY_NUMBER_FORMATTER.format(sundayDate)}`}>
+          <span>Воскресенье</span>
+          <time dateTime={toDateKey(sundayDate)}>
+            {DAY_NUMBER_FORMATTER.format(sundayDate)}
+          </time>
+        </p>
         <strong>Займись собой, сделай то, что хочешь</strong>
       </section>
     </main>
