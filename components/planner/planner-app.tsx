@@ -433,6 +433,8 @@ function PlannerTaskRow({
   }
 
   function handleTitleKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+    event.stopPropagation();
+
     if (event.key === "Enter") {
       event.preventDefault();
       titleRef.current?.blur();
