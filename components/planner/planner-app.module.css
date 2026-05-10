@@ -74,7 +74,7 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
-.calendarGrid button:hover {
+.calendarGrid button:not(.calendarDateActive):hover {
   background: rgba(255, 255, 255, 0.12);
   transform: translateY(-1px);
 }
@@ -82,6 +82,12 @@
 .calendarGrid .calendarDateActive {
   color: #000000;
   background: #ffffff;
+}
+
+.calendarGrid .calendarDateActive:hover {
+  color: #000000;
+  background: #ffffff;
+  transform: none;
 }
 
 .weekBoard {
@@ -122,7 +128,7 @@
 .taskList {
   align-content: start;
   display: grid;
-  gap: 6px;
+  gap: 12px;
   grid-auto-rows: min-content;
   min-height: 220px;
 }
@@ -145,7 +151,7 @@
 }
 
 .taskRow {
-  margin: -3px -6px;
+  margin: 0 -6px;
   padding: 3px 6px;
   touch-action: none;
 }
@@ -174,28 +180,32 @@
 
 .checkbox {
   position: relative;
+  display: grid;
+  place-items: center;
   width: 18px;
   height: 18px;
   border: 1px solid #ffffff;
   border-radius: 4px;
+  color: #000000;
   background: transparent;
+  transition:
+    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.checkbox svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .checkbox[data-checked="true"] {
-  border-width: 1.5px;
   background: #ffffff;
 }
 
-.checkbox[data-checked="true"]::after {
-  position: absolute;
-  left: 4px;
-  top: 2px;
-  width: 7px;
-  height: 10px;
-  border-right: 1.5px solid #000000;
-  border-bottom: 1.5px solid #000000;
-  content: "";
-  transform: rotate(42deg);
+.checkbox[data-checked="true"] svg {
+  opacity: 1;
 }
 
 .taskTitle {
@@ -281,7 +291,7 @@
   gap: 8px;
   width: fit-content;
   min-height: 18px;
-  margin: -3px -6px;
+  margin: 0 -6px;
   padding: 3px 6px;
   border: 0;
   border-radius: 8px;
@@ -297,25 +307,15 @@
 }
 
 .addTask span {
-  position: relative;
   display: grid;
   place-items: center;
   width: 18px;
   height: 18px;
 }
 
-.addTask span::before,
-.addTask span::after {
-  position: absolute;
-  width: 12px;
-  height: 1.5px;
-  border-radius: 999px;
-  background: currentColor;
-  content: "";
-}
-
-.addTask span::after {
-  transform: rotate(90deg);
+.addTask svg {
+  width: 18px;
+  height: 18px;
 }
 
 .addTask:hover {
