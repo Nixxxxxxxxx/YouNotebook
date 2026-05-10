@@ -389,6 +389,7 @@ function PlannerTaskRow({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const hasTitle = task.title.trim().length > 0;
 
   useEffect(() => {
     if (!titleRef.current || document.activeElement === titleRef.current) {
@@ -456,6 +457,7 @@ function PlannerTaskRow({
     <div
       ref={setNodeRef}
       className={styles.taskRow}
+      data-empty={hasTitle ? "false" : "true"}
       data-dragging={isDragging ? "true" : "false"}
       data-task-row
       style={style}
@@ -476,7 +478,7 @@ function PlannerTaskRow({
         ref={titleRef}
         className={styles.taskTitle}
         contentEditable="plaintext-only"
-        data-empty={task.title.trim() ? "false" : "true"}
+        data-empty={hasTitle ? "false" : "true"}
         dir="auto"
         aria-multiline="true"
         role="textbox"
@@ -496,6 +498,7 @@ function PlannerTaskRow({
         className={styles.deleteTask}
         type="button"
         aria-label={`Удалить задачу ${task.title || "без названия"}`}
+        disabled={!hasTitle}
         onClick={onDelete}
         onPointerDown={(event) => event.stopPropagation()}
       >

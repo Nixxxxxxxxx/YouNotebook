@@ -312,6 +312,11 @@
   opacity: 1;
 }
 
+.taskRow[data-empty="true"] .deleteTask {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .deleteTask svg {
   width: 24px;
   height: 24px;
