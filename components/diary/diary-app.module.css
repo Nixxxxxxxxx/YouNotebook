@@ -2,7 +2,6 @@
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  padding: 20px;
   isolation: isolate;
 }
 
@@ -15,13 +14,12 @@
 
 .historyPanel {
   position: fixed;
-  top: 20px;
-  left: 20px;
+  top: 100px;
+  left: 24px;
   width: 281px;
-  max-height: calc(100vh - 40px);
-  padding: 24px 0;
+  max-height: calc(100vh - 124px);
+  padding: 0;
   overflow: hidden;
-  border-radius: 24px;
 }
 
 .historyHeader {
@@ -29,13 +27,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 20px;
+  padding: 0;
 }
 
 .historyHeader h1 {
   margin: 0;
   font-size: 17px;
-  font-weight: 450;
+  font-weight: 400;
+  line-height: 22px;
 }
 
 .iconButton,
@@ -100,23 +99,24 @@
 }
 
 .historyList {
-  max-height: calc(100vh - 104px);
+  max-height: calc(100vh - 162px);
   overflow: auto;
-  padding: 0 0 12px;
+  padding: 16px 0 12px;
 }
 
 .historyGroup {
   display: grid;
-  gap: 12px;
-  padding: 0 0 12px;
+  gap: 8px;
+  padding: 0 0 16px;
 }
 
 .historyGroup h2 {
   margin: 0;
-  padding: 10px 20px 8px;
+  padding: 0;
   color: var(--muted);
   font-size: 13px;
   font-weight: 400;
+  line-height: 16px;
 }
 
 .historyRow {
@@ -135,7 +135,7 @@
 
 .historyRow:hover,
 .historyItemActive {
-  background: var(--glass-hover);
+  background: #171717;
 }
 
 .historyRow:hover {
@@ -151,7 +151,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   min-height: 48px;
-  padding: 0 8px 0 20px;
+  padding: 0 8px 0 12px;
   border: 0;
   color: #ffffff;
   background: transparent;
@@ -215,10 +215,10 @@
 
 .editorPanel {
   position: relative;
-  width: min(622px, calc(100vw - 40px));
+  width: min(582px, calc(100vw - 40px));
   min-height: 629px;
-  margin: 157px auto 80px;
-  padding: 24px 20px 28px;
+  margin: 100px auto 80px;
+  padding: 0;
 }
 
 .editorMeta {
@@ -360,13 +360,13 @@
 
 @media (max-width: 900px) {
   .shell {
-    padding: 14px;
+    overflow: auto;
   }
 
   .mobileHistoryButton {
     position: fixed;
-    top: 14px;
-    left: 14px;
+    top: 78px;
+    left: 18px;
     z-index: 5;
     display: block;
     height: 38px;
@@ -376,7 +376,7 @@
 
   .historyPanel {
     z-index: 8;
-    top: 10px;
+    top: 76px;
     bottom: 10px;
     left: 10px;
     width: min(318px, calc(100vw - 20px));
@@ -400,7 +400,7 @@
   .editorPanel {
     width: 100%;
     min-height: calc(100vh - 28px);
-    margin: 0;
+    margin: 92px 0 0;
     padding: 68px 6px 28px;
   }
 
@@ -408,7 +408,6 @@
     right: 14px;
     bottom: 14px;
   }
-
 }
 
 @media (hover: none) {
