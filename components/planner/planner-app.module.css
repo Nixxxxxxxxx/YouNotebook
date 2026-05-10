@@ -1,4 +1,8 @@
 .shell {
+  --calendar-width: 204px;
+  --layout-gap: 16px;
+  --day-column-width: 178px;
+
   position: relative;
   min-height: 100vh;
   overflow: hidden;
@@ -12,9 +16,9 @@
   position: fixed;
   top: 106px;
   left: 24px;
-  width: 204px;
+  width: var(--calendar-width);
   display: grid;
-  gap: 12px;
+  gap: var(--layout-gap);
 }
 
 .calendarHeader {
@@ -123,17 +127,18 @@
 .weekBoard {
   position: fixed;
   top: 106px;
-  left: 252px;
-  right: 24px;
+  left: calc(24px + var(--calendar-width) + var(--layout-gap));
+  right: auto;
   bottom: 230px;
   display: grid;
-  grid-template-columns: repeat(6, minmax(142px, 1fr));
+  width: max-content;
+  grid-template-columns: repeat(6, var(--day-column-width));
   border-left: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .dayColumn {
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 var(--layout-gap);
   border-right: 1px solid rgba(255, 255, 255, 0.14);
   transform-origin: top center;
   transition:
@@ -457,7 +462,7 @@
 
   .weekBoard {
     right: auto;
-    width: 1236px;
+    width: max-content;
   }
 
   .sundayNote {
