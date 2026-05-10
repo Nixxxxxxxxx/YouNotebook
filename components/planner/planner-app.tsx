@@ -21,12 +21,16 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
 import styles from "./planner-app.module.css";
-
-type DayId = "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
 
 type PlannerTask = {
   id: string;
@@ -34,69 +38,147 @@ type PlannerTask = {
   completed: boolean;
 };
 
-type PlannerState = Record<DayId, PlannerTask[]>;
+type PlannerState = Record<string, PlannerTask[]>;
 
-type Day = {
-  id: DayId;
+type PlannerDay = {
+  id: string;
+  date: Date;
   title: string;
 };
 
-const STORAGE_KEY = "younotebook:planner:v1";
-
-const DAYS: Day[] = [
-  { id: "mon", title: "Понедельник 1" },
-  { id: "tue", title: "Вторник 2" },
-  { id: "wed", title: "Среда 3" },
-  { id: "thu", title: "Четверг 4" },
-  { id: "fri", title: "Пятница 5" },
-  { id: "sat", title: "Суббота 6" },
-];
-
-const DEFAULT_PLANNER: PlannerState = {
-  mon: [
-    { id: "mon-1", title: "Мы работаем над собой", completed: false },
-    { id: "mon-2", title: "Мы работаем над собой", completed: true },
-  ],
-  tue: [
-    { id: "tue-1", title: "Мы работаем над собой", completed: false },
-    { id: "tue-2", title: "Мы работаем над собой", completed: true },
-  ],
-  wed: [
-    { id: "wed-1", title: "Мы работаем над собой", completed: false },
-    { id: "wed-2", title: "Мы работаем над собой", completed: true },
-  ],
-  thu: [
-    { id: "thu-1", title: "Мы работаем над собой", completed: false },
-    { id: "thu-2", title: "Мы работаем над собой", completed: true },
-  ],
-  fri: [
-    { id: "fri-1", title: "Мы работаем над собой", completed: false },
-    { id: "fri-2", title: "Мы работаем над собой", completed: true },
-  ],
-  sat: [
-    { id: "sat-1", title: "Мы работаем над собой", completed: false },
-    { id: "sat-2", title: "Мы работаем над собой", completed: true },
-  ],
+type CalendarCell = {
+  id: string;
+  date: Date;
+  label: number;
+  inMonth: boolean;
+  selected: boolean;
 };
 
-function clonePlanner(state: PlannerState): PlannerState {
-  return DAYS.reduce((next, day) => {
-    next[day.id] = state[day.id].map((task) => ({ ...task }));
-    return next;
+const STORAGE_KEY = "younotebook:planner:v2";
+const INITIAL_SELECTED_DATE = new Date(2026, 8, 1);
+const DAY_NAMES = [
+  "Понедельник",
+  "Вторник",
+  "Среда",
+  "Четверг",
+  "Пятница",
+  "Суббота",
+];
+const MONTH_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+  month: "long",
+  year: "numeric",
+});
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function addMonths(date: Date, months: number) {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function startOfWeek(date: Date) {
+  const next = new Date(date);
+  const day = next.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  next.setDate(next.getDate() + diff);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function isSameDay(first: Date, second: Date) {
+  return toDateKey(first) === toDateKey(second);
+}
+
+function buildWeekDays(selectedDate: Date): PlannerDay[] {
+  const monday = startOfWeek(selectedDate);
+
+  return DAY_NAMES.map((name, index) => {
+    const date = addDays(monday, index);
+
+    return {
+      id: toDateKey(date),
+      date,
+      title: `${name} ${date.getDate()}`,
+    };
+  });
+}
+
+function buildCalendarCells(viewDate: Date, selectedDate: Date) {
+  const monthStart = startOfMonth(viewDate);
+  const gridStart = startOfWeek(monthStart);
+  const cells: CalendarCell[] = [];
+
+  for (let index = 0; index < 42; index++) {
+    const date = addDays(gridStart, index);
+
+    cells.push({
+      id: toDateKey(date),
+      date,
+      label: date.getDate(),
+      inMonth: date.getMonth() === viewDate.getMonth(),
+      selected: isSameDay(date, selectedDate),
+    });
+  }
+
+  return cells;
+}
+
+function createInitialPlanner(selectedDate: Date): PlannerState {
+  return buildWeekDays(selectedDate).reduce((state, day) => {
+    state[day.id] = [
+      { id: `${day.id}-1`, title: "Мы работаем над собой", completed: false },
+      { id: `${day.id}-2`, title: "Мы работаем над собой", completed: true },
+    ];
+    return state;
   }, {} as PlannerState);
 }
 
-function createTask(dayId: DayId): PlannerTask {
+function ensurePlannerDays(state: PlannerState, days: PlannerDay[]) {
+  const next = clonePlanner(state);
+
+  days.forEach((day) => {
+    next[day.id] = next[day.id] ?? [];
+  });
+
+  return next;
+}
+
+function clonePlanner(state: PlannerState): PlannerState {
+  return Object.fromEntries(
+    Object.entries(state).map(([dayId, tasks]) => [
+      dayId,
+      tasks.map((task) => ({ ...task })),
+    ]),
+  );
+}
+
+function createTask(dayId: string): PlannerTask {
   return {
     id: `${dayId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title: "Новая задача",
+    title: "",
     completed: false,
   };
 }
 
 function findTaskContainer(state: PlannerState, taskId: string) {
-  return DAYS.find((day) => state[day.id].some((task) => task.id === taskId))
-    ?.id;
+  return Object.entries(state).find(([, tasks]) =>
+    tasks.some((task) => task.id === taskId),
+  )?.[0];
 }
 
 function findTask(state: PlannerState, taskId: string) {
@@ -106,12 +188,12 @@ function findTask(state: PlannerState, taskId: string) {
     return null;
   }
 
-  return state[dayId].find((task) => task.id === taskId) ?? null;
+  return state[dayId]?.find((task) => task.id === taskId) ?? null;
 }
 
-function getOverContainer(state: PlannerState, overId: string): DayId | null {
-  if (DAYS.some((day) => day.id === overId)) {
-    return overId as DayId;
+function getOverContainer(state: PlannerState, overId: string) {
+  if (state[overId]) {
+    return overId;
   }
 
   return findTaskContainer(state, overId) ?? null;
@@ -129,14 +211,17 @@ function moveTaskBetweenDays(
     return state;
   }
 
-  const activeTask = state[activeDay].find((task) => task.id === activeId);
+  const activeTask = state[activeDay]?.find((task) => task.id === activeId);
 
   if (!activeTask) {
     return state;
   }
 
   const next = clonePlanner(state);
-  next[activeDay] = next[activeDay].filter((task) => task.id !== activeId);
+  next[activeDay] = (next[activeDay] ?? []).filter(
+    (task) => task.id !== activeId,
+  );
+  next[overDay] = next[overDay] ?? [];
 
   const overIndex = next[overDay].findIndex((task) => task.id === overId);
   const insertAt = overIndex >= 0 ? overIndex : next[overDay].length;
@@ -149,56 +234,101 @@ function moveTaskBetweenDays(
   return next;
 }
 
-function PlannerCalendar() {
-  const rows = [
-    [1, 2, 3, 4, 5, 6, 7],
-    [8, 9, 10, 11, 12, 13, 14],
-    [15, 16, 17, 18, 19, 20, 21],
-    [22, 23, 24, 25, 26, 27, 28],
-    [29, 30, 31, 1, 2, 3, 4],
-  ];
+function normalizeStoredPlanner(value: unknown): PlannerState | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>);
+  const next: PlannerState = {};
+
+  entries.forEach(([dayId, tasks]) => {
+    if (!Array.isArray(tasks)) {
+      return;
+    }
+
+    next[dayId] = tasks
+      .filter((task): task is PlannerTask => {
+        return (
+          Boolean(task) &&
+          typeof task === "object" &&
+          typeof (task as PlannerTask).id === "string" &&
+          typeof (task as PlannerTask).title === "string" &&
+          typeof (task as PlannerTask).completed === "boolean"
+        );
+      })
+      .map((task) => ({ ...task }));
+  });
+
+  return next;
+}
+
+function PlannerCalendar({
+  cells,
+  viewDate,
+  onSelectDate,
+  onShiftMonth,
+}: {
+  cells: CalendarCell[];
+  viewDate: Date;
+  onSelectDate: (date: Date) => void;
+  onShiftMonth: (months: number) => void;
+}) {
+  const monthLabel = MONTH_FORMATTER.format(viewDate).replace(/^./, (letter) =>
+    letter.toUpperCase(),
+  );
 
   return (
     <aside className={styles.calendar} aria-label="Календарь">
       <div className={styles.calendarHeader}>
-        <button type="button" aria-label="Предыдущий месяц">
+        <button
+          type="button"
+          aria-label="Предыдущий месяц"
+          onClick={() => onShiftMonth(-1)}
+        >
           ‹
         </button>
-        <span>Сентябрь 2026</span>
-        <button type="button" aria-label="Следующий месяц">
+        <span>{monthLabel}</span>
+        <button
+          type="button"
+          aria-label="Следующий месяц"
+          onClick={() => onShiftMonth(1)}
+        >
           ›
         </button>
       </div>
       <div className={styles.calendarGrid}>
-        {rows.flatMap((row, rowIndex) =>
-          row.map((date, dateIndex) => {
-            const selected = rowIndex === 4 && dateIndex === 2;
-
-            return (
-              <button
-                key={`${rowIndex}-${dateIndex}`}
-                className={selected ? styles.calendarDateActive : ""}
-                type="button"
-              >
-                {date}
-              </button>
-            );
-          }),
-        )}
+        {cells.map((cell) => (
+          <button
+            key={cell.id}
+            className={cell.selected ? styles.calendarDateActive : ""}
+            data-muted={cell.inMonth ? "false" : "true"}
+            type="button"
+            aria-pressed={cell.selected}
+            onClick={() => onSelectDate(cell.date)}
+          >
+            {cell.label}
+          </button>
+        ))}
       </div>
     </aside>
   );
 }
 
 function PlannerTaskRow({
+  autoFocus,
   task,
   onDelete,
+  onTitleChange,
   onToggle,
 }: {
+  autoFocus: boolean;
   task: PlannerTask;
   onDelete: () => void;
+  onTitleChange: (title: string) => void;
   onToggle: () => void;
 }) {
+  const titleRef = useRef<HTMLSpanElement>(null);
   const {
     attributes,
     listeners,
@@ -214,11 +344,52 @@ function PlannerTaskRow({
     transition,
   };
 
+  useEffect(() => {
+    if (!autoFocus || !titleRef.current) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      titleRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [autoFocus]);
+
+  function commitTitle() {
+    const title = titleRef.current?.innerText.trim() ?? "";
+
+    if (!title) {
+      onDelete();
+      return;
+    }
+
+    onTitleChange(title);
+  }
+
+  function handleTitleKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      titleRef.current?.blur();
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+
+      if (titleRef.current) {
+        titleRef.current.innerText = task.title;
+      }
+
+      titleRef.current?.blur();
+    }
+  }
+
   return (
     <div
       ref={setNodeRef}
       className={styles.taskRow}
       data-dragging={isDragging ? "true" : "false"}
+      data-task-row
       style={style}
     >
       <button
@@ -228,12 +399,25 @@ function PlannerTaskRow({
         aria-label={task.completed ? "Отметить невыполненной" : "Выполнить"}
         onClick={onToggle}
       />
-      <span className={styles.taskTitle}>{task.title}</span>
+      <span
+        ref={titleRef}
+        className={styles.taskTitle}
+        contentEditable
+        data-empty={task.title.trim() ? "false" : "true"}
+        role="textbox"
+        suppressContentEditableWarning
+        tabIndex={0}
+        onBlur={commitTitle}
+        onInput={(event) => onTitleChange(event.currentTarget.innerText)}
+        onKeyDown={handleTitleKeyDown}
+      >
+        {task.title}
+      </span>
       <button
         ref={setActivatorNodeRef}
         className={styles.dragHandle}
         type="button"
-        aria-label={`Перетащить задачу ${task.title}`}
+        aria-label={`Перетащить задачу ${task.title || "без названия"}`}
         {...attributes}
         {...listeners}
       >
@@ -244,7 +428,7 @@ function PlannerTaskRow({
       <button
         className={styles.deleteTask}
         type="button"
-        aria-label={`Удалить задачу ${task.title}`}
+        aria-label={`Удалить задачу ${task.title || "без названия"}`}
         onClick={onDelete}
       >
         ×
@@ -255,15 +439,19 @@ function PlannerTaskRow({
 
 function DayColumn({
   day,
+  editingTaskId,
   tasks,
   onAddTask,
   onDeleteTask,
+  onTitleChange,
   onToggleTask,
 }: {
-  day: Day;
+  day: PlannerDay;
+  editingTaskId: string | null;
   tasks: PlannerTask[];
   onAddTask: () => void;
   onDeleteTask: (taskId: string) => void;
+  onTitleChange: (taskId: string, title: string) => void;
   onToggleTask: (taskId: string) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: day.id });
@@ -279,17 +467,24 @@ function DayColumn({
         items={tasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className={styles.taskList}>
+        <div className={styles.taskList} data-task-list>
           {tasks.map((task) => (
             <PlannerTaskRow
               key={task.id}
+              autoFocus={editingTaskId === task.id}
               task={task}
               onDelete={() => onDeleteTask(task.id)}
+              onTitleChange={(title) => onTitleChange(task.id, title)}
               onToggle={() => onToggleTask(task.id)}
             />
           ))}
-          <button className={styles.addTask} type="button" onClick={onAddTask}>
-            <span aria-hidden="true">+</span>
+          <button
+            className={styles.addTask}
+            data-add-task
+            type="button"
+            onClick={onAddTask}
+          >
+            <span aria-hidden="true" />
             Добавить задачу
           </button>
         </div>
@@ -311,11 +506,19 @@ function TaskOverlay({ task }: { task: PlannerTask }) {
 }
 
 export function PlannerApp() {
+  const [selectedDate, setSelectedDate] = useState(INITIAL_SELECTED_DATE);
+  const [viewDate, setViewDate] = useState(startOfMonth(INITIAL_SELECTED_DATE));
   const [planner, setPlanner] = useState<PlannerState>(() =>
-    clonePlanner(DEFAULT_PLANNER),
+    createInitialPlanner(INITIAL_SELECTED_DATE),
   );
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
+  const days = useMemo(() => buildWeekDays(selectedDate), [selectedDate]);
+  const calendarCells = useMemo(
+    () => buildCalendarCells(viewDate, selectedDate),
+    [selectedDate, viewDate],
+  );
   const activeTask = activeTaskId ? findTask(planner, activeTaskId) : null;
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -328,28 +531,25 @@ export function PlannerApp() {
     }),
   );
 
-  const dayItemIds = useMemo(
-    () =>
-      DAYS.reduce(
-        (items, day) => ({
-          ...items,
-          [day.id]: planner[day.id].map((task) => task.id),
-        }),
-        {} as Record<DayId, string[]>,
-      ),
-    [planner],
-  );
-
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
 
         if (stored) {
-          setPlanner(JSON.parse(stored) as PlannerState);
+          const parsed = normalizeStoredPlanner(JSON.parse(stored));
+
+          if (parsed) {
+            setPlanner(
+              ensurePlannerDays(
+                parsed,
+                buildWeekDays(INITIAL_SELECTED_DATE),
+              ),
+            );
+          }
         }
       } catch {
-        setPlanner(clonePlanner(DEFAULT_PLANNER));
+        setPlanner(createInitialPlanner(INITIAL_SELECTED_DATE));
       } finally {
         setStorageReady(true);
       }
@@ -418,27 +618,51 @@ export function PlannerApp() {
     setActiveTaskId(null);
   }
 
-  function addTask(dayId: DayId) {
+  function addTask(dayId: string) {
+    const task = createTask(dayId);
+
     setPlanner((current) => ({
       ...current,
-      [dayId]: [...current[dayId], createTask(dayId)],
+      [dayId]: [...(current[dayId] ?? []), task],
+    }));
+    setEditingTaskId(task.id);
+  }
+
+  function deleteTask(dayId: string, taskId: string) {
+    setPlanner((current) => ({
+      ...current,
+      [dayId]: (current[dayId] ?? []).filter((task) => task.id !== taskId),
+    }));
+
+    if (editingTaskId === taskId) {
+      setEditingTaskId(null);
+    }
+  }
+
+  function updateTaskTitle(dayId: string, taskId: string, title: string) {
+    setPlanner((current) => ({
+      ...current,
+      [dayId]: (current[dayId] ?? []).map((task) =>
+        task.id === taskId ? { ...task, title } : task,
+      ),
     }));
   }
 
-  function deleteTask(dayId: DayId, taskId: string) {
+  function toggleTask(dayId: string, taskId: string) {
     setPlanner((current) => ({
       ...current,
-      [dayId]: current[dayId].filter((task) => task.id !== taskId),
-    }));
-  }
-
-  function toggleTask(dayId: DayId, taskId: string) {
-    setPlanner((current) => ({
-      ...current,
-      [dayId]: current[dayId].map((task) =>
+      [dayId]: (current[dayId] ?? []).map((task) =>
         task.id === taskId ? { ...task, completed: !task.completed } : task,
       ),
     }));
+  }
+
+  function selectDate(date: Date) {
+    const weekDays = buildWeekDays(date);
+
+    setSelectedDate(date);
+    setViewDate(startOfMonth(date));
+    setPlanner((current) => ensurePlannerDays(current, weekDays));
   }
 
   return (
@@ -446,7 +670,12 @@ export function PlannerApp() {
       <DynamicBackground />
       <AppTabs active="planner" />
 
-      <PlannerCalendar />
+      <PlannerCalendar
+        cells={calendarCells}
+        viewDate={viewDate}
+        onSelectDate={selectDate}
+        onShiftMonth={(months) => setViewDate((current) => addMonths(current, months))}
+      />
 
       <DndContext
         collisionDetection={closestCorners}
@@ -457,15 +686,17 @@ export function PlannerApp() {
         onDragCancel={() => setActiveTaskId(null)}
       >
         <div className={styles.weekBoard}>
-          {DAYS.map((day) => (
+          {days.map((day) => (
             <DayColumn
               key={day.id}
               day={day}
-              tasks={planner[day.id].filter((task) =>
-                dayItemIds[day.id].includes(task.id),
-              )}
+              editingTaskId={editingTaskId}
+              tasks={planner[day.id] ?? []}
               onAddTask={() => addTask(day.id)}
               onDeleteTask={(taskId) => deleteTask(day.id, taskId)}
+              onTitleChange={(taskId, title) =>
+                updateTaskTitle(day.id, taskId, title)
+              }
               onToggleTask={(taskId) => toggleTask(day.id, taskId)}
             />
           ))}
