@@ -27,6 +27,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type MouseEvent,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AppTabs } from "@/components/app-tabs";
@@ -74,6 +75,7 @@ type CompletionSummary = {
 };
 
 const STORAGE_KEY = "younotebook:planner:v2";
+const COMPLETION_REORDER_DELAY = 650;
 const DAY_NAMES = [
   "Понедельник",
   "Вторник",
@@ -215,27 +217,24 @@ function getMeaningfulTasks(tasks: PlannerTask[]) {
   return tasks.filter((task) => task.title.trim().length > 0);
 }
 
-function orderTasksForDisplay(tasks: PlannerTask[]) {
-  return [...tasks].sort(
-    (first, second) => Number(first.completed) - Number(second.completed),
+function toggleTaskCompletionState(tasks: PlannerTask[], taskId: string) {
+  return tasks.map((task) =>
+    task.id === taskId ? { ...task, completed: !task.completed } : task,
   );
 }
 
-function toggleTaskCompletionOrder(tasks: PlannerTask[], taskId: string) {
+function moveTaskToCompletionPosition(tasks: PlannerTask[], taskId: string) {
   const taskIndex = tasks.findIndex((task) => task.id === taskId);
 
   if (taskIndex < 0) {
     return tasks;
   }
 
-  const nextTask = {
-    ...tasks[taskIndex],
-    completed: !tasks[taskIndex].completed,
-  };
+  const targetTask = tasks[taskIndex];
   const remainingTasks = tasks.filter((task) => task.id !== taskId);
 
-  if (nextTask.completed) {
-    return [...remainingTasks, nextTask];
+  if (targetTask.completed) {
+    return [...remainingTasks, targetTask];
   }
 
   const firstCompletedIndex = remainingTasks.findIndex(
@@ -243,13 +242,27 @@ function toggleTaskCompletionOrder(tasks: PlannerTask[], taskId: string) {
   );
 
   if (firstCompletedIndex < 0) {
-    return [...remainingTasks, nextTask];
+    return [...remainingTasks, targetTask];
   }
 
   return [
     ...remainingTasks.slice(0, firstCompletedIndex),
-    nextTask,
+    targetTask,
     ...remainingTasks.slice(firstCompletedIndex),
+  ];
+}
+
+function insertTaskBeforeCompleted(tasks: PlannerTask[], task: PlannerTask) {
+  const firstCompletedIndex = tasks.findIndex((item) => item.completed);
+
+  if (firstCompletedIndex < 0) {
+    return [...tasks, task];
+  }
+
+  return [
+    ...tasks.slice(0, firstCompletedIndex),
+    task,
+    ...tasks.slice(firstCompletedIndex),
   ];
 }
 
@@ -538,6 +551,7 @@ function PlannerTaskRow({
 }) {
   const titleRef = useRef<HTMLSpanElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [rippleKey, setRippleKey] = useState(0);
   const shouldReduceMotion = useReducedMotion();
   const {
     attributes,
@@ -618,6 +632,12 @@ function PlannerTaskRow({
     }
   }
 
+  function handleToggleClick(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    setRippleKey((current) => current + 1);
+    onToggle();
+  }
+
   return (
     <motion.div
       ref={setNodeRef}
@@ -639,23 +659,32 @@ function PlannerTaskRow({
             }
       }
       transition={{
-        layout: { type: "spring", stiffness: 115, damping: 20, mass: 1.25 },
+        layout: { duration: 0.54, ease: [0.22, 1, 0.36, 1] },
         opacity: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
         scale: { duration: 0.52, ease: [0.16, 1, 0.3, 1] },
       }}
       {...attributes}
       {...listeners}
     >
-      <button
+      <motion.button
         className={styles.checkbox}
         data-checked={task.completed ? "true" : "false"}
         type="button"
         aria-label={task.completed ? "Отметить невыполненной" : "Выполнить"}
-        onClick={onToggle}
+        whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+        transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+        onClick={handleToggleClick}
         onPointerDown={(event) => event.stopPropagation()}
       >
+        {rippleKey > 0 ? (
+          <span
+            key={rippleKey}
+            className={styles.checkboxRipple}
+            aria-hidden="true"
+          />
+        ) : null}
         <TaskCheckIcon />
-      </button>
+      </motion.button>
       <span
         ref={titleRef}
         className={styles.taskTitle}
@@ -712,7 +741,6 @@ function DayColumn({
 }) {
   const shouldReduceMotion = useReducedMotion();
   const { isOver, setNodeRef } = useDroppable({ id: day.id });
-  const orderedTasks = useMemo(() => orderTasksForDisplay(tasks), [tasks]);
 
   return (
     <motion.section
@@ -733,7 +761,7 @@ function DayColumn({
         <time dateTime={day.id}>{day.dateLabel}</time>
       </h2>
       <SortableContext
-        items={orderedTasks.map((task) => task.id)}
+        items={tasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
         <motion.div
@@ -741,10 +769,10 @@ function DayColumn({
           data-task-list
           layout={shouldReduceMotion ? false : true}
           transition={{
-            layout: { type: "spring", stiffness: 115, damping: 20, mass: 1.25 },
+            layout: { duration: 0.54, ease: [0.22, 1, 0.36, 1] },
           }}
         >
-          {orderedTasks.map((task) => (
+          {tasks.map((task) => (
             <PlannerTaskRow
               key={task.id}
               autoFocus={editingTaskId === task.id}
@@ -795,6 +823,8 @@ export function PlannerApp() {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
+  const reorderTimeoutsRef = useRef<Record<string, number>>({});
+  const shouldReduceMotion = useReducedMotion();
   const days = useMemo(
     () => buildWeekDays(selectedDate, today),
     [selectedDate, today],
@@ -889,6 +919,16 @@ export function PlannerApp() {
   }, []);
 
   useEffect(() => {
+    const reorderTimeouts = reorderTimeoutsRef.current;
+
+    return () => {
+      Object.values(reorderTimeouts).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     if (!storageReady) {
       return;
     }
@@ -948,17 +988,71 @@ export function PlannerApp() {
     setActiveTaskId(null);
   }
 
+  function clearCompletionReorder(taskId: string) {
+    const timeoutId = reorderTimeoutsRef.current[taskId];
+
+    if (!timeoutId) {
+      return;
+    }
+
+    window.clearTimeout(timeoutId);
+    delete reorderTimeoutsRef.current[taskId];
+  }
+
+  function reorderTaskToCompletionPosition(dayId: string, taskId: string) {
+    setPlanner((current) => {
+      const targetDay =
+        current[dayId]?.some((task) => task.id === taskId) === true
+          ? dayId
+          : findTaskContainer(current, taskId);
+
+      if (!targetDay) {
+        return current;
+      }
+
+      const nextTasks = moveTaskToCompletionPosition(
+        current[targetDay] ?? [],
+        taskId,
+      );
+
+      if (nextTasks === current[targetDay]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [targetDay]: nextTasks,
+      };
+    });
+  }
+
+  function scheduleCompletionReorder(dayId: string, taskId: string) {
+    clearCompletionReorder(taskId);
+
+    if (shouldReduceMotion) {
+      reorderTaskToCompletionPosition(dayId, taskId);
+      return;
+    }
+
+    reorderTimeoutsRef.current[taskId] = window.setTimeout(() => {
+      delete reorderTimeoutsRef.current[taskId];
+      reorderTaskToCompletionPosition(dayId, taskId);
+    }, COMPLETION_REORDER_DELAY);
+  }
+
   function addTask(dayId: string) {
     const task = createTask(dayId);
 
     setPlanner((current) => ({
       ...current,
-      [dayId]: [...(current[dayId] ?? []), task],
+      [dayId]: insertTaskBeforeCompleted(current[dayId] ?? [], task),
     }));
     setEditingTaskId(task.id);
   }
 
   function deleteTask(dayId: string, taskId: string) {
+    clearCompletionReorder(taskId);
+
     setPlanner((current) => ({
       ...current,
       [dayId]: (current[dayId] ?? []).filter((task) => task.id !== taskId),
@@ -981,8 +1075,9 @@ export function PlannerApp() {
   function toggleTask(dayId: string, taskId: string) {
     setPlanner((current) => ({
       ...current,
-      [dayId]: toggleTaskCompletionOrder(current[dayId] ?? [], taskId),
+      [dayId]: toggleTaskCompletionState(current[dayId] ?? [], taskId),
     }));
+    scheduleCompletionReorder(dayId, taskId);
   }
 
   function selectDate(date: Date) {
