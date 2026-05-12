@@ -1,5 +1,6 @@
 .shell {
   --calendar-width: 204px;
+  --status-width: 212px;
   --layout-gap: 16px;
   --day-column-width: 178px;
 
@@ -12,10 +13,17 @@
   isolation: isolate;
 }
 
-.calendar {
+.leftRail {
   position: fixed;
   top: 106px;
   left: 24px;
+  display: grid;
+  width: var(--status-width);
+  gap: 60px;
+  align-content: start;
+}
+
+.calendar {
   width: var(--calendar-width);
   display: grid;
   gap: var(--layout-gap);
@@ -124,6 +132,61 @@
   background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
 }
 
+.dayStatus {
+  display: grid;
+  width: var(--status-width);
+  color: #ffffff;
+}
+
+.dayStatusLabel {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 16px;
+}
+
+.dayStatusCount {
+  display: block;
+  margin-top: 4px;
+  color: #ffffff;
+  font-size: 64px;
+  font-weight: 650;
+  letter-spacing: -0.08em;
+  line-height: 0.95;
+  text-wrap: nowrap;
+}
+
+.dayStatusTrack {
+  position: relative;
+  height: 4px;
+  margin-top: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dayStatusProgress {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  box-shadow: 0 0 14px rgba(255, 55, 0, 0.44);
+  transform-origin: left center;
+}
+
+.dayStatusMessage {
+  max-width: 205px;
+  margin: 15px 0 0;
+  color: #ffffff;
+  font-family: "Bradley Hand", "Comic Sans MS", "Marker Felt", cursive;
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 20px;
+}
+
 .weekBoard {
   position: fixed;
   top: 106px;
@@ -224,6 +287,24 @@
   opacity: 0.28;
 }
 
+.taskRow[data-completed="true"] {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.taskRow[data-completed="true"] .checkbox {
+  border-color: transparent;
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  box-shadow: 0 0 14px rgba(255, 55, 0, 0.28);
+}
+
+.taskRow[data-completed="true"] .taskTitle {
+  color: rgba(255, 255, 255, 0.46);
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.34);
+  text-decoration-thickness: 1px;
+}
+
 .taskOverlay {
   width: 190px;
   padding: 8px 10px;
@@ -259,7 +340,8 @@
 }
 
 .checkbox[data-checked="true"] {
-  background: #ffffff;
+  color: #ffffff;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
 }
 
 .checkbox[data-checked="true"] svg {
@@ -477,11 +559,16 @@
 }
 
 @media (max-width: 760px) {
-  .calendar {
+  .leftRail {
     position: relative;
     top: auto;
     left: auto;
-    margin: 92px 18px 28px;
+    margin: 92px 18px 48px;
+    gap: 44px;
+  }
+
+  .calendar {
+    margin: 0;
   }
 
   .weekBoard {
@@ -517,6 +604,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dayStatus,
+  .dayStatusCount,
+  .dayStatusMessage,
+  .dayStatusProgress,
   .dayColumn,
   .taskRow,
   .taskOverlay,

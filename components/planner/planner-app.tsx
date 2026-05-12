@@ -28,7 +28,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
 import {
@@ -63,6 +63,14 @@ type CalendarCell = {
   label: number;
   inMonth: boolean;
   selected: boolean;
+};
+
+type CompletionSummary = {
+  completed: number;
+  total: number;
+  label: string;
+  message: string;
+  progress: number;
 };
 
 const STORAGE_KEY = "younotebook:planner:v2";
@@ -200,6 +208,62 @@ function createTask(dayId: string): PlannerTask {
     id: `${dayId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     title: "",
     completed: false,
+  };
+}
+
+function getMeaningfulTasks(tasks: PlannerTask[]) {
+  return tasks.filter((task) => task.title.trim().length > 0);
+}
+
+function orderTasksForDisplay(tasks: PlannerTask[]) {
+  return [...tasks].sort(
+    (first, second) => Number(first.completed) - Number(second.completed),
+  );
+}
+
+function getCompletionMessage(completed: number, total: number) {
+  if (total === 0) {
+    return "Пока нечего считать. Добавь задачу, если день просит формы.";
+  }
+
+  if (completed === 0) {
+    return "Пока ноль. Зато теперь понятно, куда бить.";
+  }
+
+  const progress = completed / total;
+
+  if (progress < 0.34) {
+    return "Уже не пусто. Маленький ход — тоже ход.";
+  }
+
+  if (progress < 0.7) {
+    return "Половина зверя приручена. Продолжаем спокойно.";
+  }
+
+  if (progress < 1) {
+    return "Почти закрыто. Осталось не испугаться финиша.";
+  }
+
+  return "И ты хочешь сказать, что гордишься этим?";
+}
+
+function getCompletionSummary({
+  isToday,
+  tasks,
+}: {
+  isToday: boolean;
+  tasks: PlannerTask[];
+}): CompletionSummary {
+  const meaningfulTasks = getMeaningfulTasks(tasks);
+  const completed = meaningfulTasks.filter((task) => task.completed).length;
+  const total = meaningfulTasks.length;
+
+  return {
+    completed,
+    total,
+    label: isToday ? "Выполнено сегодня" : "Выполнено за день",
+    message: getCompletionMessage(completed, total),
+    progress: total > 0 ? completed / total : 0,
   };
 }
 
@@ -352,6 +416,71 @@ function PlannerCalendar({
   );
 }
 
+function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
+  const shouldReduceMotion = useReducedMotion();
+  const statusKey = `${summary.completed}-${summary.total}-${summary.message}`;
+
+  return (
+    <motion.section
+      className={styles.dayStatus}
+      aria-label={`${summary.label}: ${summary.completed} из ${summary.total}`}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span className={styles.dayStatusLabel}>{summary.label}</span>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.strong
+          key={`count-${summary.completed}-${summary.total}`}
+          className={styles.dayStatusCount}
+          initial={
+            shouldReduceMotion
+              ? false
+              : { opacity: 0, y: 8, filter: "blur(4px)" }
+          }
+          animate={
+            shouldReduceMotion
+              ? undefined
+              : { opacity: 1, y: 0, filter: "blur(0px)" }
+          }
+          exit={
+            shouldReduceMotion
+              ? undefined
+              : { opacity: 0, y: -8, filter: "blur(4px)" }
+          }
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {summary.completed}/{summary.total}
+        </motion.strong>
+      </AnimatePresence>
+      <div className={styles.dayStatusTrack} aria-hidden="true">
+        <motion.span
+          className={styles.dayStatusProgress}
+          initial={false}
+          animate={{ scaleX: summary.progress }}
+          transition={
+            shouldReduceMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 420, damping: 36, mass: 0.8 }
+          }
+        />
+      </div>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.p
+          key={statusKey}
+          className={styles.dayStatusMessage}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -6 }}
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {summary.message}
+        </motion.p>
+      </AnimatePresence>
+    </motion.section>
+  );
+}
+
 function placeCaretAtEnd(element: HTMLElement) {
   const range = document.createRange();
   const selection = window.getSelection();
@@ -377,18 +506,19 @@ function PlannerTaskRow({
 }) {
   const titleRef = useRef<HTMLSpanElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    transition,
+    transition: sortableTransition,
     isDragging,
   } = useSortable({ id: task.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: sortableTransition,
   };
   const hasTitle = task.title.trim().length > 0;
 
@@ -457,14 +587,30 @@ function PlannerTaskRow({
   }
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       className={styles.taskRow}
+      data-completed={task.completed ? "true" : "false"}
       data-empty={hasTitle ? "false" : "true"}
       data-editing={isEditing ? "true" : "false"}
       data-dragging={isDragging ? "true" : "false"}
       data-task-row
       style={style}
+      layout={shouldReduceMotion ? false : "position"}
+      initial={false}
+      animate={
+        shouldReduceMotion
+          ? undefined
+          : {
+              opacity: isDragging ? 0.28 : 1,
+              scale: task.completed ? 0.985 : 1,
+            }
+      }
+      transition={{
+        layout: { type: "spring", stiffness: 520, damping: 42, mass: 0.75 },
+        opacity: { duration: 0.16, ease: [0.22, 1, 0.36, 1] },
+        scale: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+      }}
       {...attributes}
       {...listeners}
     >
@@ -509,7 +655,7 @@ function PlannerTaskRow({
       >
         <TrashIcon />
       </button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -534,6 +680,7 @@ function DayColumn({
 }) {
   const shouldReduceMotion = useReducedMotion();
   const { isOver, setNodeRef } = useDroppable({ id: day.id });
+  const orderedTasks = useMemo(() => orderTasksForDisplay(tasks), [tasks]);
 
   return (
     <motion.section
@@ -554,11 +701,11 @@ function DayColumn({
         <time dateTime={day.id}>{day.dateLabel}</time>
       </h2>
       <SortableContext
-        items={tasks.map((task) => task.id)}
+        items={orderedTasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
         <div className={styles.taskList} data-task-list>
-          {tasks.map((task) => (
+          {orderedTasks.map((task) => (
             <PlannerTaskRow
               key={task.id}
               autoFocus={editingTaskId === task.id}
@@ -623,6 +770,16 @@ export function PlannerApp() {
   );
   const isSundayToday = isSameDay(sundayDate, today);
   const activeTask = activeTaskId ? findTask(planner, activeTaskId) : null;
+  const selectedDayId = toDateKey(selectedDate);
+  const isSelectedToday = isSameDay(selectedDate, today);
+  const dayStatus = useMemo(
+    () =>
+      getCompletionSummary({
+        isToday: isSelectedToday,
+        tasks: planner[selectedDayId] ?? [],
+      }),
+    [isSelectedToday, planner, selectedDayId],
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -804,14 +961,17 @@ export function PlannerApp() {
       <DynamicBackground />
       <AppTabs active="planner" />
 
-      <PlannerCalendar
-        cells={calendarCells}
-        viewDate={viewDate}
-        onSelectDate={selectDate}
-        onShiftMonth={(months) =>
-          setViewDate((current) => addMonths(current, months))
-        }
-      />
+      <div className={styles.leftRail}>
+        <PlannerCalendar
+          cells={calendarCells}
+          viewDate={viewDate}
+          onSelectDate={selectDate}
+          onShiftMonth={(months) =>
+            setViewDate((current) => addMonths(current, months))
+          }
+        />
+        <PlannerDayStatus summary={dayStatus} />
+      </div>
 
       <DndContext
         collisionDetection={closestCorners}
