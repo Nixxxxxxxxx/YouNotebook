@@ -643,35 +643,35 @@ function PlannerTaskRow({
   }
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       className={styles.taskItem}
       data-completed={task.completed ? "true" : "false"}
       data-dragging={isDragging ? "true" : "false"}
-      style={sortableStyle}
+      layout={shouldReduceMotion ? false : "position"}
+      initial={false}
+      animate={
+        shouldReduceMotion
+          ? undefined
+          : {
+              opacity: isDragging ? 0.28 : 1,
+            }
+      }
+      transition={{
+        layout: REORDER_TRANSITION,
+        opacity: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
+      }}
       {...attributes}
       {...listeners}
     >
-      <motion.div
+      <div
         className={styles.taskRow}
         data-completed={task.completed ? "true" : "false"}
         data-empty={hasTitle ? "false" : "true"}
         data-editing={isEditing ? "true" : "false"}
         data-dragging={isDragging ? "true" : "false"}
         data-task-row
-        layout={shouldReduceMotion ? false : "position"}
-        initial={false}
-        animate={
-          shouldReduceMotion
-            ? undefined
-            : {
-                opacity: isDragging ? 0.28 : 1,
-              }
-        }
-        transition={{
-          layout: REORDER_TRANSITION,
-          opacity: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
-        }}
+        style={sortableStyle}
       >
         <motion.button
           className={styles.checkbox}
@@ -725,8 +725,8 @@ function PlannerTaskRow({
         >
           <TrashIcon />
         </button>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }
 
