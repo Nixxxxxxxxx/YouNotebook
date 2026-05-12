@@ -148,7 +148,7 @@
 
 .dayStatusCount {
   display: block;
-  margin-top: 4px;
+  margin-top: 8px;
   color: #ffffff;
   font-size: 64px;
   font-weight: 650;
@@ -179,12 +179,12 @@
   max-width: 205px;
   margin: 15px 0 0;
   color: #ffffff;
-  font-family: "Bradley Hand", "Comic Sans MS", "Marker Felt", cursive;
-  font-size: 17px;
-  font-style: italic;
+  font-family: var(--font-hand), "Caveat", cursive;
+  font-size: 20px;
+  font-style: normal;
   font-weight: 400;
   letter-spacing: -0.03em;
-  line-height: 20px;
+  line-height: 120%;
 }
 
 .weekBoard {

@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Caveat } from "next/font/google";
 import "./globals.css";
+
+const caveat = Caveat({
+  subsets: ["cyrillic", "latin"],
+  variable: "--font-hand",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "YouNotebook",
@@ -20,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body className={caveat.variable}>{children}</body>
     </html>
   );
 }

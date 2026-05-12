@@ -424,9 +424,9 @@ function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
     <motion.section
       className={styles.dayStatus}
       aria-label={`${summary.label}: ${summary.completed} из ${summary.total}`}
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
       animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
     >
       <span className={styles.dayStatusLabel}>{summary.label}</span>
       <AnimatePresence mode="wait" initial={false}>
@@ -436,7 +436,7 @@ function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
           initial={
             shouldReduceMotion
               ? false
-              : { opacity: 0, y: 8, filter: "blur(4px)" }
+              : { opacity: 0, y: 12, filter: "blur(6px)" }
           }
           animate={
             shouldReduceMotion
@@ -446,9 +446,9 @@ function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
           exit={
             shouldReduceMotion
               ? undefined
-              : { opacity: 0, y: -8, filter: "blur(4px)" }
+              : { opacity: 0, y: -12, filter: "blur(6px)" }
           }
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
         >
           {summary.completed}/{summary.total}
         </motion.strong>
@@ -461,7 +461,7 @@ function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
           transition={
             shouldReduceMotion
               ? { duration: 0 }
-              : { type: "spring", stiffness: 420, damping: 36, mass: 0.8 }
+              : { type: "spring", stiffness: 180, damping: 24, mass: 1 }
           }
         />
       </div>
@@ -469,10 +469,10 @@ function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
         <motion.p
           key={statusKey}
           className={styles.dayStatusMessage}
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
           animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -6 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          exit={shouldReduceMotion ? undefined : { opacity: 0, y: -10 }}
+          transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
         >
           {summary.message}
         </motion.p>
@@ -607,9 +607,9 @@ function PlannerTaskRow({
             }
       }
       transition={{
-        layout: { type: "spring", stiffness: 520, damping: 42, mass: 0.75 },
-        opacity: { duration: 0.16, ease: [0.22, 1, 0.36, 1] },
-        scale: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+        layout: { type: "spring", stiffness: 210, damping: 27, mass: 1 },
+        opacity: { duration: 0.34, ease: [0.16, 1, 0.3, 1] },
+        scale: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
       }}
       {...attributes}
       {...listeners}
