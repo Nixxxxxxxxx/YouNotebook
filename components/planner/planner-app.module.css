@@ -1,8 +1,9 @@
 .shell {
-  --calendar-width: 204px;
-  --status-width: 212px;
-  --layout-gap: 16px;
-  --day-column-width: 178px;
+  --rail-width: 296px;
+  --status-width: 239px;
+  --day-column-width: 220px;
+  --day-column-gap: 96px;
+  --timeline-left: 263px;
 
   position: relative;
   min-height: 100vh;
@@ -15,121 +16,16 @@
 
 .leftRail {
   position: fixed;
-  top: 106px;
+  z-index: 4;
+  top: 76px;
+  bottom: 0;
   left: 24px;
   display: grid;
-  width: var(--status-width);
-  gap: 60px;
+  width: 272px;
+  padding-top: 30px;
   align-content: start;
-}
-
-.calendar {
-  width: var(--calendar-width);
-  display: grid;
-  gap: var(--layout-gap);
-}
-
-.calendarHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #ffffff;
-  font-size: 12px;
-  line-height: 15px;
-}
-
-.calendarHeader button {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border: 0;
-  color: #ffffff;
-  background: transparent;
-  font-size: 18px;
-  line-height: 1;
-  transition:
-    color 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.calendarHeader button:hover {
-  color: rgba(255, 255, 255, 0.74);
-  transform: translateY(-1px);
-}
-
-.calendarHeader svg {
-  width: 20px;
-  height: 20px;
-}
-
-.calendarNextIcon {
-  transform: rotate(180deg);
-}
-
-.calendarGrid {
-  display: grid;
-  grid-template-columns: repeat(7, 24px);
-  gap: 6px;
-}
-
-.calendarGrid button {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 999px;
-  color: #ffffff;
-  background: transparent;
-  font-size: 12px;
-  line-height: 15px;
-  transition:
-    background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    color 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.calendarGrid button[data-muted="true"] {
-  color: rgba(255, 255, 255, 0.38);
-}
-
-.calendarGrid button:not(.calendarDateActive):not([data-today="true"]):hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-1px);
-}
-
-.calendarGrid button[data-today="true"] {
-  color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-}
-
-.calendarGrid button[data-today="true"]:hover {
-  color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-  transform: none;
-}
-
-.calendarGrid .calendarDateActive {
-  color: #000000;
-  background: #ffffff;
-}
-
-.calendarGrid .calendarDateActive[data-today="true"] {
-  color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-}
-
-.calendarGrid .calendarDateActive:hover {
-  color: #000000;
-  background: #ffffff;
-  transform: none;
-}
-
-.calendarGrid .calendarDateActive[data-today="true"]:hover {
-  color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  background: #000000;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .dayStatus {
@@ -140,25 +36,26 @@
 
 .dayStatusLabel {
   color: rgba(255, 255, 255, 0.56);
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 300;
   letter-spacing: -0.01em;
-  line-height: 16px;
+  line-height: 1.2;
 }
 
 .dayStatusCount {
   display: block;
   margin-top: 8px;
   color: #ffffff;
-  font-size: 64px;
-  font-weight: 650;
-  letter-spacing: -0.08em;
-  line-height: 0.95;
+  font-size: 76px;
+  font-weight: 590;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   text-wrap: nowrap;
 }
 
 .dayStatusTrack {
   position: relative;
+  width: 204px;
   height: 4px;
   margin-top: 9px;
   overflow: hidden;
@@ -176,32 +73,48 @@
 }
 
 .dayStatusMessage {
-  max-width: 205px;
-  margin: 15px 0 0;
+  max-width: 239px;
+  margin: 32px 0 0;
   color: #ffffff;
   font-family: var(--font-hand), "Caveat", cursive;
-  font-size: 20px;
+  font-size: 24px;
   font-style: normal;
   font-weight: 400;
   letter-spacing: -0.03em;
   line-height: 120%;
 }
 
-.weekBoard {
+.weekScroller {
   position: fixed;
   top: 106px;
-  left: calc(24px + var(--calendar-width) + var(--layout-gap));
-  right: 24px;
-  bottom: 230px;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(var(--day-column-width), 1fr));
+  right: 0;
+  bottom: 0;
+  left: var(--timeline-left);
+  overflow-x: auto;
+  overflow-y: hidden;
   border-left: 1px solid rgba(255, 255, 255, 0.14);
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.weekScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.weekBoard {
+  display: flex;
+  gap: var(--day-column-gap);
+  width: max-content;
+  min-height: 100%;
 }
 
 .dayColumn {
+  position: relative;
+  flex: 0 0 var(--day-column-width);
+  box-sizing: border-box;
   min-width: 0;
-  padding: 0 var(--layout-gap);
-  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  min-height: 100%;
+  padding: 0;
   transform-origin: top center;
   transition:
     background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -212,6 +125,16 @@
   border-right: 0;
 }
 
+.dayColumn::after {
+  position: absolute;
+  top: 0;
+  right: calc(var(--day-column-gap) / -2);
+  width: 1px;
+  height: min(646px, calc(100vh - 106px));
+  background: rgba(255, 255, 255, 0.14);
+  content: "";
+}
+
 .dayColumn[data-over="true"] {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 42%),
@@ -220,26 +143,51 @@
 }
 
 .dayColumn h2 {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0 0 12px;
+  display: block;
+  margin: 0 0 24px;
   padding: 0;
+}
+
+.dayColumn h2 button {
+  display: inline-grid;
+  gap: 4px;
+  justify-items: start;
+  border: 0;
   border-radius: 999px;
+  color: rgba(255, 255, 255, 0.56);
+  background: transparent;
+  font-size: 18px;
+  font-weight: 510;
+  line-height: 1.2;
+  text-align: left;
+  transition:
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dayColumn h2 button:hover {
+  color: rgba(255, 255, 255, 0.82);
+  transform: translateY(-1px);
+}
+
+.dayColumn h2 time {
   color: rgba(255, 255, 255, 0.56);
   font-size: 13px;
   font-weight: 400;
   line-height: 16px;
-}
-
-.dayColumn h2 time {
   font-variant-numeric: tabular-nums;
 }
 
-.dayColumn[data-today="true"] h2 {
-  padding: 3px 9px;
+.dayColumn[data-active="true"] h2 button {
+  padding: 5px 10px;
   color: #ffffff;
   background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  transform: none;
+}
+
+.dayColumn[data-active="true"] h2 time {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .taskList {
@@ -274,7 +222,7 @@
   position: relative;
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
-  align-items: start;
+  align-items: center;
   gap: 8px;
   min-height: 18px;
   border-radius: 8px;
@@ -288,8 +236,8 @@
 }
 
 .taskRow {
-  margin: 0 -6px;
-  padding: 3px 30px 3px 6px;
+  margin: 0;
+  padding: 0 30px 0 0;
   animation: taskReveal 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -401,9 +349,9 @@
   min-width: 0;
   overflow: visible;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: -0.01em;
-  line-height: 18px;
+  line-height: 14px;
   outline: none;
   text-overflow: clip;
   white-space: pre-wrap;
@@ -472,8 +420,8 @@
   gap: 8px;
   width: fit-content;
   min-height: 18px;
-  margin: 0 -6px;
-  padding: 3px 6px;
+  margin: 0;
+  padding: 0;
   border: 0;
   border-radius: 8px;
   color: #ffffff;
@@ -522,48 +470,6 @@
   -webkit-background-clip: text;
 }
 
-.sundayNote {
-  position: fixed;
-  left: 50%;
-  bottom: 49px;
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  transform: translateX(-50%);
-}
-
-.sundayNote p,
-.sundayNote strong {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 16px;
-  white-space: nowrap;
-}
-
-.sundayNote p {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.56);
-}
-
-.sundayNote p time {
-  font-variant-numeric: tabular-nums;
-}
-
-.sundayNote[data-today="true"] p {
-  padding: 3px 10px;
-  color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-}
-
-.sundayNote strong {
-  color: #ffffff;
-}
-
 @keyframes liftTask {
   from {
     opacity: 0.72;
@@ -604,59 +510,38 @@
   }
 }
 
-@media (max-width: 1336px) {
-  .shell {
-    overflow-x: auto;
-  }
-
-  .weekBoard {
-    right: auto;
-    width: calc(6 * var(--day-column-width));
-  }
-
-  .sundayNote {
-    left: 870px;
-  }
-}
-
 @media (max-width: 760px) {
+  .shell {
+    --rail-width: 0px;
+    --day-column-width: min(82vw, 316px);
+    --day-column-gap: 28px;
+    --timeline-left: 0px;
+    overflow-x: hidden;
+  }
+
   .leftRail {
     position: relative;
     top: auto;
     left: auto;
-    margin: 92px 18px 48px;
-    gap: 44px;
+    margin: 92px 18px 34px;
   }
 
-  .calendar {
-    margin: 0;
-  }
-
-  .weekBoard {
+  .weekScroller {
     position: relative;
     top: auto;
     left: auto;
     right: auto;
     bottom: auto;
-    width: auto;
+    overflow-x: auto;
     margin: 0 18px 120px;
-    grid-template-columns: 1fr;
     border-left: 0;
   }
 
   .dayColumn {
-    min-height: 132px;
-    padding: 18px 0;
-    border-right: 0;
+    min-height: 58vh;
+    padding: 18px 18px 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
     border-top: 1px solid rgba(255, 255, 255, 0.14);
-  }
-
-  .sundayNote {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: 0 18px 40px;
-    transform: none;
   }
 
   .deleteTask {
@@ -672,8 +557,6 @@
   .dayColumn,
   .taskRow,
   .taskOverlay,
-  .calendarHeader button,
-  .calendarGrid button,
   .deleteTask,
   .addTask {
     animation: none;

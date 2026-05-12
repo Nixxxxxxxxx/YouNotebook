@@ -36,7 +36,6 @@ import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
 import {
   AddTaskIcon,
-  ChevronIcon,
   TaskCheckIcon,
   TrashIcon,
 } from "@/components/icons/app-icons";
@@ -54,18 +53,10 @@ type PlannerDay = {
   id: string;
   date: Date;
   dateLabel: string;
+  isActive: boolean;
   isToday: boolean;
   title: string;
   weekday: string;
-};
-
-type CalendarCell = {
-  id: string;
-  date: Date;
-  isToday: boolean;
-  label: number;
-  inMonth: boolean;
-  selected: boolean;
 };
 
 type CompletionSummary = {
@@ -82,20 +73,16 @@ const REORDER_TRANSITION = {
   duration: 0.55,
   ease: [0.22, 1, 0.36, 1],
 } as const;
-const DAY_NAMES = [
-  "Понедельник",
-  "Вторник",
-  "Среда",
-  "Четверг",
-  "Пятница",
-  "Суббота",
-];
-const MONTH_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
-  month: "long",
-  year: "numeric",
+const INITIAL_PAST_DAYS = 7;
+const INITIAL_DAY_COUNT = 42;
+const TIMELINE_BATCH_DAYS = 14;
+const TIMELINE_LEFT_CLIP = 33;
+const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+  weekday: "long",
 });
-const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+const DAY_MONTH_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
+  month: "long",
 });
 const animateSortableLayoutChanges: AnimateLayoutChanges = (args) => {
   if (!args.isSorting && !args.wasDragging) {
@@ -125,78 +112,59 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function addMonths(date: Date, months: number) {
-  return new Date(date.getFullYear(), date.getMonth() + months, 1);
-}
-
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function startOfWeek(date: Date) {
-  const next = new Date(date);
-  const day = next.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  next.setDate(next.getDate() + diff);
-  next.setHours(0, 0, 0, 0);
-  return next;
-}
-
 function isSameDay(first: Date, second: Date) {
   return toDateKey(first) === toDateKey(second);
 }
 
-function buildWeekDays(selectedDate: Date, today = getToday()): PlannerDay[] {
-  const monday = startOfWeek(selectedDate);
-
-  return DAY_NAMES.map((name, index) => {
-    const date = addDays(monday, index);
-    const dateLabel = DAY_NUMBER_FORMATTER.format(date);
-
-    return {
-      id: toDateKey(date),
-      date,
-      dateLabel,
-      isToday: isSameDay(date, today),
-      title: `${name} ${dateLabel}`,
-      weekday: name,
-    };
-  });
+function isDayId(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function buildCalendarCells(
-  viewDate: Date,
+function capitalizeFirst(value: string) {
+  return value.replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function buildPlannerDay(
+  date: Date,
+  selectedDate: Date,
+  today = getToday(),
+): PlannerDay {
+  const weekday = capitalizeFirst(WEEKDAY_FORMATTER.format(date));
+  const dateLabel = DAY_MONTH_FORMATTER.format(date);
+
+  return {
+    id: toDateKey(date),
+    date,
+    dateLabel,
+    isActive: isSameDay(date, selectedDate),
+    isToday: isSameDay(date, today),
+    title: `${weekday} ${dateLabel}`,
+    weekday,
+  };
+}
+
+function buildTimelineDays(
+  startDate: Date,
+  count: number,
   selectedDate: Date,
   today = getToday(),
 ) {
-  const monthStart = startOfMonth(viewDate);
-  const gridStart = startOfWeek(monthStart);
-  const cells: CalendarCell[] = [];
-
-  for (let index = 0; index < 42; index++) {
-    const date = addDays(gridStart, index);
-
-    cells.push({
-      id: toDateKey(date),
-      date,
-      isToday: isSameDay(date, today),
-      label: date.getDate(),
-      inMonth: date.getMonth() === viewDate.getMonth(),
-      selected: isSameDay(date, selectedDate),
-    });
-  }
-
-  return cells;
+  return Array.from({ length: count }, (_, index) =>
+    buildPlannerDay(addDays(startDate, index), selectedDate, today),
+  );
 }
 
 function createInitialPlanner(selectedDate: Date): PlannerState {
-  return buildWeekDays(selectedDate).reduce((state, day) => {
-    state[day.id] = [
-      { id: `${day.id}-1`, title: "Мы работаем над собой", completed: false },
-      { id: `${day.id}-2`, title: "Мы работаем над собой", completed: true },
-    ];
-    return state;
-  }, {} as PlannerState);
+  return buildTimelineDays(addDays(selectedDate, -1), 8, selectedDate).reduce(
+    (state, day) => {
+      state[day.id] = [
+        { id: `${day.id}-1`, title: "Мы работаем над собой", completed: false },
+        { id: `${day.id}-2`, title: "Мы работаем над собой", completed: true },
+      ];
+      return state;
+    },
+    {} as PlannerState,
+  );
 }
 
 function ensurePlannerDays(state: PlannerState, days: PlannerDay[]) {
@@ -330,7 +298,7 @@ function findTask(state: PlannerState, taskId: string) {
 }
 
 function getOverContainer(state: PlannerState, overId: string) {
-  if (state[overId]) {
+  if (state[overId] || isDayId(overId)) {
     return overId;
   }
 
@@ -399,67 +367,6 @@ function normalizeStoredPlanner(value: unknown): PlannerState | null {
   });
 
   return next;
-}
-
-function PlannerCalendar({
-  cells,
-  viewDate,
-  onSelectDate,
-  onShiftMonth,
-}: {
-  cells: CalendarCell[];
-  viewDate: Date;
-  onSelectDate: (date: Date) => void;
-  onShiftMonth: (months: number) => void;
-}) {
-  const shouldReduceMotion = useReducedMotion();
-  const monthLabel = MONTH_FORMATTER.format(viewDate).replace(/^./, (letter) =>
-    letter.toUpperCase(),
-  );
-
-  return (
-    <aside className={styles.calendar} aria-label="Календарь">
-      <div className={styles.calendarHeader}>
-        <button
-          type="button"
-          aria-label="Предыдущий месяц"
-          onClick={() => onShiftMonth(-1)}
-        >
-          <ChevronIcon />
-        </button>
-        <span>{monthLabel}</span>
-        <button
-          type="button"
-          aria-label="Следующий месяц"
-          onClick={() => onShiftMonth(1)}
-        >
-          <ChevronIcon className={styles.calendarNextIcon} />
-        </button>
-      </div>
-      <div className={styles.calendarGrid}>
-        {cells.map((cell) => (
-          <motion.button
-            key={cell.id}
-            className={cell.selected ? styles.calendarDateActive : ""}
-            data-muted={cell.inMonth ? "false" : "true"}
-            data-today={cell.isToday ? "true" : "false"}
-            layout={!shouldReduceMotion}
-            type="button"
-            aria-pressed={cell.selected}
-            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.88 }}
-            animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
-            transition={{
-              duration: 0.18,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            onClick={() => onSelectDate(cell.date)}
-          >
-            {cell.label}
-          </motion.button>
-        ))}
-      </div>
-    </aside>
-  );
 }
 
 function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
@@ -737,6 +644,7 @@ function DayColumn({
   tasks,
   onAddTask,
   onDeleteTask,
+  onSelectDay,
   onTitleChange,
   onToggleTask,
 }: {
@@ -746,6 +654,7 @@ function DayColumn({
   tasks: PlannerTask[];
   onAddTask: () => void;
   onDeleteTask: (taskId: string) => void;
+  onSelectDay: () => void;
   onTitleChange: (taskId: string, title: string) => void;
   onToggleTask: (taskId: string) => void;
 }) {
@@ -756,6 +665,9 @@ function DayColumn({
     <motion.section
       ref={setNodeRef}
       className={styles.dayColumn}
+      data-active={day.isActive ? "true" : "false"}
+      data-day-column
+      data-day-id={day.id}
       data-over={isOver ? "true" : "false"}
       data-today={day.isToday ? "true" : "false"}
       initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
@@ -767,8 +679,10 @@ function DayColumn({
       }}
     >
       <h2 aria-label={day.title}>
-        <span>{day.weekday}</span>
-        <time dateTime={day.id}>{day.dateLabel}</time>
+        <button type="button" onClick={onSelectDay}>
+          <span>{day.weekday}</span>
+          <time dateTime={day.id}>{day.dateLabel}</time>
+        </button>
       </h2>
       <SortableContext
         items={tasks.map((task) => task.id)}
@@ -826,38 +740,42 @@ function TaskOverlay({ task }: { task: PlannerTask }) {
 export function PlannerApp() {
   const [today, setToday] = useState(() => getToday());
   const [selectedDate, setSelectedDate] = useState(() => getToday());
-  const [viewDate, setViewDate] = useState(() => startOfMonth(getToday()));
+  const [timelineStartDate, setTimelineStartDate] = useState(() =>
+    addDays(getToday(), -INITIAL_PAST_DAYS),
+  );
+  const [timelineDayCount, setTimelineDayCount] =
+    useState(INITIAL_DAY_COUNT);
   const [planner, setPlanner] = useState<PlannerState>(() =>
     createInitialPlanner(getToday()),
   );
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const didInitialTimelineScrollRef = useRef(false);
+  const isPrependingTimelineRef = useRef(false);
+  const isAppendingTimelineRef = useRef(false);
   const reorderTimeoutsRef = useRef<Record<string, number>>({});
   const shouldReduceMotion = useReducedMotion();
   const days = useMemo(
-    () => buildWeekDays(selectedDate, today),
-    [selectedDate, today],
+    () =>
+      buildTimelineDays(
+        timelineStartDate,
+        timelineDayCount,
+        selectedDate,
+        today,
+      ),
+    [selectedDate, timelineDayCount, timelineStartDate, today],
   );
-  const calendarCells = useMemo(
-    () => buildCalendarCells(viewDate, selectedDate, today),
-    [selectedDate, today, viewDate],
-  );
-  const sundayDate = useMemo(
-    () => addDays(startOfWeek(selectedDate), 6),
-    [selectedDate],
-  );
-  const isSundayToday = isSameDay(sundayDate, today);
   const activeTask = activeTaskId ? findTask(planner, activeTaskId) : null;
-  const selectedDayId = toDateKey(selectedDate);
-  const isSelectedToday = isSameDay(selectedDate, today);
+  const todayDayId = toDateKey(today);
   const dayStatus = useMemo(
     () =>
       getCompletionSummary({
-        isToday: isSelectedToday,
-        tasks: planner[selectedDayId] ?? [],
+        isToday: true,
+        tasks: planner[todayDayId] ?? [],
       }),
-    [isSelectedToday, planner, selectedDayId],
+    [planner, todayDayId],
   );
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -874,10 +792,11 @@ export function PlannerApp() {
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const currentDate = getToday();
+      const initialStartDate = addDays(currentDate, -INITIAL_PAST_DAYS);
 
       setToday(currentDate);
       setSelectedDate(currentDate);
-      setViewDate(startOfMonth(currentDate));
+      setTimelineStartDate(initialStartDate);
 
       try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -889,7 +808,12 @@ export function PlannerApp() {
             setPlanner(
               ensurePlannerDays(
                 parsed,
-                buildWeekDays(currentDate, currentDate),
+                buildTimelineDays(
+                  initialStartDate,
+                  INITIAL_DAY_COUNT,
+                  currentDate,
+                  currentDate,
+                ),
               ),
             );
           }
@@ -945,6 +869,75 @@ export function PlannerApp() {
 
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(planner));
   }, [planner, storageReady]);
+
+  useEffect(() => {
+    const timeline = timelineRef.current;
+
+    if (!timeline || didInitialTimelineScrollRef.current) {
+      return;
+    }
+
+    const todayColumn = timeline.querySelector<HTMLElement>(
+      `[data-day-id="${todayDayId}"]`,
+    );
+
+    if (!todayColumn) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      timeline.scrollLeft = Math.max(
+        todayColumn.offsetLeft - TIMELINE_LEFT_CLIP,
+        0,
+      );
+      didInitialTimelineScrollRef.current = true;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [days, todayDayId]);
+
+  function handleTimelineScroll() {
+    const timeline = timelineRef.current;
+
+    if (!timeline) {
+      return;
+    }
+
+    const distanceToEnd =
+      timeline.scrollWidth - timeline.scrollLeft - timeline.clientWidth;
+
+    if (timeline.scrollLeft < 640 && !isPrependingTimelineRef.current) {
+      const columns = timeline.querySelectorAll<HTMLElement>(
+        "[data-day-column]",
+      );
+      const columnStep =
+        columns[1] && columns[0]
+          ? columns[1].offsetLeft - columns[0].offsetLeft
+          : columns[0]?.getBoundingClientRect().width ?? 316;
+      const previousScrollLeft = timeline.scrollLeft;
+
+      isPrependingTimelineRef.current = true;
+      setTimelineStartDate((current) => addDays(current, -TIMELINE_BATCH_DAYS));
+      setTimelineDayCount((current) => current + TIMELINE_BATCH_DAYS);
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          timeline.scrollLeft =
+            previousScrollLeft + columnStep * TIMELINE_BATCH_DAYS;
+          isPrependingTimelineRef.current = false;
+        });
+      });
+    }
+
+    if (distanceToEnd < 960 && !isAppendingTimelineRef.current) {
+      isAppendingTimelineRef.current = true;
+      setTimelineDayCount((current) => current + TIMELINE_BATCH_DAYS);
+
+      window.requestAnimationFrame(() => {
+        isAppendingTimelineRef.current = false;
+      });
+    }
+  }
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTaskId(String(event.active.id));
@@ -1091,11 +1084,10 @@ export function PlannerApp() {
   }
 
   function selectDate(date: Date) {
-    const weekDays = buildWeekDays(date, today);
-
     setSelectedDate(date);
-    setViewDate(startOfMonth(date));
-    setPlanner((current) => ensurePlannerDays(current, weekDays));
+    setPlanner((current) =>
+      ensurePlannerDays(current, [buildPlannerDay(date, date, today)]),
+    );
   }
 
   return (
@@ -1104,14 +1096,6 @@ export function PlannerApp() {
       <AppTabs active="planner" />
 
       <div className={styles.leftRail}>
-        <PlannerCalendar
-          cells={calendarCells}
-          viewDate={viewDate}
-          onSelectDate={selectDate}
-          onShiftMonth={(months) =>
-            setViewDate((current) => addMonths(current, months))
-          }
-        />
         <PlannerDayStatus summary={dayStatus} />
       </div>
 
@@ -1123,40 +1107,34 @@ export function PlannerApp() {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveTaskId(null)}
       >
-        <div className={styles.weekBoard}>
-          {days.map((day, index) => (
-            <DayColumn
-              key={day.id}
-              day={day}
-              index={index}
-              editingTaskId={editingTaskId}
-              tasks={planner[day.id] ?? []}
-              onAddTask={() => addTask(day.id)}
-              onDeleteTask={(taskId) => deleteTask(day.id, taskId)}
-              onTitleChange={(taskId, title) =>
-                updateTaskTitle(day.id, taskId, title)
-              }
-              onToggleTask={(taskId) => toggleTask(day.id, taskId)}
-            />
-          ))}
+        <div
+          ref={timelineRef}
+          className={styles.weekScroller}
+          onScroll={handleTimelineScroll}
+        >
+          <div className={styles.weekBoard}>
+            {days.map((day, index) => (
+              <DayColumn
+                key={day.id}
+                day={day}
+                index={index}
+                editingTaskId={editingTaskId}
+                tasks={planner[day.id] ?? []}
+                onAddTask={() => addTask(day.id)}
+                onDeleteTask={(taskId) => deleteTask(day.id, taskId)}
+                onTitleChange={(taskId, title) =>
+                  updateTaskTitle(day.id, taskId, title)
+                }
+                onToggleTask={(taskId) => toggleTask(day.id, taskId)}
+                onSelectDay={() => selectDate(day.date)}
+              />
+            ))}
+          </div>
         </div>
         <DragOverlay dropAnimation={null}>
           {activeTask ? <TaskOverlay task={activeTask} /> : null}
         </DragOverlay>
       </DndContext>
-
-      <section
-        className={styles.sundayNote}
-        data-today={isSundayToday ? "true" : "false"}
-      >
-        <p aria-label={`Воскресенье ${DAY_NUMBER_FORMATTER.format(sundayDate)}`}>
-          <span>Воскресенье</span>
-          <time dateTime={toDateKey(sundayDate)}>
-            {DAY_NUMBER_FORMATTER.format(sundayDate)}
-          </time>
-        </p>
-        <strong>Займись собой, сделай то, что хочешь</strong>
-      </section>
     </main>
   );
 }
