@@ -16,9 +16,11 @@ import {
 import {
   SortableContext,
   arrayMove,
+  defaultAnimateLayoutChanges,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
+  type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -75,7 +77,11 @@ type CompletionSummary = {
 };
 
 const STORAGE_KEY = "younotebook:planner:v2";
-const COMPLETION_REORDER_DELAY = 650;
+const COMPLETION_REORDER_DELAY = 500;
+const REORDER_TRANSITION = {
+  duration: 0.55,
+  ease: [0.22, 1, 0.36, 1],
+} as const;
 const DAY_NAMES = [
   "Понедельник",
   "Вторник",
@@ -91,6 +97,13 @@ const MONTH_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
 const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
 });
+const animateSortableLayoutChanges: AnimateLayoutChanges = (args) => {
+  if (!args.isSorting && !args.wasDragging) {
+    return false;
+  }
+
+  return defaultAnimateLayoutChanges(args);
+};
 
 function getToday() {
   const today = new Date();
@@ -237,19 +250,7 @@ function moveTaskToCompletionPosition(tasks: PlannerTask[], taskId: string) {
     return [...remainingTasks, targetTask];
   }
 
-  const firstCompletedIndex = remainingTasks.findIndex(
-    (task) => task.completed,
-  );
-
-  if (firstCompletedIndex < 0) {
-    return [...remainingTasks, targetTask];
-  }
-
-  return [
-    ...remainingTasks.slice(0, firstCompletedIndex),
-    targetTask,
-    ...remainingTasks.slice(firstCompletedIndex),
-  ];
+  return [targetTask, ...remainingTasks];
 }
 
 function insertTaskBeforeCompleted(tasks: PlannerTask[], task: PlannerTask) {
@@ -560,9 +561,12 @@ function PlannerTaskRow({
     transform,
     transition: sortableTransition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({
+    id: task.id,
+    animateLayoutChanges: animateSortableLayoutChanges,
+  });
 
-  const style = {
+  const sortableStyle = {
     transform: CSS.Transform.toString(transform),
     transition: sortableTransition,
   };
@@ -639,84 +643,90 @@ function PlannerTaskRow({
   }
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
-      className={styles.taskRow}
+      className={styles.taskItem}
       data-completed={task.completed ? "true" : "false"}
-      data-empty={hasTitle ? "false" : "true"}
-      data-editing={isEditing ? "true" : "false"}
       data-dragging={isDragging ? "true" : "false"}
-      data-task-row
-      style={style}
-      layout={shouldReduceMotion ? false : "position"}
-      initial={false}
-      animate={
-        shouldReduceMotion
-          ? undefined
-          : {
-              opacity: isDragging ? 0.28 : 1,
-              scale: task.completed ? 0.985 : 1,
-            }
-      }
-      transition={{
-        layout: { duration: 0.54, ease: [0.22, 1, 0.36, 1] },
-        opacity: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
-        scale: { duration: 0.52, ease: [0.16, 1, 0.3, 1] },
-      }}
+      style={sortableStyle}
       {...attributes}
       {...listeners}
     >
-      <motion.button
-        className={styles.checkbox}
-        data-checked={task.completed ? "true" : "false"}
-        type="button"
-        aria-label={task.completed ? "Отметить невыполненной" : "Выполнить"}
-        whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
-        transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
-        onClick={handleToggleClick}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        {rippleKey > 0 ? (
-          <span
-            key={rippleKey}
-            className={styles.checkboxRipple}
-            aria-hidden="true"
-          />
-        ) : null}
-        <TaskCheckIcon />
-      </motion.button>
-      <span
-        ref={titleRef}
-        className={styles.taskTitle}
-        contentEditable="plaintext-only"
+      <motion.div
+        className={styles.taskRow}
+        data-completed={task.completed ? "true" : "false"}
         data-empty={hasTitle ? "false" : "true"}
-        dir="auto"
-        aria-multiline="true"
-        role="textbox"
-        spellCheck
-        suppressContentEditableWarning
-        tabIndex={0}
-        onBlur={commitTitle}
-        onFocus={() => setIsEditing(true)}
-        onInput={(event) => {
-          const title = event.currentTarget.innerText;
-
-          event.currentTarget.dataset.empty = title.trim() ? "false" : "true";
-          onTitleChange(title);
+        data-editing={isEditing ? "true" : "false"}
+        data-dragging={isDragging ? "true" : "false"}
+        data-task-row
+        layout={shouldReduceMotion ? false : "position"}
+        initial={false}
+        animate={
+          shouldReduceMotion
+            ? undefined
+            : {
+                opacity: isDragging ? 0.28 : 1,
+              }
+        }
+        transition={{
+          layout: REORDER_TRANSITION,
+          opacity: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
         }}
-        onKeyDown={handleTitleKeyDown}
-      />
-      <button
-        className={styles.deleteTask}
-        type="button"
-        aria-label={`Удалить задачу ${task.title || "без названия"}`}
-        disabled={!hasTitle || isEditing}
-        onClick={onDelete}
-        onPointerDown={(event) => event.stopPropagation()}
       >
-        <TrashIcon />
-      </button>
-    </motion.div>
+        <motion.button
+          className={styles.checkbox}
+          data-checked={task.completed ? "true" : "false"}
+          type="button"
+          aria-label={task.completed ? "Отметить невыполненной" : "Выполнить"}
+          whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
+          transition={{ duration: 0.14, ease: [0.22, 1, 0.36, 1] }}
+          onClick={handleToggleClick}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          {rippleKey > 0 ? (
+            <span
+              key={rippleKey}
+              className={styles.checkboxRipple}
+              aria-hidden="true"
+            />
+          ) : null}
+          <TaskCheckIcon />
+        </motion.button>
+        <span
+          ref={titleRef}
+          className={styles.taskTitle}
+          contentEditable="plaintext-only"
+          data-empty={hasTitle ? "false" : "true"}
+          dir="auto"
+          aria-multiline="true"
+          role="textbox"
+          spellCheck
+          suppressContentEditableWarning
+          tabIndex={0}
+          onBlur={commitTitle}
+          onFocus={() => setIsEditing(true)}
+          onInput={(event) => {
+            const title = event.currentTarget.innerText;
+
+            event.currentTarget.dataset.empty = title.trim()
+              ? "false"
+              : "true";
+            onTitleChange(title);
+          }}
+          onKeyDown={handleTitleKeyDown}
+        />
+        <button
+          className={styles.deleteTask}
+          type="button"
+          aria-label={`Удалить задачу ${task.title || "без названия"}`}
+          disabled={!hasTitle || isEditing}
+          onClick={onDelete}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <TrashIcon />
+        </button>
+      </motion.div>
+    </div>
   );
 }
 
@@ -769,7 +779,7 @@ function DayColumn({
           data-task-list
           layout={shouldReduceMotion ? false : true}
           transition={{
-            layout: { duration: 0.54, ease: [0.22, 1, 0.36, 1] },
+            layout: REORDER_TRANSITION,
           }}
         >
           {tasks.map((task) => (

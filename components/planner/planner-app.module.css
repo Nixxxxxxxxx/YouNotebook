@@ -250,6 +250,25 @@
   min-height: 220px;
 }
 
+.taskItem {
+  position: relative;
+  z-index: 1;
+  min-height: 18px;
+  cursor: grab;
+  touch-action: none;
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.taskItem[data-dragging="true"] {
+  z-index: 3;
+  cursor: grabbing;
+}
+
+.taskItem[data-completed="true"] {
+  z-index: 0;
+}
+
 .taskRow,
 .taskOverlay {
   position: relative;
@@ -265,16 +284,13 @@
   transition:
     background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .taskRow {
-  z-index: 1;
   margin: 0 -6px;
   padding: 3px 30px 3px 6px;
   animation: taskReveal 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  touch-action: none;
 }
 
 .taskRow:hover,
@@ -284,13 +300,11 @@
 }
 
 .taskRow[data-dragging="true"] {
-  z-index: 3;
   cursor: grabbing;
   opacity: 0.28;
 }
 
 .taskRow[data-completed="true"] {
-  z-index: 0;
   color: rgba(255, 255, 255, 0.52);
 }
 
