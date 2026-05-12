@@ -215,6 +215,12 @@ function getMeaningfulTasks(tasks: PlannerTask[]) {
   return tasks.filter((task) => task.title.trim().length > 0);
 }
 
+function orderTasksForDisplay(tasks: PlannerTask[]) {
+  return [...tasks].sort(
+    (first, second) => Number(first.completed) - Number(second.completed),
+  );
+}
+
 function getCompletionMessage(completed: number, total: number) {
   if (total === 0) {
     return "Пока нечего считать. Добавь задачу, если день просит формы.";
@@ -601,9 +607,9 @@ function PlannerTaskRow({
             }
       }
       transition={{
-        layout: { type: "spring", stiffness: 150, damping: 22, mass: 1.15 },
-        opacity: { duration: 0.34, ease: [0.16, 1, 0.3, 1] },
-        scale: { duration: 0.48, ease: [0.16, 1, 0.3, 1] },
+        layout: { type: "spring", stiffness: 115, damping: 20, mass: 1.25 },
+        opacity: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
+        scale: { duration: 0.52, ease: [0.16, 1, 0.3, 1] },
       }}
       {...attributes}
       {...listeners}
@@ -674,18 +680,7 @@ function DayColumn({
 }) {
   const shouldReduceMotion = useReducedMotion();
   const { isOver, setNodeRef } = useDroppable({ id: day.id });
-  const activeTasks = useMemo(
-    () => tasks.filter((task) => !task.completed),
-    [tasks],
-  );
-  const completedTasks = useMemo(
-    () => tasks.filter((task) => task.completed),
-    [tasks],
-  );
-  const sortableTaskIds = useMemo(
-    () => [...activeTasks, ...completedTasks].map((task) => task.id),
-    [activeTasks, completedTasks],
-  );
+  const orderedTasks = useMemo(() => orderTasksForDisplay(tasks), [tasks]);
 
   return (
     <motion.section
@@ -706,7 +701,7 @@ function DayColumn({
         <time dateTime={day.id}>{day.dateLabel}</time>
       </h2>
       <SortableContext
-        items={sortableTaskIds}
+        items={orderedTasks.map((task) => task.id)}
         strategy={verticalListSortingStrategy}
       >
         <motion.div
@@ -714,67 +709,30 @@ function DayColumn({
           data-task-list
           layout={shouldReduceMotion ? false : true}
           transition={{
-            layout: { type: "spring", stiffness: 150, damping: 22, mass: 1.15 },
+            layout: { type: "spring", stiffness: 115, damping: 20, mass: 1.25 },
           }}
         >
-          <motion.div
-            className={styles.activeTaskStack}
-            layout={shouldReduceMotion ? false : "position"}
-            transition={{
-              layout: {
-                type: "spring",
-                stiffness: 150,
-                damping: 22,
-                mass: 1.15,
-              },
-            }}
+          {orderedTasks.map((task) => (
+            <PlannerTaskRow
+              key={task.id}
+              autoFocus={editingTaskId === task.id}
+              task={task}
+              onDelete={() => onDeleteTask(task.id)}
+              onTitleChange={(title) => onTitleChange(task.id, title)}
+              onToggle={() => onToggleTask(task.id)}
+            />
+          ))}
+          <button
+            className={styles.addTask}
+            data-add-task
+            type="button"
+            onClick={onAddTask}
           >
-            {activeTasks.map((task) => (
-              <PlannerTaskRow
-                key={task.id}
-                autoFocus={editingTaskId === task.id}
-                task={task}
-                onDelete={() => onDeleteTask(task.id)}
-                onTitleChange={(title) => onTitleChange(task.id, title)}
-                onToggle={() => onToggleTask(task.id)}
-              />
-            ))}
-            <button
-              className={styles.addTask}
-              data-add-task
-              type="button"
-              onClick={onAddTask}
-            >
-              <span className={styles.addTaskIcon} aria-hidden="true">
-                <AddTaskIcon />
-              </span>
-              <span className={styles.addTaskLabel}>Добавить задачу</span>
-            </button>
-          </motion.div>
-          <motion.div
-            className={styles.completedTaskStack}
-            data-empty={completedTasks.length === 0 ? "true" : "false"}
-            layout={shouldReduceMotion ? false : "position"}
-            transition={{
-              layout: {
-                type: "spring",
-                stiffness: 150,
-                damping: 22,
-                mass: 1.15,
-              },
-            }}
-          >
-            {completedTasks.map((task) => (
-              <PlannerTaskRow
-                key={task.id}
-                autoFocus={editingTaskId === task.id}
-                task={task}
-                onDelete={() => onDeleteTask(task.id)}
-                onTitleChange={(title) => onTitleChange(task.id, title)}
-                onToggle={() => onToggleTask(task.id)}
-              />
-            ))}
-          </motion.div>
+            <span className={styles.addTaskIcon} aria-hidden="true">
+              <AddTaskIcon />
+            </span>
+            <span className={styles.addTaskLabel}>Добавить задачу</span>
+          </button>
         </motion.div>
       </SortableContext>
     </motion.section>
