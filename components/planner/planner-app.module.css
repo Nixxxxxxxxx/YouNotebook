@@ -199,6 +199,8 @@
 }
 
 .dayColumn {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   padding: 0 var(--layout-gap);
   border-right: 1px solid rgba(255, 255, 255, 0.14);
@@ -243,11 +245,26 @@
 }
 
 .taskList {
-  align-content: start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.activeTaskStack,
+.completedTaskStack {
   display: grid;
   gap: 12px;
   grid-auto-rows: min-content;
-  min-height: 220px;
+}
+
+.completedTaskStack {
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.completedTaskStack[data-empty="true"] {
+  display: none;
 }
 
 .taskRow,
@@ -588,6 +605,11 @@
     padding: 18px 0;
     border-right: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .completedTaskStack {
+    margin-top: 22px;
+    padding-top: 0;
   }
 
   .sundayNote {
