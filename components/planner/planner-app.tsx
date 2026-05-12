@@ -221,6 +221,38 @@ function orderTasksForDisplay(tasks: PlannerTask[]) {
   );
 }
 
+function toggleTaskCompletionOrder(tasks: PlannerTask[], taskId: string) {
+  const taskIndex = tasks.findIndex((task) => task.id === taskId);
+
+  if (taskIndex < 0) {
+    return tasks;
+  }
+
+  const nextTask = {
+    ...tasks[taskIndex],
+    completed: !tasks[taskIndex].completed,
+  };
+  const remainingTasks = tasks.filter((task) => task.id !== taskId);
+
+  if (nextTask.completed) {
+    return [...remainingTasks, nextTask];
+  }
+
+  const firstCompletedIndex = remainingTasks.findIndex(
+    (task) => task.completed,
+  );
+
+  if (firstCompletedIndex < 0) {
+    return [...remainingTasks, nextTask];
+  }
+
+  return [
+    ...remainingTasks.slice(0, firstCompletedIndex),
+    nextTask,
+    ...remainingTasks.slice(firstCompletedIndex),
+  ];
+}
+
 function getCompletionMessage(completed: number, total: number) {
   if (total === 0) {
     return "Пока нечего считать. Добавь задачу, если день просит формы.";
@@ -949,9 +981,7 @@ export function PlannerApp() {
   function toggleTask(dayId: string, taskId: string) {
     setPlanner((current) => ({
       ...current,
-      [dayId]: (current[dayId] ?? []).map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task,
-      ),
+      [dayId]: toggleTaskCompletionOrder(current[dayId] ?? [], taskId),
     }));
   }
 
