@@ -675,7 +675,25 @@ function DayColumn({
       <h2 aria-label={day.title}>
         <span className={styles.dayHeadingLine}>
           {day.isToday ? (
-            <span className={styles.todayIndicator} aria-hidden="true" />
+            <motion.span
+              className={styles.todayIndicator}
+              aria-hidden="true"
+              initial={false}
+              animate={
+                shouldReduceMotion
+                  ? undefined
+                  : {
+                      opacity: [1, 0.72, 1],
+                      scale: [1, 1.28, 1],
+                    }
+              }
+              transition={{
+                duration: 1.8,
+                ease: [0.22, 1, 0.36, 1],
+                repeat: Infinity,
+                repeatDelay: 0.24,
+              }}
+            />
           ) : null}
           <span>{day.weekday}</span>
         </span>
