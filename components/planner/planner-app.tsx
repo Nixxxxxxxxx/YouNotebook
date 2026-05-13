@@ -757,6 +757,7 @@ export function PlannerApp() {
   const [storageReady, setStorageReady] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const didInitialTimelineScrollRef = useRef(false);
+  const isAnchoringTimelineRef = useRef(true);
   const isPrependingTimelineRef = useRef(false);
   const isAppendingTimelineRef = useRef(false);
   const reorderTimeoutsRef = useRef<Record<string, number>>({});
@@ -792,6 +793,16 @@ export function PlannerApp() {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  useEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+
+    window.history.scrollRestoration = "manual";
+
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -875,44 +886,61 @@ export function PlannerApp() {
   }, [planner, storageReady]);
 
   useLayoutEffect(() => {
-    if (!storageReady || didInitialTimelineScrollRef.current) {
+    if (didInitialTimelineScrollRef.current) {
       return;
     }
 
-    let secondFrame = 0;
+    const timeline = timelineRef.current;
+    const todayColumn = timeline?.querySelector<HTMLElement>(
+      `[data-day-id="${todayDayId}"]`,
+    );
+
+    if (!timeline || !todayColumn) {
+      return;
+    }
+
+    function anchorToToday() {
+      const currentTimeline = timelineRef.current;
+      const currentTodayColumn = currentTimeline?.querySelector<HTMLElement>(
+        `[data-day-id="${todayDayId}"]`,
+      );
+
+      if (!currentTimeline || !currentTodayColumn) {
+        return;
+      }
+
+      currentTimeline.scrollLeft = Math.max(
+        currentTodayColumn.offsetLeft - TIMELINE_LEFT_CLIP,
+        0,
+      );
+    }
+
+    isAnchoringTimelineRef.current = true;
+    anchorToToday();
 
     const frame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => {
-        const timeline = timelineRef.current;
-        const todayColumn = timeline?.querySelector<HTMLElement>(
-          `[data-day-id="${todayDayId}"]`,
-        );
-
-        if (!timeline || !todayColumn) {
-          return;
-        }
-
-        timeline.scrollTo({
-          left: Math.max(todayColumn.offsetLeft - TIMELINE_LEFT_CLIP, 0),
-          behavior: "auto",
-        });
-        didInitialTimelineScrollRef.current = true;
-      });
+      anchorToToday();
     });
+    const timeout = window.setTimeout(() => {
+      anchorToToday();
+      didInitialTimelineScrollRef.current = true;
+      isAnchoringTimelineRef.current = false;
+    }, 120);
 
     return () => {
       window.cancelAnimationFrame(frame);
-
-      if (secondFrame) {
-        window.cancelAnimationFrame(secondFrame);
-      }
+      window.clearTimeout(timeout);
     };
-  }, [days, storageReady, todayDayId]);
+  }, [days, todayDayId]);
 
   function handleTimelineScroll() {
     const timeline = timelineRef.current;
 
-    if (!timeline) {
+    if (
+      !timeline ||
+      !didInitialTimelineScrollRef.current ||
+      isAnchoringTimelineRef.current
+    ) {
       return;
     }
 
