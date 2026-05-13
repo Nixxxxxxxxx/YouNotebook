@@ -78,6 +78,7 @@ const INITIAL_PAST_DAYS = 7;
 const INITIAL_DAY_COUNT = 42;
 const TIMELINE_BATCH_DAYS = 14;
 const TIMELINE_FALLBACK_LEFT_CLIP = 33;
+const TIMELINE_TODAY_START_GUTTER = 28;
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   weekday: "long",
 });
@@ -113,11 +114,11 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function getTimelineLeftClip(timeline: HTMLElement) {
+function getTimelineTodayStartInset(timeline: HTMLElement) {
   const rail = document.querySelector<HTMLElement>("[data-planner-rail]");
 
   if (!rail) {
-    return TIMELINE_FALLBACK_LEFT_CLIP;
+    return TIMELINE_FALLBACK_LEFT_CLIP + TIMELINE_TODAY_START_GUTTER;
   }
 
   const timelineRect = timeline.getBoundingClientRect();
@@ -129,7 +130,10 @@ function getTimelineLeftClip(timeline: HTMLElement) {
     return 0;
   }
 
-  return Math.max(railRect.right - timelineRect.left, 0);
+  return (
+    Math.max(railRect.right - timelineRect.left, 0) +
+    TIMELINE_TODAY_START_GUTTER
+  );
 }
 
 function isSameDay(first: Date, second: Date) {
@@ -702,22 +706,39 @@ function DayColumn({
                 shouldReduceMotion
                   ? undefined
                   : {
-                      boxShadow: [
-                        "0 0 0 0 rgba(255, 55, 0, 0.48), 0 0 10px rgba(255, 55, 0, 0.44)",
-                        "0 0 0 8px rgba(255, 55, 0, 0), 0 0 20px rgba(255, 55, 0, 0.78)",
-                        "0 0 0 0 rgba(255, 55, 0, 0.48), 0 0 10px rgba(255, 55, 0, 0.44)",
+                      filter: [
+                        "brightness(1)",
+                        "brightness(1.36)",
+                        "brightness(1)",
                       ],
-                      opacity: [1, 0.86, 1],
-                      scale: [1, 1.22, 1],
+                      scale: [1, 1.08, 1],
                     }
               }
               transition={{
-                duration: 1.35,
+                duration: 1.2,
                 ease: [0.22, 1, 0.36, 1],
                 repeat: Infinity,
-                repeatDelay: 0.16,
+                repeatDelay: 0.12,
               }}
-            />
+            >
+              {shouldReduceMotion ? null : (
+                <motion.span
+                  className={styles.todayIndicatorPulse}
+                  aria-hidden="true"
+                  initial={false}
+                  animate={{
+                    opacity: [0.72, 0],
+                    scale: [0.72, 2.55],
+                  }}
+                  transition={{
+                    duration: 1.2,
+                    ease: [0.22, 1, 0.36, 1],
+                    repeat: Infinity,
+                    repeatDelay: 0.12,
+                  }}
+                />
+              )}
+            </motion.span>
           ) : null}
           <span>{day.weekday}</span>
         </span>
@@ -936,7 +957,8 @@ export function PlannerApp() {
       }
 
       currentTimeline.scrollLeft = Math.max(
-        currentTodayColumn.offsetLeft - getTimelineLeftClip(currentTimeline),
+        currentTodayColumn.offsetLeft -
+          getTimelineTodayStartInset(currentTimeline),
         0,
       );
     }
