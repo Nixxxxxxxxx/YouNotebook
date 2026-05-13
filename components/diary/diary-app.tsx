@@ -574,14 +574,6 @@ export function DiaryApp() {
         {error ? <p className={styles.errorText}>{error}</p> : null}
       </motion.section>
 
-      <button
-        className={styles.commandButton}
-        type="button"
-        onClick={() => setCommandOpen(true)}
-      >
-        Cmd K
-      </button>
-
       <AnimatePresence>
         {commandOpen ? (
           <motion.div
