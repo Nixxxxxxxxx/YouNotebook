@@ -135,22 +135,12 @@
   border-radius: 12px;
   background: transparent;
   transform-origin: left center;
-  transition:
-    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background-color 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .historyRow:hover,
 .historyItemActive {
   background: #171717;
-}
-
-.historyRow:hover {
-  transform: translateX(2px);
-}
-
-.historyRow:active {
-  transform: translateX(1px) scale(0.995);
 }
 
 .historyItem {
@@ -163,6 +153,18 @@
   color: #ffffff;
   background: transparent;
   text-align: left;
+  transform-origin: left center;
+  transition:
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.historyRow:hover .historyItem {
+  transform: translateX(2px);
+}
+
+.historyRow:active .historyItem {
+  transform: translateX(1px) scale(0.995);
 }
 
 .historyItem span {

@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+} from "motion/react";
 import { cloneContent, deriveTitle, EMPTY_CONTENT, WELCOME_CONTENT } from "@/lib/diary/content";
 import { formatHistoryDate } from "@/lib/diary/dates";
 import { diaryStorage } from "@/lib/diary/storage";
@@ -24,6 +29,23 @@ type Command = {
   title: string;
   hint: string;
 };
+
+const HISTORY_LAYOUT_TRANSITION = {
+  duration: 0.55,
+  ease: [0.22, 1, 0.36, 1],
+} as const;
+
+const HISTORY_PRESENCE_TRANSITION = {
+  duration: 0.2,
+  ease: [0.22, 1, 0.36, 1],
+} as const;
+
+function sortEntriesByUpdatedAt(entries: DiaryEntry[]) {
+  return [...entries].sort(
+    (first, second) =>
+      new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime(),
+  );
+}
 
 function groupEntries(entries: DiaryEntry[]) {
   const groups = new Map<string, DiaryEntry[]>();
@@ -70,7 +92,7 @@ export function DiaryApp() {
       diaryStorage.getSettings(),
     ]);
 
-    setEntries(loadedEntries);
+    setEntries(sortEntriesByUpdatedAt(loadedEntries));
     setActiveId(
       nextActiveId ??
         settings.activeEntryId ??
@@ -97,7 +119,9 @@ export function DiaryApp() {
     try {
       const saved = await diaryStorage.updateEntry(pending.id, pending.patch);
       setEntries((current) =>
-        current.map((entry) => (entry.id === saved.id ? saved : entry)),
+        sortEntriesByUpdatedAt(
+          current.map((entry) => (entry.id === saved.id ? saved : entry)),
+        ),
       );
       setSaveStatus("saved");
       setError(null);
@@ -123,14 +147,16 @@ export function DiaryApp() {
     };
 
     setEntries((current) =>
-      current.map((entry) =>
-        entry.id === id
-          ? {
-              ...entry,
-              ...patch,
-              updatedAt: optimisticUpdatedAt,
-            }
-          : entry,
+      sortEntriesByUpdatedAt(
+        current.map((entry) =>
+          entry.id === id
+            ? {
+                ...entry,
+                ...patch,
+                updatedAt: optimisticUpdatedAt,
+              }
+            : entry,
+        ),
       ),
     );
     setSaveStatus("saving");
@@ -151,7 +177,7 @@ export function DiaryApp() {
       contentJson: cloneContent(EMPTY_CONTENT),
       plainText: "",
     });
-    setEntries((current) => [entry, ...current]);
+    setEntries((current) => sortEntriesByUpdatedAt([entry, ...current]));
     setActiveId(entry.id);
     setHistoryOpen(false);
     setSaveStatus("saved");
@@ -420,56 +446,84 @@ export function DiaryApp() {
           </button>
         </div>
 
-        <div className={styles.historyList}>
-          {groupEntries(entries).map(([label, group]) => (
-            <section key={label} className={styles.historyGroup}>
-              <h2>{label}</h2>
-              <AnimatePresence initial={false}>
-                {group.map((entry) => (
-                  <motion.div
-                    key={entry.id}
-                    className={`${styles.historyRow} ${
-                      entry.id === activeId ? styles.historyItemActive : ""
-                    }`}
-                    layout={!shouldReduceMotion}
-                    initial={
-                      shouldReduceMotion
-                        ? false
-                        : { opacity: 0, x: -8, scale: 0.985 }
-                    }
-                    animate={
-                      shouldReduceMotion
-                        ? undefined
-                        : { opacity: 1, x: 0, scale: 1 }
-                    }
-                    exit={
-                      shouldReduceMotion
-                        ? undefined
-                        : { opacity: 0, x: -8, scale: 0.98 }
-                    }
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <button
-                      className={styles.historyItem}
-                      type="button"
-                      onClick={() => void selectEntry(entry)}
-                    >
-                      <span>{entry.title}</span>
-                    </button>
-                    <button
-                      className={styles.deleteNoteButton}
-                      type="button"
-                      aria-label={`Удалить заметку ${entry.title}`}
-                      onClick={() => void deleteEntry(entry)}
-                    >
-                      <TrashIcon />
-                    </button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </section>
-          ))}
-        </div>
+        <LayoutGroup id="diary-history">
+          <motion.div
+            className={styles.historyList}
+            layout={shouldReduceMotion ? false : true}
+            transition={{ layout: HISTORY_LAYOUT_TRANSITION }}
+          >
+            <AnimatePresence initial={false}>
+              {groupEntries(entries).map(([label, group]) => (
+                <motion.section
+                  key={label}
+                  className={styles.historyGroup}
+                  layout={shouldReduceMotion ? false : true}
+                  initial={
+                    shouldReduceMotion ? false : { opacity: 0, y: -4 }
+                  }
+                  animate={
+                    shouldReduceMotion ? undefined : { opacity: 1, y: 0 }
+                  }
+                  exit={
+                    shouldReduceMotion ? undefined : { opacity: 0, y: -4 }
+                  }
+                  transition={{
+                    layout: HISTORY_LAYOUT_TRANSITION,
+                    ...HISTORY_PRESENCE_TRANSITION,
+                  }}
+                >
+                  <motion.h2 layout="position">{label}</motion.h2>
+                  <AnimatePresence initial={false}>
+                    {group.map((entry) => (
+                      <motion.div
+                        key={entry.id}
+                        className={`${styles.historyRow} ${
+                          entry.id === activeId ? styles.historyItemActive : ""
+                        }`}
+                        layout={shouldReduceMotion ? false : "position"}
+                        initial={
+                          shouldReduceMotion
+                            ? false
+                            : { opacity: 0, x: -8, scale: 0.985 }
+                        }
+                        animate={
+                          shouldReduceMotion
+                            ? undefined
+                            : { opacity: 1, x: 0, scale: 1 }
+                        }
+                        exit={
+                          shouldReduceMotion
+                            ? undefined
+                            : { opacity: 0, x: -8, scale: 0.98 }
+                        }
+                        transition={{
+                          layout: HISTORY_LAYOUT_TRANSITION,
+                          ...HISTORY_PRESENCE_TRANSITION,
+                        }}
+                      >
+                        <button
+                          className={styles.historyItem}
+                          type="button"
+                          onClick={() => void selectEntry(entry)}
+                        >
+                          <span>{entry.title}</span>
+                        </button>
+                        <button
+                          className={styles.deleteNoteButton}
+                          type="button"
+                          aria-label={`Удалить заметку ${entry.title}`}
+                          onClick={() => void deleteEntry(entry)}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.section>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </LayoutGroup>
 
         <button
           className={styles.mobileClose}
