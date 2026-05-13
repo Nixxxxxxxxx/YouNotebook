@@ -53,6 +53,11 @@
   text-wrap: nowrap;
 }
 
+.dayStatus[data-loading="true"] .dayStatusCount,
+.dayStatus[data-loading="true"] .dayStatusMessage {
+  visibility: hidden;
+}
+
 .dayStatusTrack {
   position: relative;
   width: 204px;

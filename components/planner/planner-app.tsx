@@ -173,19 +173,6 @@ function buildTimelineDays(
   );
 }
 
-function createInitialPlanner(selectedDate: Date): PlannerState {
-  return buildTimelineDays(addDays(selectedDate, -1), 8, selectedDate).reduce(
-    (state, day) => {
-      state[day.id] = [
-        { id: `${day.id}-1`, title: "Мы работаем над собой", completed: false },
-        { id: `${day.id}-2`, title: "Мы работаем над собой", completed: true },
-      ];
-      return state;
-    },
-    {} as PlannerState,
-  );
-}
-
 function ensurePlannerDays(state: PlannerState, days: PlannerDay[]) {
   const next = clonePlanner(state);
 
@@ -388,14 +375,24 @@ function normalizeStoredPlanner(value: unknown): PlannerState | null {
   return next;
 }
 
-function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
+function PlannerDayStatus({
+  isLoading = false,
+  summary,
+}: {
+  isLoading?: boolean;
+  summary: CompletionSummary;
+}) {
   const shouldReduceMotion = useReducedMotion();
-  const statusKey = `${summary.completed}-${summary.total}-${summary.message}`;
+  const statusKey = isLoading
+    ? "loading"
+    : `${summary.completed}-${summary.total}-${summary.message}`;
 
   return (
     <motion.section
       className={styles.dayStatus}
+      data-loading={isLoading ? "true" : "false"}
       aria-label={`${summary.label}: ${summary.completed} из ${summary.total}`}
+      aria-busy={isLoading}
       initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
       animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
@@ -422,14 +419,14 @@ function PlannerDayStatus({ summary }: { summary: CompletionSummary }) {
           }
           transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
         >
-          {summary.completed}/{summary.total}
+          {isLoading ? "0/0" : `${summary.completed}/${summary.total}`}
         </motion.strong>
       </AnimatePresence>
       <div className={styles.dayStatusTrack} aria-hidden="true">
         <motion.span
           className={styles.dayStatusProgress}
           initial={false}
-          animate={{ scaleX: summary.progress }}
+          animate={{ scaleX: isLoading ? 0 : summary.progress }}
           transition={
             shouldReduceMotion
               ? { duration: 0 }
@@ -804,9 +801,7 @@ export function PlannerApp() {
   );
   const [timelineDayCount, setTimelineDayCount] =
     useState(INITIAL_DAY_COUNT);
-  const [planner, setPlanner] = useState<PlannerState>(() =>
-    createInitialPlanner(getToday()),
-  );
+  const [planner, setPlanner] = useState<PlannerState>({});
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
@@ -857,9 +852,12 @@ export function PlannerApp() {
     const frame = window.requestAnimationFrame(() => {
       const currentDate = getToday();
       const initialStartDate = addDays(currentDate, -INITIAL_PAST_DAYS);
-
-      setToday(currentDate);
-      setTimelineStartDate(initialStartDate);
+      const initialDays = buildTimelineDays(
+        initialStartDate,
+        INITIAL_DAY_COUNT,
+        currentDate,
+      );
+      let nextPlanner = ensurePlannerDays({}, initialDays);
 
       try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -868,23 +866,18 @@ export function PlannerApp() {
           const parsed = normalizeStoredPlanner(JSON.parse(stored));
 
           if (parsed) {
-            setPlanner(
-              ensurePlannerDays(
-                parsed,
-                buildTimelineDays(
-                  initialStartDate,
-                  INITIAL_DAY_COUNT,
-                  currentDate,
-                ),
-              ),
-            );
+            nextPlanner = ensurePlannerDays(parsed, initialDays);
           }
         }
       } catch {
-        setPlanner(createInitialPlanner(currentDate));
-      } finally {
-        setStorageReady(true);
+        nextPlanner = ensurePlannerDays({}, initialDays);
       }
+
+      setToday(currentDate);
+      setTimelineStartDate(initialStartDate);
+      setTimelineDayCount(INITIAL_DAY_COUNT);
+      setPlanner(nextPlanner);
+      setStorageReady(true);
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -1178,7 +1171,7 @@ export function PlannerApp() {
       <AppTabs active="planner" />
 
       <div className={styles.leftRail} data-planner-rail>
-        <PlannerDayStatus summary={dayStatus} />
+        <PlannerDayStatus isLoading={!storageReady} summary={dayStatus} />
       </div>
 
       <DndContext
