@@ -94,7 +94,7 @@
   overflow-y: hidden;
   border-left: 1px solid rgba(255, 255, 255, 0.14);
   scrollbar-width: none;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 .weekScroller::-webkit-scrollbar {
@@ -140,6 +140,40 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 42%),
     rgba(255, 255, 255, 0.018);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.dayColumn[data-past="true"] {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.dayColumn[data-past="true"] h2 button,
+.dayColumn[data-past="true"] h2 time {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.dayColumn[data-past="true"] .taskRow,
+.dayColumn[data-past="true"] .taskTitle,
+.dayColumn[data-past="true"] .addTask {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.dayColumn[data-past="true"] .checkbox {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.dayColumn[data-past="true"] .checkbox[data-checked="true"] {
+  color: #000000;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+.dayColumn[data-past="true"] .addTaskIcon {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.dayColumn[data-past="true"] .taskRow:hover,
+.dayColumn[data-past="true"] .taskRow:focus-within {
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .dayColumn h2 {

@@ -55,6 +55,7 @@ type PlannerDay = {
   date: Date;
   dateLabel: string;
   isActive: boolean;
+  isPast: boolean;
   isToday: boolean;
   title: string;
   weekday: string;
@@ -138,6 +139,7 @@ function buildPlannerDay(
     date,
     dateLabel,
     isActive: isSameDay(date, selectedDate),
+    isPast: date.getTime() < today.getTime(),
     isToday: isSameDay(date, today),
     title: `${weekday} ${dateLabel}`,
     weekday,
@@ -670,6 +672,7 @@ function DayColumn({
       data-day-column
       data-day-id={day.id}
       data-over={isOver ? "true" : "false"}
+      data-past={day.isPast ? "true" : "false"}
       data-today={day.isToday ? "true" : "false"}
       initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
       animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
