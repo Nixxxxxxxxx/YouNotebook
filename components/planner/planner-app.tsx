@@ -77,7 +77,7 @@ const REORDER_TRANSITION = {
 const INITIAL_PAST_DAYS = 7;
 const INITIAL_DAY_COUNT = 42;
 const TIMELINE_BATCH_DAYS = 14;
-const TIMELINE_LEFT_CLIP = 0;
+const TIMELINE_FALLBACK_LEFT_CLIP = 33;
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   weekday: "long",
 });
@@ -111,6 +111,25 @@ function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
+}
+
+function getTimelineLeftClip(timeline: HTMLElement) {
+  const rail = document.querySelector<HTMLElement>("[data-planner-rail]");
+
+  if (!rail) {
+    return TIMELINE_FALLBACK_LEFT_CLIP;
+  }
+
+  const timelineRect = timeline.getBoundingClientRect();
+  const railRect = rail.getBoundingClientRect();
+  const overlapsVertically =
+    railRect.bottom > timelineRect.top && railRect.top < timelineRect.bottom;
+
+  if (!overlapsVertically) {
+    return 0;
+  }
+
+  return Math.max(railRect.right - timelineRect.left, 0);
 }
 
 function isSameDay(first: Date, second: Date) {
@@ -683,15 +702,20 @@ function DayColumn({
                 shouldReduceMotion
                   ? undefined
                   : {
-                      opacity: [1, 0.72, 1],
-                      scale: [1, 1.28, 1],
+                      boxShadow: [
+                        "0 0 0 0 rgba(255, 55, 0, 0.48), 0 0 10px rgba(255, 55, 0, 0.44)",
+                        "0 0 0 8px rgba(255, 55, 0, 0), 0 0 20px rgba(255, 55, 0, 0.78)",
+                        "0 0 0 0 rgba(255, 55, 0, 0.48), 0 0 10px rgba(255, 55, 0, 0.44)",
+                      ],
+                      opacity: [1, 0.86, 1],
+                      scale: [1, 1.22, 1],
                     }
               }
               transition={{
-                duration: 1.8,
+                duration: 1.35,
                 ease: [0.22, 1, 0.36, 1],
                 repeat: Infinity,
-                repeatDelay: 0.24,
+                repeatDelay: 0.16,
               }}
             />
           ) : null}
@@ -912,7 +936,7 @@ export function PlannerApp() {
       }
 
       currentTimeline.scrollLeft = Math.max(
-        currentTodayColumn.offsetLeft - TIMELINE_LEFT_CLIP,
+        currentTodayColumn.offsetLeft - getTimelineLeftClip(currentTimeline),
         0,
       );
     }
@@ -1131,7 +1155,7 @@ export function PlannerApp() {
       <DynamicBackground />
       <AppTabs active="planner" />
 
-      <div className={styles.leftRail}>
+      <div className={styles.leftRail} data-planner-rail>
         <PlannerDayStatus summary={dayStatus} />
       </div>
 
