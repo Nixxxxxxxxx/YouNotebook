@@ -2,7 +2,7 @@
   --rail-width: 296px;
   --status-width: 239px;
   --day-column-width: 220px;
-  --day-column-gap: 96px;
+  --day-column-gap: 36px;
   --timeline-left: 263px;
 
   position: relative;
@@ -193,7 +193,7 @@
 .taskList {
   align-content: start;
   display: grid;
-  gap: 12px;
+  gap: 16px;
   grid-auto-rows: min-content;
   min-height: 220px;
 }
@@ -349,9 +349,9 @@
   min-width: 0;
   overflow: visible;
   overflow-wrap: anywhere;
-  font-size: 11px;
+  font-size: 15px;
   letter-spacing: -0.01em;
-  line-height: 14px;
+  line-height: 18px;
   outline: none;
   text-overflow: clip;
   white-space: pre-wrap;

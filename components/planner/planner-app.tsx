@@ -25,6 +25,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -76,7 +77,7 @@ const REORDER_TRANSITION = {
 const INITIAL_PAST_DAYS = 7;
 const INITIAL_DAY_COUNT = 42;
 const TIMELINE_BATCH_DAYS = 14;
-const TIMELINE_LEFT_CLIP = 33;
+const TIMELINE_LEFT_CLIP = 0;
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   weekday: "long",
 });
@@ -870,31 +871,40 @@ export function PlannerApp() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(planner));
   }, [planner, storageReady]);
 
-  useEffect(() => {
-    const timeline = timelineRef.current;
-
-    if (!timeline || didInitialTimelineScrollRef.current) {
+  useLayoutEffect(() => {
+    if (!storageReady || didInitialTimelineScrollRef.current) {
       return;
     }
 
-    const todayColumn = timeline.querySelector<HTMLElement>(
-      `[data-day-id="${todayDayId}"]`,
-    );
-
-    if (!todayColumn) {
-      return;
-    }
+    let secondFrame = 0;
 
     const frame = window.requestAnimationFrame(() => {
-      timeline.scrollLeft = Math.max(
-        todayColumn.offsetLeft - TIMELINE_LEFT_CLIP,
-        0,
-      );
-      didInitialTimelineScrollRef.current = true;
+      secondFrame = window.requestAnimationFrame(() => {
+        const timeline = timelineRef.current;
+        const todayColumn = timeline?.querySelector<HTMLElement>(
+          `[data-day-id="${todayDayId}"]`,
+        );
+
+        if (!timeline || !todayColumn) {
+          return;
+        }
+
+        timeline.scrollTo({
+          left: Math.max(todayColumn.offsetLeft - TIMELINE_LEFT_CLIP, 0),
+          behavior: "auto",
+        });
+        didInitialTimelineScrollRef.current = true;
+      });
     });
 
-    return () => window.cancelAnimationFrame(frame);
-  }, [days, todayDayId]);
+    return () => {
+      window.cancelAnimationFrame(frame);
+
+      if (secondFrame) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+    };
+  }, [days, storageReady, todayDayId]);
 
   function handleTimelineScroll() {
     const timeline = timelineRef.current;
