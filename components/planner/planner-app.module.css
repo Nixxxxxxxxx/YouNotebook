@@ -146,7 +146,7 @@
   color: rgba(255, 255, 255, 0.24);
 }
 
-.dayColumn[data-past="true"] h2 button,
+.dayColumn[data-past="true"] .dayHeadingLine,
 .dayColumn[data-past="true"] h2 time {
   color: rgba(255, 255, 255, 0.24);
 }
@@ -154,6 +154,10 @@
 .dayColumn[data-past="true"] .taskRow,
 .dayColumn[data-past="true"] .taskTitle,
 .dayColumn[data-past="true"] .addTask {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.dayColumn[data-past="true"] .taskRow[data-completed="true"] .taskTitle {
   color: rgba(255, 255, 255, 0.24);
 }
 
@@ -177,32 +181,30 @@
 }
 
 .dayColumn h2 {
-  display: block;
-  margin: 0 0 24px;
-  padding: 0;
-}
-
-.dayColumn h2 button {
   display: inline-grid;
   gap: 4px;
-  justify-items: start;
-  border: 0;
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.56);
-  background: transparent;
+  margin: 0 0 24px;
+  padding: 0;
+  color: #ffffff;
   font-size: 18px;
   font-weight: 510;
   line-height: 1.2;
-  text-align: left;
-  transition:
-    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.dayColumn h2 button:hover {
-  color: rgba(255, 255, 255, 0.82);
-  transform: translateY(-1px);
+.dayHeadingLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.todayIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  box-shadow: 0 0 12px rgba(255, 55, 0, 0.48);
+  flex: 0 0 auto;
 }
 
 .dayColumn h2 time {
@@ -211,17 +213,6 @@
   font-weight: 400;
   line-height: 16px;
   font-variant-numeric: tabular-nums;
-}
-
-.dayColumn[data-active="true"] h2 button {
-  padding: 5px 10px;
-  color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-  transform: none;
-}
-
-.dayColumn[data-active="true"] h2 time {
-  color: rgba(255, 255, 255, 0.72);
 }
 
 .taskList {

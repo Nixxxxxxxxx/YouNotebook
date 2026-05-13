@@ -54,7 +54,6 @@ type PlannerDay = {
   id: string;
   date: Date;
   dateLabel: string;
-  isActive: boolean;
   isPast: boolean;
   isToday: boolean;
   title: string;
@@ -126,11 +125,7 @@ function capitalizeFirst(value: string) {
   return value.replace(/^./, (letter) => letter.toUpperCase());
 }
 
-function buildPlannerDay(
-  date: Date,
-  selectedDate: Date,
-  today = getToday(),
-): PlannerDay {
+function buildPlannerDay(date: Date, today = getToday()): PlannerDay {
   const weekday = capitalizeFirst(WEEKDAY_FORMATTER.format(date));
   const dateLabel = DAY_MONTH_FORMATTER.format(date);
 
@@ -138,7 +133,6 @@ function buildPlannerDay(
     id: toDateKey(date),
     date,
     dateLabel,
-    isActive: isSameDay(date, selectedDate),
     isPast: date.getTime() < today.getTime(),
     isToday: isSameDay(date, today),
     title: `${weekday} ${dateLabel}`,
@@ -149,11 +143,10 @@ function buildPlannerDay(
 function buildTimelineDays(
   startDate: Date,
   count: number,
-  selectedDate: Date,
   today = getToday(),
 ) {
   return Array.from({ length: count }, (_, index) =>
-    buildPlannerDay(addDays(startDate, index), selectedDate, today),
+    buildPlannerDay(addDays(startDate, index), today),
   );
 }
 
@@ -647,7 +640,6 @@ function DayColumn({
   tasks,
   onAddTask,
   onDeleteTask,
-  onSelectDay,
   onTitleChange,
   onToggleTask,
 }: {
@@ -657,7 +649,6 @@ function DayColumn({
   tasks: PlannerTask[];
   onAddTask: () => void;
   onDeleteTask: (taskId: string) => void;
-  onSelectDay: () => void;
   onTitleChange: (taskId: string, title: string) => void;
   onToggleTask: (taskId: string) => void;
 }) {
@@ -668,7 +659,6 @@ function DayColumn({
     <motion.section
       ref={setNodeRef}
       className={styles.dayColumn}
-      data-active={day.isActive ? "true" : "false"}
       data-day-column
       data-day-id={day.id}
       data-over={isOver ? "true" : "false"}
@@ -683,10 +673,13 @@ function DayColumn({
       }}
     >
       <h2 aria-label={day.title}>
-        <button type="button" onClick={onSelectDay}>
+        <span className={styles.dayHeadingLine}>
+          {day.isToday ? (
+            <span className={styles.todayIndicator} aria-hidden="true" />
+          ) : null}
           <span>{day.weekday}</span>
-          <time dateTime={day.id}>{day.dateLabel}</time>
-        </button>
+        </span>
+        <time dateTime={day.id}>{day.dateLabel}</time>
       </h2>
       <SortableContext
         items={tasks.map((task) => task.id)}
@@ -743,7 +736,6 @@ function TaskOverlay({ task }: { task: PlannerTask }) {
 
 export function PlannerApp() {
   const [today, setToday] = useState(() => getToday());
-  const [selectedDate, setSelectedDate] = useState(() => getToday());
   const [timelineStartDate, setTimelineStartDate] = useState(() =>
     addDays(getToday(), -INITIAL_PAST_DAYS),
   );
@@ -763,14 +755,8 @@ export function PlannerApp() {
   const reorderTimeoutsRef = useRef<Record<string, number>>({});
   const shouldReduceMotion = useReducedMotion();
   const days = useMemo(
-    () =>
-      buildTimelineDays(
-        timelineStartDate,
-        timelineDayCount,
-        selectedDate,
-        today,
-      ),
-    [selectedDate, timelineDayCount, timelineStartDate, today],
+    () => buildTimelineDays(timelineStartDate, timelineDayCount, today),
+    [timelineDayCount, timelineStartDate, today],
   );
   const activeTask = activeTaskId ? findTask(planner, activeTaskId) : null;
   const todayDayId = toDateKey(today);
@@ -810,7 +796,6 @@ export function PlannerApp() {
       const initialStartDate = addDays(currentDate, -INITIAL_PAST_DAYS);
 
       setToday(currentDate);
-      setSelectedDate(currentDate);
       setTimelineStartDate(initialStartDate);
 
       try {
@@ -826,7 +811,6 @@ export function PlannerApp() {
                 buildTimelineDays(
                   initialStartDate,
                   INITIAL_DAY_COUNT,
-                  currentDate,
                   currentDate,
                 ),
               ),
@@ -1124,13 +1108,6 @@ export function PlannerApp() {
     scheduleCompletionReorder(dayId, taskId);
   }
 
-  function selectDate(date: Date) {
-    setSelectedDate(date);
-    setPlanner((current) =>
-      ensurePlannerDays(current, [buildPlannerDay(date, date, today)]),
-    );
-  }
-
   return (
     <main className={styles.shell}>
       <DynamicBackground />
@@ -1167,7 +1144,6 @@ export function PlannerApp() {
                   updateTaskTitle(day.id, taskId, title)
                 }
                 onToggleTask={(taskId) => toggleTask(day.id, taskId)}
-                onSelectDay={() => selectDate(day.date)}
               />
             ))}
           </div>
