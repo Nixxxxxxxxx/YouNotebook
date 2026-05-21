@@ -27,3 +27,24 @@ pnpm dev
 ## Storage
 
 Данные v1 хранятся локально в IndexedDB: `younotebook:v1`. Для безопасности есть ручной export/import JSON в command palette.
+
+## Thought Store
+
+`/thoughts` adds a server-backed "Склад мыслей" for saved materials, branches,
+reader-view snapshots, and Telegram captures.
+
+Required environment variables:
+
+- `DATABASE_URL` - Supabase transaction pooler connection string
+- `DIRECT_DATABASE_URL` - Supabase direct connection string
+- `TELEGRAM_BOT_TOKEN` - BotFather token
+- `TELEGRAM_ALLOWED_USER_IDS` - comma-separated Telegram user ids
+- `TELEGRAM_WEBHOOK_SECRET` - secret token checked by webhook route
+- `APP_BASE_URL` - deployed app URL, required for `/api/telegram/set-webhook`
+
+Telegram webhook setup after deploy:
+
+```bash
+curl -X POST "$APP_BASE_URL/api/telegram/set-webhook" \
+  -H "Authorization: Bearer $TELEGRAM_WEBHOOK_SECRET"
+```

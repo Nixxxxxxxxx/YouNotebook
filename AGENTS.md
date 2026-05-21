@@ -12,6 +12,7 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 - IndexedDB persistence through a storage adapter
 - Manual JSON export and import from the command palette
 - Responsive layout: desktop two-panel workspace, mobile editor-first flow
+- Thought Store: inbox, branches, useful flag, reader-view snapshots, and Telegram capture
 
 ## Out of Scope v1
 - Cloud sync
@@ -21,6 +22,14 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 - AI features
 - Collaboration
 - Search
+
+## Thought Store Rules
+- Store saved materials as reader-view snapshots, not just URLs
+- Default view is `Входящие`; unassigned count is shown in the sidebar indicator
+- Branches are lightweight user-created collections by name
+- Telegram capture is owner-only through `TELEGRAM_ALLOWED_USER_IDS`
+- Telegram webhook requests must validate `X-Telegram-Bot-Api-Secret-Token`
+- Server clients must be lazy-initialized and must not crash at module scope
 
 ## UX Rules
 - Writing comes first: no save button, no noisy controls, no blocking setup
