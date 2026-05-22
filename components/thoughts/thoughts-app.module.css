@@ -1,7 +1,8 @@
 .shell {
   position: relative;
+  height: 100vh;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow: hidden;
   color: #ffffff;
   background: #000000;
   font-family: var(--font-ui);
@@ -233,18 +234,21 @@
   color: rgba(255, 255, 255, 0.42);
 }
 
-.content {
-  position: relative;
-  min-height: 100vh;
-  margin-left: 296px;
-  padding: 105px 16px 64px 32px;
+.contentScroller {
+  position: fixed;
+  top: 76px;
+  right: 0;
+  bottom: 0;
+  left: 296px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
-.content h1 {
-  margin: 0 0 22px;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 1.2;
+.content {
+  position: relative;
+  min-height: 100%;
+  padding: 29px 16px 64px 32px;
 }
 
 .error {
@@ -252,6 +256,42 @@
   margin: -8px 0 18px;
   color: #ff8b98;
   font-size: 13px;
+}
+
+.dayStack {
+  display: grid;
+  gap: 34px;
+}
+
+.daySection {
+  display: grid;
+  gap: 12px;
+}
+
+.dayHeader {
+  display: flex;
+  width: min(1164px, 100%);
+  align-items: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.dayHeader span {
+  flex: 0 0 auto;
+}
+
+.dayHeader i {
+  display: block;
+  height: 1px;
+  flex: 1 1 auto;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.dayHeader[data-first="true"] i {
+  display: none;
 }
 
 .masonryGrid {
@@ -380,7 +420,7 @@
 
 .cardNote p,
 .cardArticle p {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   color: #ffffff;
   font-size: 13px;
   font-weight: 400;
@@ -396,6 +436,7 @@
 }
 
 .cardArticle {
+  height: 258px;
   min-height: 258px;
   padding: 20px 16px;
 }
@@ -411,9 +452,11 @@
 .cardArticle p {
   display: -webkit-box;
   overflow: hidden;
+  margin-top: 8px;
   color: transparent;
   background: linear-gradient(180deg, #ffffff 0%, #121212 100%);
   background-clip: text;
+  font-size: 12px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 10;
 }
@@ -421,7 +464,7 @@
 .cardArticle .cardSource {
   position: absolute;
   right: 16px;
-  bottom: 12px;
+  bottom: 16px;
   left: 16px;
   padding: 0 8px;
 }
@@ -475,67 +518,6 @@
   font-size: 14px;
 }
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(18px);
-}
-
-.addDialog {
-  width: min(640px, calc(100vw - 32px));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  color: #ffffff;
-  background: #121212;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.52);
-}
-
-.addDialog {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-}
-
-.dialogHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.dialogHeader h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1.2;
-}
-
-.dialogHeader button {
-  border: 0;
-  color: rgba(255, 255, 255, 0.56);
-  background: transparent;
-  font-size: 13px;
-}
-
-.addDialog textarea {
-  min-height: 180px;
-  resize: vertical;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
-  outline: none;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 15px;
-  line-height: 1.45;
-  padding: 14px;
-}
-
-.dialogControls,
 .readerActions {
   display: flex;
   flex-wrap: wrap;
@@ -543,7 +525,6 @@
   gap: 12px;
 }
 
-.dialogControls select,
 .readerActions select {
   height: 38px;
   min-width: 172px;
@@ -554,7 +535,6 @@
   padding: 0 10px;
 }
 
-.dialogControls label,
 .readerActions label {
   display: inline-flex;
   align-items: center;
@@ -645,6 +625,30 @@
   margin-top: 16px;
 }
 
+.addEditorTextarea {
+  width: 100%;
+  min-height: 360px;
+  margin-top: 26px;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  color: #ffffff;
+  background: transparent;
+  font-family: var(--font-editor);
+  font-size: 16px;
+  line-height: 26px;
+  letter-spacing: 0.16px;
+  padding: 0;
+}
+
+.addEditorTextarea::placeholder {
+  color: rgba(255, 255, 255, 0.36);
+}
+
+.addEditor .readerActions {
+  margin-top: 26px;
+}
+
 .readerImage {
   display: block;
   width: 100%;
@@ -695,7 +699,7 @@
   padding: 8px 10px;
 }
 
-@media (max-width: 1480px) {
+@media (max-width: 1180px) {
   .masonryGrid {
     width: min(976px, 100%);
     margin-left: 0;
@@ -703,6 +707,13 @@
 }
 
 @media (max-width: 900px) {
+  .shell {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .sidebar {
     position: relative;
     top: auto;
@@ -722,9 +733,19 @@
     margin-top: 24px;
   }
 
+  .contentScroller {
+    position: relative;
+    inset: auto;
+    overflow: visible;
+  }
+
   .content {
-    margin-left: 0;
+    min-height: auto;
     padding: 28px 18px 80px;
+  }
+
+  .dayHeader {
+    width: 100%;
   }
 
   .masonryGrid {

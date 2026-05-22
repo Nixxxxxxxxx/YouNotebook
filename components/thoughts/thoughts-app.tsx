@@ -27,6 +27,10 @@ const viewTransition = {
   ease: [0.22, 1, 0.36, 1],
 } as const;
 const THOUGHT_COLUMN_COUNT = 3;
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
+  day: "2-digit",
+  month: "2-digit",
+});
 
 function InboxIcon() {
   return (
@@ -99,6 +103,62 @@ function distributeThoughtsByColumn(thoughts: Thought[]) {
   });
 
   return columns;
+}
+
+function startOfLocalDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function getDayKey(value: string) {
+  const date = new Date(value);
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function getDayLabel(value: string) {
+  const date = new Date(value);
+  const today = startOfLocalDay(new Date());
+  const day = startOfLocalDay(date);
+  const diffDays = Math.round(
+    (today.getTime() - day.getTime()) / (24 * 60 * 60 * 1000),
+  );
+
+  if (diffDays === 0) {
+    return "Сегодня";
+  }
+
+  if (diffDays === 1) {
+    return "Вчера";
+  }
+
+  return SHORT_DATE_FORMATTER.format(date);
+}
+
+function groupThoughtsByDay(thoughts: Thought[]) {
+  return thoughts.reduce(
+    (groups, thought) => {
+      const key = getDayKey(thought.createdAt);
+      const existing = groups.find((group) => group.key === key);
+
+      if (existing) {
+        existing.thoughts.push(thought);
+        return groups;
+      }
+
+      groups.push({
+        key,
+        label: getDayLabel(thought.createdAt),
+        thoughts: [thought],
+      });
+
+      return groups;
+    },
+    [] as Array<{ key: string; label: string; thoughts: Thought[] }>,
+  );
 }
 
 function ThoughtCard({
@@ -193,24 +253,14 @@ export function ThoughtsApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const thoughtColumns = useMemo(
-    () => distributeThoughtsByColumn(thoughts),
+  const thoughtGroups = useMemo(
+    () =>
+      groupThoughtsByDay(thoughts).map((group) => ({
+        ...group,
+        columns: distributeThoughtsByColumn(group.thoughts),
+      })),
     [thoughts],
   );
-
-  const activeBranch = useMemo(() => {
-    if (activeView.kind !== "branch") {
-      return null;
-    }
-
-    return branches.find((branch) => branch.id === activeView.branchId) ?? null;
-  }, [activeView, branches]);
-  const activeTitle =
-    activeView.kind === "branch"
-      ? activeBranch?.name ?? "Коллекция"
-      : activeView.kind === "useful"
-        ? "Под рукой"
-        : "Входящие";
 
   async function loadThoughts(nextView = activeView) {
     setIsLoading(true);
@@ -374,7 +424,7 @@ export function ThoughtsApp() {
           type="button"
           onClick={() => setAddOpen(true)}
         >
-          Добавить мысль
+          Скинуть мысль
         </button>
 
         <nav className={styles.sideNav} aria-label="Склад мыслей">
@@ -467,57 +517,65 @@ export function ThoughtsApp() {
         </nav>
       </aside>
 
-      <section className={styles.content}>
-        <motion.h1
-          key={activeTitle}
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
-          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          transition={viewTransition}
-        >
-          {activeTitle}
-        </motion.h1>
+      <section className={styles.contentScroller}>
+        <div className={styles.content}>
+          {error ? <p className={styles.error}>{error}</p> : null}
 
-        {error ? <p className={styles.error}>{error}</p> : null}
-
-        <div className={styles.masonryGrid}>
-          {thoughtColumns.map((column, index) => (
-            <motion.div
-              className={styles.masonryColumn}
-              data-column={index}
-              key={index}
-              layout
-            >
-              <AnimatePresence mode="popLayout" initial={false}>
-                {column.map((thought) => (
-                  <ThoughtCard
-                    key={thought.id}
-                    thought={thought}
-                    onDelete={(nextThought) => void deleteThought(nextThought)}
-                    onOpen={setSelectedThought}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-        </div>
-
-        {!isLoading && thoughts.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p>Здесь пока пусто. Скинь мысль вручную или перешли пост боту.</p>
+          <div className={styles.dayStack}>
+            {thoughtGroups.map((group, groupIndex) => (
+              <section className={styles.daySection} key={group.key}>
+                <div
+                  className={styles.dayHeader}
+                  data-first={groupIndex === 0 ? "true" : "false"}
+                >
+                  <span>{group.label}</span>
+                  <i aria-hidden="true" />
+                </div>
+                <div className={styles.masonryGrid}>
+                  {group.columns.map((column, index) => (
+                    <motion.div
+                      className={styles.masonryColumn}
+                      data-column={index}
+                      key={index}
+                      layout
+                    >
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        {column.map((thought) => (
+                          <ThoughtCard
+                            key={thought.id}
+                            thought={thought}
+                            onDelete={(nextThought) =>
+                              void deleteThought(nextThought)
+                            }
+                            onOpen={setSelectedThought}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
-        ) : null}
+
+          {!isLoading && thoughts.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>Здесь пока пусто. Скинь мысль вручную или перешли пост боту.</p>
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <AnimatePresence>
         {addOpen ? (
           <motion.div
-            className={styles.overlay}
+            className={styles.readerOverlay}
             initial={shouldReduceMotion ? false : { opacity: 0 }}
             animate={shouldReduceMotion ? undefined : { opacity: 1 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0 }}
           >
             <motion.form
-              className={styles.addDialog}
+              className={`${styles.reader} ${styles.addEditor}`}
               onSubmit={createThought}
               initial={
                 shouldReduceMotion ? false : { opacity: 0, y: 12, scale: 0.98 }
@@ -530,19 +588,28 @@ export function ThoughtsApp() {
               }
               transition={viewTransition}
             >
-              <div className={styles.dialogHeader}>
-                <h2>Скинуть мысль</h2>
-                <button type="button" onClick={() => setAddOpen(false)}>
-                  Закрыть
+              <div className={styles.readerTop}>
+                <div>
+                  <p>Новая запись в склад</p>
+                  <h2>Скинуть мысль</h2>
+                </div>
+                <button
+                  className={styles.readerClose}
+                  type="button"
+                  aria-label="Закрыть"
+                  onClick={() => setAddOpen(false)}
+                >
+                  ×
                 </button>
               </div>
               <textarea
+                className={styles.addEditorTextarea}
                 autoFocus
                 value={draftInput}
                 placeholder="Текст, ссылка, пост, таблица — всё, что нужно сохранить."
                 onChange={(event) => setDraftInput(event.target.value)}
               />
-              <div className={styles.dialogControls}>
+              <div className={styles.readerActions}>
                 <select
                   value={draftBranchId}
                   onChange={(event) => setDraftBranchId(event.target.value)}
