@@ -29,6 +29,24 @@ function getMessageText(message: TelegramMessage) {
   return message.text?.trim() || message.caption?.trim() || "";
 }
 
+function getTelegramImageUrl(message: TelegramMessage) {
+  const photo = [...(message.photo ?? [])].sort((current, next) => {
+    const currentWeight = current.file_size ?? current.width * current.height;
+    const nextWeight = next.file_size ?? next.width * next.height;
+
+    return nextWeight - currentWeight;
+  })[0];
+  const imageFileId =
+    photo?.file_id ??
+    (message.document?.mime_type?.startsWith("image/")
+      ? message.document.file_id
+      : null);
+
+  return imageFileId
+    ? `/api/telegram/file/${encodeURIComponent(imageFileId)}`
+    : null;
+}
+
 export async function POST(request: Request) {
   if (!isTelegramWebhookSecretValid(request)) {
     return NextResponse.json({ error: "Invalid webhook secret" }, { status: 401 });
@@ -60,7 +78,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
-  const text = getMessageText(message);
+  const imageUrl = getTelegramImageUrl(message);
+  const text = getMessageText(message) || (imageUrl ? "Изображение из Telegram" : "");
 
   if (!text) {
     await finishTelegramUpdate(update.update_id, "ignored");
@@ -75,6 +94,7 @@ export async function POST(request: Request) {
     const thought = await createThought({
       input: text,
       sourceType: "telegram",
+      imageUrl,
       telegramChatId: message.chat.id,
       telegramMessageId: message.message_id,
       telegramUserId: userId,

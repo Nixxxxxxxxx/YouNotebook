@@ -32,6 +32,17 @@ async function callTelegramApi<T>(
   return data;
 }
 
+type TelegramFileResponse = {
+  ok: boolean;
+  result?: {
+    file_id: string;
+    file_unique_id?: string;
+    file_size?: number;
+    file_path?: string;
+  };
+  description?: string;
+};
+
 export function getTelegramAllowedUserIds() {
   return new Set(
     (process.env.TELEGRAM_ALLOWED_USER_IDS ?? "")
@@ -57,6 +68,31 @@ export async function sendTelegramMessage(chatId: number, text: string) {
     text,
     disable_web_page_preview: true,
   });
+}
+
+export async function getTelegramFile(fileId: string) {
+  const data = await callTelegramApi<TelegramFileResponse>("getFile", {
+    file_id: fileId,
+  });
+
+  if (!data.result?.file_path) {
+    throw new Error("Telegram file path is missing");
+  }
+
+  return data.result;
+}
+
+export async function fetchTelegramFile(fileId: string) {
+  const file = await getTelegramFile(fileId);
+  const response = await fetch(
+    `https://api.telegram.org/file/bot${getBotToken()}/${file.file_path}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Telegram file download failed: ${response.status}`);
+  }
+
+  return response;
 }
 
 export async function setTelegramWebhook(webhookUrl: string) {

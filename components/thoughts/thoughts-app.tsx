@@ -1,7 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { AppTabs } from "@/components/app-tabs";
@@ -25,6 +25,7 @@ const viewTransition = {
   duration: 0.28,
   ease: [0.22, 1, 0.36, 1],
 } as const;
+const THOUGHT_COLUMN_COUNT = 3;
 
 function InboxIcon() {
   return (
@@ -63,14 +64,7 @@ function BranchTick() {
 function SourceMark({ thought }: { thought: Thought }) {
   if (thought.faviconUrl) {
     return (
-      <Image
-        unoptimized
-        className={styles.favicon}
-        src={thought.faviconUrl}
-        alt=""
-        width={20}
-        height={20}
-      />
+      <img className={styles.favicon} src={thought.faviconUrl} alt="" />
     );
   }
 
@@ -94,6 +88,16 @@ function isImageThought(thought: Thought) {
 
 function isArticleThought(thought: Thought) {
   return !isImageThought(thought) && getThoughtPreview(thought).length > 180;
+}
+
+function distributeThoughtsByColumn(thoughts: Thought[]) {
+  const columns = Array.from({ length: THOUGHT_COLUMN_COUNT }, () => [] as Thought[]);
+
+  thoughts.forEach((thought, index) => {
+    columns[index % THOUGHT_COLUMN_COUNT].push(thought);
+  });
+
+  return columns;
 }
 
 function ThoughtCard({
@@ -125,13 +129,10 @@ function ThoughtCard({
     >
       {hasImage ? (
         <>
-          <Image
-            unoptimized
+          <img
             className={styles.cardImage}
             src={thought.imageUrl ?? ""}
             alt=""
-            width={312}
-            height={147}
           />
           <span className={styles.cardSource}>
             <SourceMark thought={thought} />
@@ -170,6 +171,10 @@ export function ThoughtsApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const thoughtColumns = useMemo(
+    () => distributeThoughtsByColumn(thoughts),
+    [thoughts],
+  );
 
   const activeBranch = useMemo(() => {
     if (activeView.kind !== "branch") {
@@ -422,16 +427,25 @@ export function ThoughtsApp() {
 
         {error ? <p className={styles.error}>{error}</p> : null}
 
-        <div className={styles.masonry}>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {thoughts.map((thought) => (
-              <ThoughtCard
-                key={thought.id}
-                thought={thought}
-                onOpen={setSelectedThought}
-              />
-            ))}
-          </AnimatePresence>
+        <div className={styles.masonryGrid}>
+          {thoughtColumns.map((column, index) => (
+            <motion.div
+              className={styles.masonryColumn}
+              data-column={index}
+              key={index}
+              layout
+            >
+              <AnimatePresence mode="popLayout" initial={false}>
+                {column.map((thought) => (
+                  <ThoughtCard
+                    key={thought.id}
+                    thought={thought}
+                    onOpen={setSelectedThought}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          ))}
         </div>
 
         {!isLoading && thoughts.length === 0 ? (
@@ -564,13 +578,10 @@ export function ThoughtsApp() {
                 </label>
               </div>
               {selectedThought.imageUrl ? (
-                <Image
-                  unoptimized
+                <img
                   className={styles.readerImage}
                   src={selectedThought.imageUrl}
                   alt=""
-                  width={760}
-                  height={360}
                 />
               ) : null}
               <div

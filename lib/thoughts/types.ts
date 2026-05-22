@@ -34,6 +34,7 @@ export type Thought = {
 export type CreateThoughtInput = {
   input: string;
   branchId?: string | null;
+  imageUrl?: string | null;
   isUseful?: boolean;
   sourceType?: ThoughtSourceType;
   telegramChatId?: string | number | null;

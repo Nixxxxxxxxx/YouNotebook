@@ -154,6 +154,78 @@ export async function ensureThoughtsSchema() {
         processed_at timestamptz
       )
     `;
+    await sql`
+      create table if not exists thought_schema_migrations (
+        id text primary key,
+        applied_at timestamptz not null default now()
+      )
+    `;
+    const [telegramImageMigration] = await sql<{ exists: boolean }[]>`
+      select exists(
+        select 1
+        from thought_schema_migrations
+        where id = 'telegram-image-backfill-v1'
+      ) as exists
+    `;
+
+    if (!telegramImageMigration?.exists) {
+      await sql`
+        update telegram_updates
+        set payload_json = (payload_json #>> '{}')::jsonb
+        where jsonb_typeof(payload_json) = 'string'
+          and (payload_json #>> '{}') like '{%'
+      `;
+      await sql`
+        with update_messages as (
+          select coalesce(
+            payload_json -> 'message',
+            payload_json -> 'edited_message',
+            payload_json -> 'channel_post',
+            payload_json -> 'edited_channel_post'
+          ) as message
+          from telegram_updates
+          where jsonb_typeof(payload_json) = 'object'
+        ),
+        message_images as (
+          select
+            message ->> 'message_id' as message_id,
+            coalesce(
+              (
+                select photo.item ->> 'file_id'
+                from jsonb_array_elements(
+                  coalesce(message -> 'photo', '[]'::jsonb)
+                ) as photo(item)
+                order by coalesce(
+                  nullif(photo.item ->> 'file_size', '')::bigint,
+                  nullif(photo.item ->> 'width', '')::int *
+                    nullif(photo.item ->> 'height', '')::int,
+                  0
+                ) desc
+                limit 1
+              ),
+              case
+                when message #>> '{document,mime_type}' like 'image/%'
+                then message #>> '{document,file_id}'
+              end
+            ) as file_id
+          from update_messages
+          where message is not null
+        )
+        update thoughts
+        set image_url = '/api/telegram/file/' || message_images.file_id,
+          updated_at = now()
+        from message_images
+        where thoughts.source_type = 'telegram'
+          and thoughts.image_url is null
+          and thoughts.telegram_message_id::text = message_images.message_id
+          and message_images.file_id is not null
+      `;
+      await sql`
+        insert into thought_schema_migrations (id)
+        values ('telegram-image-backfill-v1')
+        on conflict (id) do nothing
+      `;
+    }
     await sql`create index if not exists thoughts_branch_id_idx on thoughts(branch_id)`;
     await sql`create index if not exists thoughts_status_idx on thoughts(status)`;
     await sql`create index if not exists thoughts_created_at_idx on thoughts(created_at desc)`;
@@ -272,6 +344,8 @@ export async function createThought(input: CreateThoughtInput) {
     rawInput,
     input.sourceType ?? "manual",
   );
+  const imageUrl =
+    input.imageUrl === undefined ? snapshot.imageUrl : input.imageUrl;
   const [row] = await sql<ThoughtRow[]>`
     insert into thoughts (
       branch_id,
@@ -298,7 +372,7 @@ export async function createThought(input: CreateThoughtInput) {
       ${snapshot.rawInput},
       ${snapshot.sourceUrl},
       ${snapshot.sourceType},
-      ${snapshot.imageUrl},
+      ${imageUrl},
       ${snapshot.faviconUrl},
       ${input.isUseful ?? false},
       ${normalizeBigInt(input.telegramChatId)},
@@ -346,7 +420,7 @@ export async function beginTelegramUpdate(updateId: number, payload: unknown) {
   const sql = getSql();
   const rows = await sql<{ update_id: string }[]>`
     insert into telegram_updates (update_id, payload_json)
-    values (${String(updateId)}, ${JSON.stringify(payload)}::jsonb)
+    values (${String(updateId)}, ${sql.json(payload as Parameters<typeof sql.json>[0])})
     on conflict (update_id) do nothing
     returning update_id
   `;
