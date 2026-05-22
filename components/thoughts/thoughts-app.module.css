@@ -120,6 +120,48 @@
   gap: 8px;
 }
 
+.collectionHeader {
+  display: flex;
+  width: max-content;
+  max-width: 248px;
+  align-items: center;
+  gap: 6px;
+}
+
+.collectionAdd {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.84) rotate(-8deg);
+  transition:
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.collectionAdd svg {
+  width: 18px;
+  height: 18px;
+}
+
+.collectionHeader:hover .collectionAdd,
+.collectionHeader:focus-within .collectionAdd {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1) rotate(0deg);
+}
+
+.collectionAdd:hover {
+  color: #ff3d0c;
+}
+
 .branchList {
   display: grid;
   gap: 10px;
@@ -148,16 +190,47 @@
   white-space: nowrap;
 }
 
+.branchForm {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  margin: 2px 0 0;
+  border-radius: 8px;
+  color: #ffffff;
+  animation: branchInputReveal 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.branchAddIcon {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.branchAddIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .branchForm input {
-  width: 180px;
-  height: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
+  width: 100%;
+  min-width: 0;
+  height: 18px;
+  border: 0;
   outline: none;
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
-  font-size: 13px;
-  padding: 0 10px;
+  background: transparent;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  line-height: 18px;
+  padding: 0;
+}
+
+.branchForm input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
 }
 
 .content {
@@ -213,6 +286,16 @@
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.cardOpen {
+  display: block;
+  width: 100%;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
 .card:hover {
   background: #171717;
   box-shadow: 0 20px 52px rgba(0, 0, 0, 0.32);
@@ -227,10 +310,50 @@
 .cardImage {
   display: block;
   width: 100%;
-  height: 147px;
+  height: auto;
   border-radius: 16px;
-  object-fit: cover;
+  object-fit: contain;
   background: #ffffff;
+}
+
+.deleteCardButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.74);
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+  transform: translateY(-3px) scale(0.94);
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.deleteCardButton svg {
+  width: 19px;
+  height: 19px;
+}
+
+.card:hover .deleteCardButton,
+.card:focus-within .deleteCardButton {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.deleteCardButton:hover {
+  color: #ffffff;
+  background: rgba(255, 107, 122, 0.24);
 }
 
 .cardSource {
@@ -352,8 +475,7 @@
   font-size: 14px;
 }
 
-.overlay,
-.readerOverlay {
+.overlay {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -364,8 +486,7 @@
   backdrop-filter: blur(18px);
 }
 
-.addDialog,
-.reader {
+.addDialog {
   width: min(640px, calc(100vw - 32px));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
@@ -380,24 +501,21 @@
   padding: 18px;
 }
 
-.dialogHeader,
-.readerTop {
+.dialogHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
 }
 
-.dialogHeader h2,
-.readerTop h2 {
+.dialogHeader h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 400;
   line-height: 1.2;
 }
 
-.dialogHeader button,
-.readerTop button {
+.dialogHeader button {
   border: 0;
   color: rgba(255, 255, 255, 0.56);
   background: transparent;
@@ -455,24 +573,72 @@
 }
 
 .readerOverlay {
-  align-items: start;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
   overflow: auto;
+  padding: 0;
+  color: #ffffff;
+  background: #000000;
 }
 
 .reader {
-  width: min(820px, calc(100vw - 32px));
-  margin: 52px 0;
-  padding: 22px;
+  width: min(582px, calc(100vw - 40px));
+  min-height: calc(100vh - 180px);
+  margin: 100px auto 80px;
+  padding: 0;
+  color: #ffffff;
+  background: transparent;
+}
+
+.readerTop {
+  margin-bottom: 18px;
 }
 
 .readerTop p {
-  max-width: 620px;
+  max-width: 100%;
   margin: 0 0 8px;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.48);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.readerTop h2 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.readerClose {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.64);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.readerClose:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.04);
 }
 
 .readerActions {
@@ -482,17 +648,19 @@
 .readerImage {
   display: block;
   width: 100%;
-  max-height: 360px;
+  height: auto;
   margin-top: 22px;
   border-radius: 18px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .readerContent {
   margin-top: 26px;
   color: rgba(255, 255, 255, 0.88);
-  font-size: 17px;
-  line-height: 1.62;
+  font-family: var(--font-editor);
+  font-size: 16px;
+  line-height: 26px;
+  letter-spacing: 0.16px;
 }
 
 .readerContent h1,
@@ -509,7 +677,9 @@
 
 .readerContent img {
   max-width: 100%;
+  height: auto;
   border-radius: 16px;
+  object-fit: contain;
 }
 
 .readerContent table {
@@ -574,13 +744,39 @@
   .emptyState {
     width: 100%;
   }
+
+  .reader {
+    width: min(582px, calc(100vw - 36px));
+    margin: 88px auto 72px;
+  }
+
+  .readerClose {
+    top: 18px;
+    right: 18px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .addButton,
   .sideItem,
+  .collectionAdd,
   .branchItem,
-  .card {
+  .card,
+  .deleteCardButton,
+  .readerClose {
     transition: none;
+  }
+}
+
+@keyframes branchInputReveal {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
   }
 }

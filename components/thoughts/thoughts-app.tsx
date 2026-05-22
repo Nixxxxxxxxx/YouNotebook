@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { AppTabs } from "@/components/app-tabs";
+import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
 import type { Thought, ThoughtBranch } from "@/lib/thoughts/types";
 
 import styles from "./thoughts-app.module.css";
@@ -101,9 +102,11 @@ function distributeThoughtsByColumn(thoughts: Thought[]) {
 }
 
 function ThoughtCard({
+  onDelete,
   onOpen,
   thought,
 }: {
+  onDelete: (thought: Thought) => void;
   onOpen: (thought: Thought) => void;
   thought: Thought;
 }) {
@@ -111,8 +114,7 @@ function ThoughtCard({
   const isArticle = isArticleThought(thought);
 
   return (
-    <motion.button
-      type="button"
+    <motion.article
       className={`${styles.card} ${
         hasImage
           ? styles.cardWithImage
@@ -120,38 +122,58 @@ function ThoughtCard({
             ? styles.cardArticle
             : styles.cardNote
       }`}
-      onClick={() => onOpen(thought)}
       layout
       initial={{ opacity: 0, y: 14, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.98 }}
       transition={viewTransition}
     >
-      {hasImage ? (
-        <>
-          <img
-            className={styles.cardImage}
-            src={thought.imageUrl ?? ""}
-            alt=""
-          />
-          <span className={styles.cardSource}>
-            <SourceMark thought={thought} />
-            <span>{thought.title}</span>
-          </span>
-        </>
-      ) : (
-        <>
-          {isArticle ? <h2>{thought.title}</h2> : <SourceMark thought={thought} />}
-          <p>{getThoughtPreview(thought)}</p>
-          {isArticle ? (
+      <button
+        className={styles.cardOpen}
+        type="button"
+        onClick={() => onOpen(thought)}
+      >
+        {hasImage ? (
+          <>
+            <img
+              className={styles.cardImage}
+              src={thought.imageUrl ?? ""}
+              alt=""
+            />
             <span className={styles.cardSource}>
               <SourceMark thought={thought} />
-              <span>{thought.sourceUrl ?? thought.title}</span>
+              <span>{thought.title}</span>
             </span>
-          ) : null}
-        </>
-      )}
-    </motion.button>
+          </>
+        ) : (
+          <>
+            {isArticle ? (
+              <h2>{thought.title}</h2>
+            ) : (
+              <SourceMark thought={thought} />
+            )}
+            <p>{getThoughtPreview(thought)}</p>
+            {isArticle ? (
+              <span className={styles.cardSource}>
+                <SourceMark thought={thought} />
+                <span>{thought.sourceUrl ?? thought.title}</span>
+              </span>
+            ) : null}
+          </>
+        )}
+      </button>
+      <button
+        className={styles.deleteCardButton}
+        type="button"
+        aria-label={`Удалить мысль ${thought.title}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete(thought);
+        }}
+      >
+        <TrashIcon />
+      </button>
+    </motion.article>
   );
 }
 
@@ -319,6 +341,24 @@ export function ThoughtsApp() {
     await loadThoughts();
   }
 
+  async function deleteThought(thought: Thought) {
+    const response = await fetch(`/api/thoughts/${thought.id}`, {
+      method: "DELETE",
+    });
+    const data = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setError(data.error || "Не удалось удалить мысль");
+      return;
+    }
+
+    if (selectedThought?.id === thought.id) {
+      setSelectedThought(null);
+    }
+
+    await loadThoughts();
+  }
+
   function switchView(nextView: ActiveView) {
     setActiveView(nextView);
     setSelectedThought(null);
@@ -350,15 +390,24 @@ export function ThoughtsApp() {
           </button>
 
           <div className={styles.collectionGroup}>
-            <button
-              className={styles.sideItem}
-              type="button"
-              onClick={() => setBranchFormOpen((current) => !current)}
-            >
-              <FolderIcon />
-              <span>Коллекции</span>
-              <i className={styles.chevron}>⌃</i>
-            </button>
+            <div className={styles.collectionHeader}>
+              <button
+                className={styles.sideItem}
+                type="button"
+                onClick={() => setBranchFormOpen((current) => !current)}
+              >
+                <FolderIcon />
+                <span>Коллекции</span>
+              </button>
+              <button
+                className={styles.collectionAdd}
+                type="button"
+                aria-label="Добавить коллекцию"
+                onClick={() => setBranchFormOpen(true)}
+              >
+                <AddTaskIcon />
+              </button>
+            </div>
 
             <div className={styles.branchList}>
               {branches.map((branch) => (
@@ -391,10 +440,13 @@ export function ThoughtsApp() {
                     exit={shouldReduceMotion ? undefined : { opacity: 0, y: -4 }}
                     transition={viewTransition}
                   >
+                    <span className={styles.branchAddIcon} aria-hidden="true">
+                      <AddTaskIcon />
+                    </span>
                     <input
                       autoFocus
                       value={branchDraft}
-                      placeholder="Название ветки"
+                      placeholder="Новая коллекция"
                       onChange={(event) => setBranchDraft(event.target.value)}
                     />
                   </motion.form>
@@ -440,6 +492,7 @@ export function ThoughtsApp() {
                   <ThoughtCard
                     key={thought.id}
                     thought={thought}
+                    onDelete={(nextThought) => void deleteThought(nextThought)}
                     onOpen={setSelectedThought}
                   />
                 ))}
@@ -544,8 +597,13 @@ export function ThoughtsApp() {
                   <p>{selectedThought.sourceUrl ?? selectedThought.sourceType}</p>
                   <h2>{selectedThought.title}</h2>
                 </div>
-                <button type="button" onClick={() => setSelectedThought(null)}>
-                  Закрыть
+                <button
+                  className={styles.readerClose}
+                  type="button"
+                  aria-label="Закрыть"
+                  onClick={() => setSelectedThought(null)}
+                >
+                  ×
                 </button>
               </div>
               <div className={styles.readerActions}>
