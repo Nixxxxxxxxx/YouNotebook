@@ -1,5 +1,3 @@
-import { Readability } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
 import sanitizeHtml from "sanitize-html";
 
 import type { ThoughtSourceType } from "./types";
@@ -187,6 +185,10 @@ export async function createReaderSnapshot(
       };
     }
 
+    const [{ Readability }, { JSDOM }] = await Promise.all([
+      import("@mozilla/readability"),
+      import("jsdom"),
+    ]);
     const html = await response.text();
     const dom = new JSDOM(html, { url: sourceUrl });
     const document = dom.window.document;
