@@ -11,6 +11,14 @@ export type TelegramChat = {
   type: string;
   title?: string;
   username?: string;
+  photo?: TelegramChatPhoto;
+};
+
+export type TelegramChatPhoto = {
+  small_file_id: string;
+  small_file_unique_id?: string;
+  big_file_id: string;
+  big_file_unique_id?: string;
 };
 
 export type TelegramPhotoSize = {
@@ -33,6 +41,11 @@ export type TelegramMessage = {
   message_id: number;
   from?: TelegramUser;
   sender_chat?: TelegramChat;
+  forward_from_chat?: TelegramChat;
+  forward_origin?: {
+    type: string;
+    chat?: TelegramChat;
+  };
   chat: TelegramChat;
   date: number;
   text?: string;

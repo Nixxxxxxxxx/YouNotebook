@@ -6,11 +6,16 @@ import {
   finishTelegramUpdate,
 } from "@/lib/thoughts/repository";
 import {
+  getTelegramChat,
   getTelegramAllowedUserIds,
   isTelegramWebhookSecretValid,
   sendTelegramMessage,
 } from "@/lib/telegram/client";
-import type { TelegramMessage, TelegramUpdate } from "@/lib/telegram/types";
+import type {
+  TelegramChat,
+  TelegramMessage,
+  TelegramUpdate,
+} from "@/lib/telegram/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +52,43 @@ function getTelegramImageUrl(message: TelegramMessage) {
     : null;
 }
 
+function getTelegramSourceChat(message: TelegramMessage) {
+  const forwardedChat =
+    message.forward_origin?.type === "channel"
+      ? message.forward_origin.chat
+      : null;
+
+  return (
+    forwardedChat ??
+    message.forward_from_chat ??
+    message.sender_chat ??
+    (message.chat.type === "channel" ? message.chat : null)
+  );
+}
+
+function getTelegramChatId(chat: TelegramChat) {
+  return chat.username ? `@${chat.username}` : chat.id;
+}
+
+async function getTelegramAvatarUrl(message: TelegramMessage) {
+  const sourceChat = getTelegramSourceChat(message);
+
+  if (!sourceChat) {
+    return null;
+  }
+
+  try {
+    const chat = await getTelegramChat(getTelegramChatId(sourceChat));
+    const avatarFileId = chat.photo?.small_file_id ?? chat.photo?.big_file_id;
+
+    return avatarFileId
+      ? `/api/telegram/file/${encodeURIComponent(avatarFileId)}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   if (!isTelegramWebhookSecretValid(request)) {
     return NextResponse.json({ error: "Invalid webhook secret" }, { status: 401 });
@@ -79,6 +121,7 @@ export async function POST(request: Request) {
   }
 
   const imageUrl = getTelegramImageUrl(message);
+  const faviconUrl = await getTelegramAvatarUrl(message);
   const text = getMessageText(message) || (imageUrl ? "Изображение из Telegram" : "");
 
   if (!text) {
@@ -94,6 +137,7 @@ export async function POST(request: Request) {
     const thought = await createThought({
       input: text,
       sourceType: "telegram",
+      faviconUrl,
       imageUrl,
       telegramChatId: message.chat.id,
       telegramMessageId: message.message_id,

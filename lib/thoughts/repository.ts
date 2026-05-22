@@ -346,6 +346,8 @@ export async function createThought(input: CreateThoughtInput) {
   );
   const imageUrl =
     input.imageUrl === undefined ? snapshot.imageUrl : input.imageUrl;
+  const faviconUrl =
+    input.faviconUrl === undefined ? snapshot.faviconUrl : input.faviconUrl;
   const [row] = await sql<ThoughtRow[]>`
     insert into thoughts (
       branch_id,
@@ -373,7 +375,7 @@ export async function createThought(input: CreateThoughtInput) {
       ${snapshot.sourceUrl},
       ${snapshot.sourceType},
       ${imageUrl},
-      ${snapshot.faviconUrl},
+      ${faviconUrl},
       ${input.isUseful ?? false},
       ${normalizeBigInt(input.telegramChatId)},
       ${normalizeBigInt(input.telegramMessageId)},

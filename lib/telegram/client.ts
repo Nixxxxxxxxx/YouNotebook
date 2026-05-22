@@ -1,3 +1,5 @@
+import type { TelegramChat } from "./types";
+
 function getBotToken() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -43,6 +45,12 @@ type TelegramFileResponse = {
   description?: string;
 };
 
+type TelegramChatResponse = {
+  ok: boolean;
+  result?: TelegramChat;
+  description?: string;
+};
+
 export function getTelegramAllowedUserIds() {
   return new Set(
     (process.env.TELEGRAM_ALLOWED_USER_IDS ?? "")
@@ -77,6 +85,18 @@ export async function getTelegramFile(fileId: string) {
 
   if (!data.result?.file_path) {
     throw new Error("Telegram file path is missing");
+  }
+
+  return data.result;
+}
+
+export async function getTelegramChat(chatId: string | number) {
+  const data = await callTelegramApi<TelegramChatResponse>("getChat", {
+    chat_id: chatId,
+  });
+
+  if (!data.result) {
+    throw new Error("Telegram chat is missing");
   }
 
   return data.result;
