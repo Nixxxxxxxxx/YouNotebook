@@ -45,6 +45,7 @@ export type CreateThoughtInput = {
 
 export type UpdateThoughtInput = {
   branchId?: string | null;
+  contentText?: string;
   title?: string;
   isUseful?: boolean;
   status?: ThoughtStatus;

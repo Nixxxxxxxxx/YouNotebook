@@ -170,18 +170,18 @@
 }
 
 .branchItem {
-  grid-template-columns: 12px minmax(0, 1fr);
-  min-height: 16px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 24px;
   color: rgba(255, 255, 255, 0.56);
   font-size: 13px;
 }
 
 .branchItem svg {
-  width: 12px;
-  height: 12px;
+  width: 24px;
+  height: 24px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.4;
+  stroke-width: 1;
 }
 
 .branchItem span,
@@ -625,6 +625,236 @@
   margin-top: 16px;
 }
 
+.thoughtWorkspace {
+  position: relative;
+  min-height: 100vh;
+  padding: 40px 24px 112px;
+  color: #ffffff;
+}
+
+.editorSettings {
+  position: fixed;
+  top: 48px;
+  left: 24px;
+  display: grid;
+  width: 267px;
+  gap: 16px;
+}
+
+.editorSettings h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.editorField {
+  display: grid;
+  gap: 8px;
+}
+
+.editorField > span:first-child {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.editorSelectWrap {
+  position: relative;
+  display: block;
+  width: 174px;
+}
+
+.editorSelectWrap select {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  outline: none;
+  color: #ffffff;
+  background: #0d1217;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 16px;
+  padding: 16px 38px 16px 12px;
+}
+
+.editorSelectWrap svg {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 255, 255, 0.56);
+  fill: none;
+  pointer-events: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  transform: translateY(-50%);
+}
+
+.editorCheckbox {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.editorCheckbox input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.editorCheckbox span {
+  position: relative;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1.5px solid #ffffff;
+  border-radius: 4px;
+  background: transparent;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.editorCheckbox span::after {
+  width: 8px;
+  height: 5px;
+  border-bottom: 2px solid #000000;
+  border-left: 2px solid #000000;
+  content: "";
+  opacity: 0;
+  transform: translateY(-1px) rotate(-45deg) scale(0.8);
+  transition:
+    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.editorCheckbox input:checked + span {
+  background: #ffffff;
+}
+
+.editorCheckbox input:checked + span::after {
+  opacity: 1;
+  transform: translateY(-1px) rotate(-45deg) scale(1);
+}
+
+.editorCheckbox:hover span {
+  transform: scale(1.04);
+}
+
+.editorCheckbox b {
+  overflow: hidden;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editorCanvas {
+  display: grid;
+  width: min(582px, calc(100vw - 380px));
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.editorEyebrow,
+.editorSourceLabel {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.editorSourceLabel {
+  margin-top: -8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editorTitleInput,
+.editorBodyInput {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  color: #ffffff;
+  background: transparent;
+  padding: 0;
+}
+
+.editorTitleInput {
+  font-family: var(--font-title);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.editorTitleInput::placeholder,
+.editorBodyInput::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.editorBodyInput {
+  min-height: 360px;
+  font-family: var(--font-editor);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.16px;
+}
+
+.editorImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  object-fit: contain;
+}
+
+.editorSubmitButton {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  display: grid;
+  width: 248px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  background: linear-gradient(90deg, #d46300 0%, #ff0c0c 100%);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.2;
+  transform: translateX(-50%);
+  transition:
+    filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.editorSubmitButton:hover {
+  filter: brightness(1.08);
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.editorSubmitButton:disabled {
+  cursor: default;
+  filter: grayscale(0.4) brightness(0.8);
+}
+
 .addEditorTextarea {
   width: 100%;
   min-height: 360px;
@@ -771,6 +1001,31 @@
     margin: 88px auto 72px;
   }
 
+  .thoughtWorkspace {
+    padding: 88px 18px 96px;
+  }
+
+  .editorSettings {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    margin-bottom: 34px;
+  }
+
+  .editorSelectWrap {
+    width: 100%;
+  }
+
+  .editorCanvas {
+    width: 100%;
+  }
+
+  .editorSubmitButton {
+    bottom: 24px;
+    width: calc(100% - 36px);
+  }
+
   .readerClose {
     top: 18px;
     right: 18px;
@@ -784,6 +1039,9 @@
   .branchItem,
   .card,
   .deleteCardButton,
+  .editorCheckbox span,
+  .editorCheckbox span::after,
+  .editorSubmitButton,
   .readerClose {
     transition: none;
   }

@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db/client";
 
-import { createReaderSnapshot } from "./reader";
+import { createReaderSnapshot, createTextSnapshot } from "./reader";
 import type {
   CreateThoughtInput,
   Thought,
@@ -396,11 +396,24 @@ export async function updateThought(id: string, patch: UpdateThoughtInput) {
     return null;
   }
 
+  const contentPatch =
+    patch.contentText !== undefined
+      ? createTextSnapshot(patch.contentText, existing.sourceType)
+      : null;
+  const nextTitle =
+    patch.title?.trim() ||
+    contentPatch?.title ||
+    existing.title;
+
   const [row] = await sql<ThoughtRow[]>`
     update thoughts
     set
       branch_id = ${patch.branchId === undefined ? existing.branchId : patch.branchId},
-      title = ${patch.title?.trim() || existing.title},
+      title = ${nextTitle},
+      summary = ${contentPatch?.summary ?? existing.summary},
+      content_html = ${contentPatch?.contentHtml ?? existing.contentHtml},
+      content_text = ${contentPatch?.contentText ?? existing.contentText},
+      raw_input = ${contentPatch?.rawInput ?? existing.rawInput},
       is_useful = ${patch.isUseful ?? existing.isUseful},
       status = ${patch.status ?? existing.status},
       updated_at = now()

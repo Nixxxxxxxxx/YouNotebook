@@ -29,6 +29,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const body = (await request.json()) as {
       branchId?: string | null;
+      contentText?: string;
       title?: string;
       isUseful?: boolean;
       status?: "inbox" | "archived";

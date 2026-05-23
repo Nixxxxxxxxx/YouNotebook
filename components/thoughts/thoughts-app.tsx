@@ -60,8 +60,8 @@ function HeartIcon() {
 
 function BranchTick() {
   return (
-    <svg viewBox="0 0 12 12" aria-hidden="true">
-      <path d="M1 1V7.5H4.5" />
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7.5 6V18H17L14.5 15" />
     </svg>
   );
 }
@@ -96,7 +96,10 @@ function isArticleThought(thought: Thought) {
 }
 
 function distributeThoughtsByColumn(thoughts: Thought[]) {
-  const columns = Array.from({ length: THOUGHT_COLUMN_COUNT }, () => [] as Thought[]);
+  const columns = Array.from(
+    { length: THOUGHT_COLUMN_COUNT },
+    () => [] as Thought[],
+  );
 
   thoughts.forEach((thought, index) => {
     columns[index % THOUGHT_COLUMN_COUNT].push(thought);
@@ -105,13 +108,7 @@ function distributeThoughtsByColumn(thoughts: Thought[]) {
   return columns;
 }
 
-function startOfLocalDay(value: Date) {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
-}
-
-function getDayKey(value: string) {
-  const date = new Date(value);
-
+function getLocalDayKey(date: Date) {
   return [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, "0"),
@@ -119,19 +116,24 @@ function getDayKey(value: string) {
   ].join("-");
 }
 
+function getDayKey(value: string) {
+  return getLocalDayKey(new Date(value));
+}
+
 function getDayLabel(value: string) {
   const date = new Date(value);
-  const today = startOfLocalDay(new Date());
-  const day = startOfLocalDay(date);
-  const diffDays = Math.round(
-    (today.getTime() - day.getTime()) / (24 * 60 * 60 * 1000),
-  );
+  const today = new Date();
+  const yesterday = new Date(today);
+  const dateKey = getLocalDayKey(date);
+  const todayKey = getLocalDayKey(today);
 
-  if (diffDays === 0) {
+  yesterday.setDate(today.getDate() - 1);
+
+  if (dateKey === todayKey) {
     return "Сегодня";
   }
 
-  if (diffDays === 1) {
+  if (dateKey === getLocalDayKey(yesterday)) {
     return "Вчера";
   }
 
@@ -237,6 +239,150 @@ function ThoughtCard({
   );
 }
 
+type ThoughtEditorValues = {
+  branchId: string;
+  content: string;
+  isUseful: boolean;
+  title: string;
+};
+
+function getThoughtEditorValues(thought: Thought): ThoughtEditorValues {
+  return {
+    branchId: thought.branchId ?? "",
+    content: thought.contentText || thought.summary || thought.rawInput || "",
+    isUseful: thought.isUseful,
+    title: thought.title,
+  };
+}
+
+type ThoughtWorkspaceProps = {
+  branches: ThoughtBranch[];
+  content: string;
+  imageUrl?: string | null;
+  isSaving: boolean;
+  isUseful: boolean;
+  mode: "create" | "edit";
+  onBranchChange: (value: string) => void;
+  onClose: () => void;
+  onContentChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onTitleChange: (value: string) => void;
+  onUsefulChange: (value: boolean) => void;
+  selectedBranchId: string;
+  shouldReduceMotion: boolean | null;
+  sourceLabel?: string | null;
+  title: string;
+};
+
+function ThoughtWorkspace({
+  branches,
+  content,
+  imageUrl,
+  isSaving,
+  isUseful,
+  mode,
+  onBranchChange,
+  onClose,
+  onContentChange,
+  onSubmit,
+  onTitleChange,
+  onUsefulChange,
+  selectedBranchId,
+  shouldReduceMotion,
+  sourceLabel,
+  title,
+}: ThoughtWorkspaceProps) {
+  const isCreateMode = mode === "create";
+
+  return (
+    <motion.form
+      className={styles.thoughtWorkspace}
+      onSubmit={onSubmit}
+      initial={
+        shouldReduceMotion ? false : { opacity: 0, y: 12, scale: 0.992 }
+      }
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+      exit={
+        shouldReduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.992 }
+      }
+      transition={viewTransition}
+    >
+      <button
+        className={styles.readerClose}
+        type="button"
+        aria-label="Закрыть"
+        onClick={onClose}
+      >
+        ×
+      </button>
+
+      <aside className={styles.editorSettings}>
+        <h2>Настройки</h2>
+        <label className={styles.editorField}>
+          <span>Коллекция</span>
+          <span className={styles.editorSelectWrap}>
+            <select
+              value={selectedBranchId}
+              onChange={(event) => onBranchChange(event.target.value)}
+            >
+              <option value="">Входящие</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+            <BranchTick />
+          </span>
+        </label>
+        <label className={styles.editorCheckbox}>
+          <input
+            checked={isUseful}
+            type="checkbox"
+            onChange={(event) => onUsefulChange(event.target.checked)}
+          />
+          <span aria-hidden="true" />
+          <b>Всегда под рукой</b>
+        </label>
+      </aside>
+
+      <section className={styles.editorCanvas}>
+        <p className={styles.editorEyebrow}>Рабочая область</p>
+        <input
+          className={styles.editorTitleInput}
+          value={title}
+          placeholder={
+            isCreateMode
+              ? "Название мысли"
+              : "Название сохраненного материала"
+          }
+          onChange={(event) => onTitleChange(event.target.value)}
+        />
+        {sourceLabel ? (
+          <p className={styles.editorSourceLabel}>{sourceLabel}</p>
+        ) : null}
+        {imageUrl ? (
+          <img className={styles.editorImage} src={imageUrl} alt="" />
+        ) : null}
+        <textarea
+          className={styles.editorBodyInput}
+          value={content}
+          placeholder="Добавь текст, ссылку, заметку, список или любой материал, который хочется сохранить."
+          onChange={(event) => onContentChange(event.target.value)}
+        />
+      </section>
+
+      <button className={styles.editorSubmitButton} disabled={isSaving}>
+        {isSaving
+          ? "Сохраняю..."
+          : isCreateMode
+            ? "Добавить мысль"
+            : "Сохранить изменения"}
+      </button>
+    </motion.form>
+  );
+}
+
 export function ThoughtsApp() {
   const shouldReduceMotion = useReducedMotion();
   const [activeView, setActiveView] = useState<ActiveView>({ kind: "inbox" });
@@ -245,9 +391,12 @@ export function ThoughtsApp() {
   const [unassignedCount, setUnassignedCount] = useState(0);
   const [selectedThought, setSelectedThought] = useState<Thought | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [draftInput, setDraftInput] = useState("");
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftContent, setDraftContent] = useState("");
   const [draftBranchId, setDraftBranchId] = useState("");
   const [draftUseful, setDraftUseful] = useState(false);
+  const [selectedDraft, setSelectedDraft] =
+    useState<ThoughtEditorValues | null>(null);
   const [branchDraft, setBranchDraft] = useState("");
   const [branchFormOpen, setBranchFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -332,7 +481,11 @@ export function ThoughtsApp() {
   async function createThought(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!draftInput.trim()) {
+    const title = draftTitle.trim();
+    const content = draftContent.trim();
+    const input = [title, content].filter(Boolean).join("\n\n");
+
+    if (!input) {
       return;
     }
 
@@ -344,7 +497,7 @@ export function ThoughtsApp() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          input: draftInput,
+          input,
           branchId: draftBranchId || null,
           isUseful: draftUseful,
         }),
@@ -355,7 +508,8 @@ export function ThoughtsApp() {
         throw new Error(data.error || "Не удалось скинуть мысль");
       }
 
-      setDraftInput("");
+      setDraftTitle("");
+      setDraftContent("");
       setDraftBranchId("");
       setDraftUseful(false);
       setAddOpen(false);
@@ -371,24 +525,55 @@ export function ThoughtsApp() {
     }
   }
 
-  async function patchThought(id: string, patch: Record<string, unknown>) {
-    const response = await fetch(`/api/thoughts/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    const data = (await response.json()) as {
-      thought?: Thought;
-      error?: string;
-    };
+  async function saveSelectedThought(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-    if (!response.ok || !data.thought) {
-      setError(data.error || "Не удалось обновить мысль");
+    if (!selectedThought || !selectedDraft) {
       return;
     }
 
-    setSelectedThought(data.thought);
-    await loadThoughts();
+    const title = selectedDraft.title.trim();
+    const content = selectedDraft.content.trim();
+
+    if (!title && !content) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/thoughts/${selectedThought.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          branchId: selectedDraft.branchId || null,
+          contentText: content || title,
+          isUseful: selectedDraft.isUseful,
+          title,
+        }),
+      });
+      const data = (await response.json()) as {
+        thought?: Thought;
+        error?: string;
+      };
+
+      if (!response.ok || !data.thought) {
+        throw new Error(data.error || "Не удалось сохранить мысль");
+      }
+
+      setSelectedThought(data.thought);
+      setSelectedDraft(getThoughtEditorValues(data.thought));
+      await loadThoughts();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Не удалось сохранить мысль",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function deleteThought(thought: Thought) {
@@ -404,14 +589,26 @@ export function ThoughtsApp() {
 
     if (selectedThought?.id === thought.id) {
       setSelectedThought(null);
+      setSelectedDraft(null);
     }
 
     await loadThoughts();
   }
 
+  function openThought(thought: Thought) {
+    setSelectedThought(thought);
+    setSelectedDraft(getThoughtEditorValues(thought));
+  }
+
+  function closeThought() {
+    setSelectedThought(null);
+    setSelectedDraft(null);
+  }
+
   function switchView(nextView: ActiveView) {
     setActiveView(nextView);
     setSelectedThought(null);
+    setSelectedDraft(null);
   }
 
   return (
@@ -547,7 +744,7 @@ export function ThoughtsApp() {
                             onDelete={(nextThought) =>
                               void deleteThought(nextThought)
                             }
-                            onOpen={setSelectedThought}
+                            onOpen={openThought}
                           />
                         ))}
                       </AnimatePresence>
@@ -574,146 +771,68 @@ export function ThoughtsApp() {
             animate={shouldReduceMotion ? undefined : { opacity: 1 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0 }}
           >
-            <motion.form
-              className={`${styles.reader} ${styles.addEditor}`}
+            <ThoughtWorkspace
+              branches={branches}
+              content={draftContent}
+              isSaving={isSaving}
+              isUseful={draftUseful}
+              mode="create"
+              selectedBranchId={draftBranchId}
+              shouldReduceMotion={shouldReduceMotion}
+              title={draftTitle}
               onSubmit={createThought}
-              initial={
-                shouldReduceMotion ? false : { opacity: 0, y: 12, scale: 0.98 }
-              }
-              animate={
-                shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
-              }
-              exit={
-                shouldReduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }
-              }
-              transition={viewTransition}
-            >
-              <div className={styles.readerTop}>
-                <div>
-                  <p>Новая запись в склад</p>
-                  <h2>Скинуть мысль</h2>
-                </div>
-                <button
-                  className={styles.readerClose}
-                  type="button"
-                  aria-label="Закрыть"
-                  onClick={() => setAddOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <textarea
-                className={styles.addEditorTextarea}
-                autoFocus
-                value={draftInput}
-                placeholder="Текст, ссылка, пост, таблица — всё, что нужно сохранить."
-                onChange={(event) => setDraftInput(event.target.value)}
-              />
-              <div className={styles.readerActions}>
-                <select
-                  value={draftBranchId}
-                  onChange={(event) => setDraftBranchId(event.target.value)}
-                >
-                  <option value="">Во входящие</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-                <label>
-                  <input
-                    checked={draftUseful}
-                    type="checkbox"
-                    onChange={(event) => setDraftUseful(event.target.checked)}
-                  />
-                  Полезное
-                </label>
-              </div>
-              <button className={styles.submitButton} disabled={isSaving}>
-                {isSaving ? "Сохраняю..." : "Сохранить"}
-              </button>
-            </motion.form>
+              onBranchChange={setDraftBranchId}
+              onClose={() => setAddOpen(false)}
+              onContentChange={setDraftContent}
+              onTitleChange={setDraftTitle}
+              onUsefulChange={setDraftUseful}
+            />
           </motion.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
-        {selectedThought ? (
+        {selectedThought && selectedDraft ? (
           <motion.div
             className={styles.readerOverlay}
             initial={shouldReduceMotion ? false : { opacity: 0 }}
             animate={shouldReduceMotion ? undefined : { opacity: 1 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0 }}
           >
-            <motion.article
-              className={styles.reader}
-              initial={
-                shouldReduceMotion ? false : { opacity: 0, y: 18, scale: 0.985 }
+            <ThoughtWorkspace
+              branches={branches}
+              content={selectedDraft.content}
+              imageUrl={selectedThought.imageUrl}
+              isSaving={isSaving}
+              isUseful={selectedDraft.isUseful}
+              mode="edit"
+              selectedBranchId={selectedDraft.branchId}
+              shouldReduceMotion={shouldReduceMotion}
+              sourceLabel={selectedThought.sourceUrl ?? selectedThought.sourceType}
+              title={selectedDraft.title}
+              onSubmit={saveSelectedThought}
+              onBranchChange={(value) =>
+                setSelectedDraft((current) =>
+                  current ? { ...current, branchId: value } : current,
+                )
               }
-              animate={
-                shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
+              onClose={closeThought}
+              onContentChange={(value) =>
+                setSelectedDraft((current) =>
+                  current ? { ...current, content: value } : current,
+                )
               }
-              exit={
-                shouldReduceMotion ? undefined : { opacity: 0, y: 12, scale: 0.985 }
+              onTitleChange={(value) =>
+                setSelectedDraft((current) =>
+                  current ? { ...current, title: value } : current,
+                )
               }
-              transition={viewTransition}
-            >
-              <div className={styles.readerTop}>
-                <div>
-                  <p>{selectedThought.sourceUrl ?? selectedThought.sourceType}</p>
-                  <h2>{selectedThought.title}</h2>
-                </div>
-                <button
-                  className={styles.readerClose}
-                  type="button"
-                  aria-label="Закрыть"
-                  onClick={() => setSelectedThought(null)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className={styles.readerActions}>
-                <select
-                  value={selectedThought.branchId ?? ""}
-                  onChange={(event) =>
-                    void patchThought(selectedThought.id, {
-                      branchId: event.target.value || null,
-                    })
-                  }
-                >
-                  <option value="">Входящие</option>
-                  {branches.map((branch) => (
-                    <option key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-                <label>
-                  <input
-                    checked={selectedThought.isUseful}
-                    type="checkbox"
-                    onChange={(event) =>
-                      void patchThought(selectedThought.id, {
-                        isUseful: event.target.checked,
-                      })
-                    }
-                  />
-                  Под рукой
-                </label>
-              </div>
-              {selectedThought.imageUrl ? (
-                <img
-                  className={styles.readerImage}
-                  src={selectedThought.imageUrl}
-                  alt=""
-                />
-              ) : null}
-              <div
-                className={styles.readerContent}
-                dangerouslySetInnerHTML={{ __html: selectedThought.contentHtml }}
-              />
-            </motion.article>
+              onUsefulChange={(value) =>
+                setSelectedDraft((current) =>
+                  current ? { ...current, isUseful: value } : current,
+                )
+              }
+            />
           </motion.div>
         ) : null}
       </AnimatePresence>
