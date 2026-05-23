@@ -66,6 +66,18 @@ function BranchTick() {
   );
 }
 
+function DropdownChevron() {
+  return (
+    <svg
+      className={styles.editorSelectChevron}
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+    >
+      <path d="M4 6L8 10L12 6" />
+    </svg>
+  );
+}
+
 function SourceMark({ thought }: { thought: Thought }) {
   if (thought.faviconUrl) {
     return (
@@ -332,7 +344,7 @@ function ThoughtWorkspace({
                 </option>
               ))}
             </select>
-            <BranchTick />
+            <DropdownChevron />
           </span>
         </label>
         <label className={styles.editorCheckbox}>

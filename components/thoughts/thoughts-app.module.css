@@ -682,17 +682,19 @@
   padding: 16px 38px 16px 12px;
 }
 
-.editorSelectWrap svg {
+.editorSelectChevron {
   position: absolute;
   top: 50%;
-  right: 10px;
-  width: 18px;
-  height: 18px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
   color: rgba(255, 255, 255, 0.56);
   fill: none;
   pointer-events: none;
   stroke: currentColor;
-  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
   transform: translateY(-50%);
 }
 
