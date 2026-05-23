@@ -38,6 +38,17 @@ export type CreateThoughtInput = {
   imageUrl?: string | null;
   isUseful?: boolean;
   sourceType?: ThoughtSourceType;
+  snapshot?: {
+    title: string;
+    summary: string | null;
+    contentHtml: string;
+    contentText: string;
+    rawInput: string;
+    sourceUrl: string | null;
+    sourceType: ThoughtSourceType;
+    imageUrl: string | null;
+    faviconUrl: string | null;
+  };
   telegramChatId?: string | number | null;
   telegramMessageId?: string | number | null;
   telegramUserId?: string | number | null;

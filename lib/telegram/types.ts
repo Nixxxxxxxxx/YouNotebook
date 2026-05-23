@@ -37,6 +37,29 @@ export type TelegramDocument = {
   file_size?: number;
 };
 
+export type TelegramMessageEntity = {
+  type: string;
+  offset: number;
+  length: number;
+  url?: string;
+  language?: string;
+  custom_emoji_id?: string;
+  user?: TelegramUser;
+};
+
+export type TelegramInlineKeyboardButton = {
+  text: string;
+  url?: string;
+  callback_data?: string;
+  web_app?: {
+    url: string;
+  };
+};
+
+export type TelegramReplyMarkup = {
+  inline_keyboard?: TelegramInlineKeyboardButton[][];
+};
+
 export type TelegramMessage = {
   message_id: number;
   from?: TelegramUser;
@@ -49,9 +72,12 @@ export type TelegramMessage = {
   chat: TelegramChat;
   date: number;
   text?: string;
+  entities?: TelegramMessageEntity[];
   caption?: string;
+  caption_entities?: TelegramMessageEntity[];
   photo?: TelegramPhotoSize[];
   document?: TelegramDocument;
+  reply_markup?: TelegramReplyMarkup;
 };
 
 export type TelegramUpdate = {

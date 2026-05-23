@@ -334,16 +334,15 @@ export async function getThought(id: string) {
 export async function createThought(input: CreateThoughtInput) {
   await ensureThoughtsSchema();
   const sql = getSql();
-  const rawInput = input.input.trim();
+  const rawInput = (input.snapshot?.rawInput ?? input.input).trim();
 
   if (!rawInput) {
     throw new Error("Thought input is required");
   }
 
-  const snapshot = await createReaderSnapshot(
-    rawInput,
-    input.sourceType ?? "manual",
-  );
+  const snapshot =
+    input.snapshot ??
+    (await createReaderSnapshot(rawInput, input.sourceType ?? "manual"));
   const imageUrl =
     input.imageUrl === undefined ? snapshot.imageUrl : input.imageUrl;
   const faviconUrl =

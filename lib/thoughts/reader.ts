@@ -66,7 +66,7 @@ export type ReaderSnapshot = {
   faviconUrl: string | null;
 };
 
-function escapeHtml(value: string) {
+export function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -108,6 +108,10 @@ function textSummary(text: string) {
   return compact.length > 180 ? `${compact.slice(0, 177)}...` : compact;
 }
 
+export function sanitizeReaderHtml(html: string) {
+  return sanitizeHtml(html, sanitizeOptions);
+}
+
 function absoluteUrl(value: string | null | undefined, baseUrl: string) {
   if (!value) {
     return null;
@@ -141,7 +145,7 @@ export function createTextSnapshot(
   const normalized = input.trim();
   const firstLine = normalized.split("\n").find((line) => line.trim());
   const title = normalizeTitle(firstLine, "Новая мысль");
-  const contentHtml = sanitizeHtml(textToHtml(normalized), sanitizeOptions);
+  const contentHtml = sanitizeReaderHtml(textToHtml(normalized));
 
   return {
     title,
@@ -153,6 +157,44 @@ export function createTextSnapshot(
     sourceType,
     imageUrl: null,
     faviconUrl: null,
+  };
+}
+
+export function createHtmlSnapshot({
+  contentHtml,
+  contentText,
+  faviconUrl = null,
+  imageUrl = null,
+  input,
+  sourceType = "manual",
+  sourceUrl,
+  summary,
+  title,
+}: {
+  contentHtml: string;
+  contentText: string;
+  faviconUrl?: string | null;
+  imageUrl?: string | null;
+  input: string;
+  sourceType?: ThoughtSourceType;
+  sourceUrl?: string | null;
+  summary?: string | null;
+  title?: string | null;
+}): ReaderSnapshot {
+  const normalizedText = contentText.trim();
+  const rawInput = input.trim() || normalizedText;
+  const firstLine = normalizedText.split("\n").find((line) => line.trim());
+
+  return {
+    title: normalizeTitle(title || firstLine, "Новая мысль"),
+    summary: summary === undefined ? textSummary(normalizedText) : summary,
+    contentHtml: sanitizeReaderHtml(contentHtml),
+    contentText: normalizedText,
+    rawInput,
+    sourceUrl: sourceUrl ?? findFirstUrl(rawInput) ?? findFirstUrl(normalizedText),
+    sourceType,
+    imageUrl,
+    faviconUrl,
   };
 }
 
@@ -220,7 +262,7 @@ export async function createReaderSnapshot(
       };
     }
 
-    const contentHtml = sanitizeHtml(reader.content ?? "", sanitizeOptions);
+    const contentHtml = sanitizeReaderHtml(reader.content ?? "");
     const contentText = (reader.textContent ?? "").trim();
     const title = normalizeTitle(
       reader.title || meta('meta[property="og:title"]') || document.title,

@@ -11,6 +11,7 @@ import {
   isTelegramWebhookSecretValid,
   sendTelegramMessage,
 } from "@/lib/telegram/client";
+import { createTelegramReaderSnapshot } from "@/lib/telegram/message-reader";
 import type {
   TelegramChat,
   TelegramMessage,
@@ -28,10 +29,6 @@ function getMessage(update: TelegramUpdate): TelegramMessage | null {
     update.edited_channel_post ??
     null
   );
-}
-
-function getMessageText(message: TelegramMessage) {
-  return message.text?.trim() || message.caption?.trim() || "";
 }
 
 function getTelegramImageUrl(message: TelegramMessage) {
@@ -122,9 +119,11 @@ export async function POST(request: Request) {
 
   const imageUrl = getTelegramImageUrl(message);
   const faviconUrl = await getTelegramAvatarUrl(message);
-  const text = getMessageText(message) || (imageUrl ? "Изображение из Telegram" : "");
+  const telegramReader = createTelegramReaderSnapshot(message, {
+    hasImage: Boolean(imageUrl),
+  });
 
-  if (!text) {
+  if (!telegramReader.snapshot.contentText) {
     await finishTelegramUpdate(update.update_id, "ignored");
     await sendTelegramMessage(
       message.chat.id,
@@ -135,10 +134,17 @@ export async function POST(request: Request) {
 
   try {
     const thought = await createThought({
-      input: text,
+      input: telegramReader.snapshot.rawInput,
       sourceType: "telegram",
       faviconUrl,
       imageUrl,
+      snapshot: telegramReader.shouldUseSnapshot
+        ? {
+            ...telegramReader.snapshot,
+            faviconUrl,
+            imageUrl,
+          }
+        : undefined,
       telegramChatId: message.chat.id,
       telegramMessageId: message.message_id,
       telegramUserId: userId,

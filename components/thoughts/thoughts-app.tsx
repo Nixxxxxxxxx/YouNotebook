@@ -270,6 +270,7 @@ function getThoughtEditorValues(thought: Thought): ThoughtEditorValues {
 type ThoughtWorkspaceProps = {
   branches: ThoughtBranch[];
   content: string;
+  contentHtml?: string | null;
   imageUrl?: string | null;
   isSaving: boolean;
   isUseful: boolean;
@@ -289,6 +290,7 @@ type ThoughtWorkspaceProps = {
 function ThoughtWorkspace({
   branches,
   content,
+  contentHtml,
   imageUrl,
   isSaving,
   isUseful,
@@ -376,12 +378,19 @@ function ThoughtWorkspace({
         {imageUrl ? (
           <img className={styles.editorImage} src={imageUrl} alt="" />
         ) : null}
-        <textarea
-          className={styles.editorBodyInput}
-          value={content}
-          placeholder="Добавь текст, ссылку, заметку, список или любой материал, который хочется сохранить."
-          onChange={(event) => onContentChange(event.target.value)}
-        />
+        {contentHtml ? (
+          <div
+            className={styles.editorBodyPreview}
+            dangerouslySetInnerHTML={{ __html: contentHtml }}
+          />
+        ) : (
+          <textarea
+            className={styles.editorBodyInput}
+            value={content}
+            placeholder="Добавь текст, ссылку, заметку, список или любой материал, который хочется сохранить."
+            onChange={(event) => onContentChange(event.target.value)}
+          />
+        )}
       </section>
 
       <button className={styles.editorSubmitButton} disabled={isSaving}>
@@ -546,6 +555,7 @@ export function ThoughtsApp() {
 
     const title = selectedDraft.title.trim();
     const content = selectedDraft.content.trim();
+    const originalDraft = getThoughtEditorValues(selectedThought);
 
     if (!title && !content) {
       return;
@@ -555,15 +565,25 @@ export function ThoughtsApp() {
     setError(null);
 
     try {
+      const patchBody: {
+        branchId: string | null;
+        contentText?: string;
+        isUseful: boolean;
+        title: string;
+      } = {
+        branchId: selectedDraft.branchId || null,
+        isUseful: selectedDraft.isUseful,
+        title,
+      };
+
+      if (selectedDraft.content !== originalDraft.content) {
+        patchBody.contentText = content || title;
+      }
+
       const response = await fetch(`/api/thoughts/${selectedThought.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          branchId: selectedDraft.branchId || null,
-          contentText: content || title,
-          isUseful: selectedDraft.isUseful,
-          title,
-        }),
+        body: JSON.stringify(patchBody),
       });
       const data = (await response.json()) as {
         thought?: Thought;
@@ -814,6 +834,11 @@ export function ThoughtsApp() {
             <ThoughtWorkspace
               branches={branches}
               content={selectedDraft.content}
+              contentHtml={
+                selectedThought.sourceType === "telegram"
+                  ? selectedThought.contentHtml
+                  : null
+              }
               imageUrl={selectedThought.imageUrl}
               isSaving={isSaving}
               isUseful={selectedDraft.isUseful}
