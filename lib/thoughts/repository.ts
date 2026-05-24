@@ -267,6 +267,37 @@ export async function createThoughtBranch(name: string) {
   return toBranch(row);
 }
 
+export async function updateThoughtBranch(id: string, name: string) {
+  await ensureThoughtsSchema();
+  const sql = getSql();
+  const cleanName = normalizeName(name);
+
+  if (!cleanName) {
+    throw new Error("Branch name is required");
+  }
+
+  const [row] = await sql<BranchRow[]>`
+    update thought_branches
+    set name = ${cleanName},
+      slug = ${createSlug(cleanName)},
+      updated_at = now()
+    where id = ${id}
+    returning id, name, slug, created_at, updated_at
+  `;
+
+  return row ? toBranch(row) : null;
+}
+
+export async function deleteThoughtBranch(id: string) {
+  await ensureThoughtsSchema();
+  const sql = getSql();
+
+  await sql`
+    delete from thought_branches
+    where id = ${id}
+  `;
+}
+
 export async function getUnassignedThoughtCount() {
   await ensureThoughtsSchema();
   const sql = getSql();

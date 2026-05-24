@@ -66,6 +66,15 @@ function BranchTick() {
   );
 }
 
+function EditBranchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 18L8.75 17.45L17.25 8.95L14.55 6.25L6.05 14.75L6 18Z" />
+      <path d="M13.75 7.05L16.45 9.75" />
+    </svg>
+  );
+}
+
 function DropdownChevron() {
   return (
     <svg
@@ -420,6 +429,9 @@ export function ThoughtsApp() {
     useState<ThoughtEditorValues | null>(null);
   const [branchDraft, setBranchDraft] = useState("");
   const [branchFormOpen, setBranchFormOpen] = useState(false);
+  const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
+  const [editingBranchName, setEditingBranchName] = useState("");
+  const [branchMutationId, setBranchMutationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -471,6 +483,19 @@ export function ThoughtsApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView.kind, activeView.kind === "branch" ? activeView.branchId : ""]);
 
+  function startEditBranch(branch: ThoughtBranch) {
+    setBranchFormOpen(false);
+    setBranchDraft("");
+    setEditingBranchId(branch.id);
+    setEditingBranchName(branch.name);
+    setError(null);
+  }
+
+  function cancelEditBranch() {
+    setEditingBranchId(null);
+    setEditingBranchName("");
+  }
+
   async function createBranch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = branchDraft.trim();
@@ -497,6 +522,121 @@ export function ThoughtsApp() {
     setBranchDraft("");
     setBranchFormOpen(false);
     setActiveView({ kind: "branch", branchId: data.branch.id });
+  }
+
+  async function renameBranch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingBranchId) {
+      return;
+    }
+
+    const name = editingBranchName.trim();
+    const currentBranch = branches.find(
+      (branch) => branch.id === editingBranchId,
+    );
+
+    if (!name) {
+      return;
+    }
+
+    if (currentBranch?.name === name) {
+      cancelEditBranch();
+      return;
+    }
+
+    setBranchMutationId(editingBranchId);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/thought-branches/${editingBranchId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = (await response.json()) as {
+        branch?: ThoughtBranch;
+        error?: string;
+      };
+
+      if (!response.ok || !data.branch) {
+        throw new Error(data.error || "Не удалось переименовать коллекцию");
+      }
+
+      const updatedBranch = data.branch;
+
+      setBranches((current) =>
+        current.map((branch) =>
+          branch.id === updatedBranch.id ? updatedBranch : branch,
+        ),
+      );
+      cancelEditBranch();
+    } catch (renameError) {
+      setError(
+        renameError instanceof Error
+          ? renameError.message
+          : "Не удалось переименовать коллекцию",
+      );
+    } finally {
+      setBranchMutationId(null);
+    }
+  }
+
+  async function deleteBranch(branch: ThoughtBranch) {
+    const shouldDelete = window.confirm(
+      `Удалить коллекцию «${branch.name}»? Мысли останутся и вернутся во «Входящие».`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    const nextView: ActiveView =
+      activeView.kind === "branch" && activeView.branchId === branch.id
+        ? { kind: "inbox" }
+        : activeView;
+
+    setBranchMutationId(branch.id);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/thought-branches/${branch.id}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Не удалось удалить коллекцию");
+      }
+
+      if (editingBranchId === branch.id) {
+        cancelEditBranch();
+      }
+
+      if (draftBranchId === branch.id) {
+        setDraftBranchId("");
+      }
+
+      setSelectedDraft((current) =>
+        current?.branchId === branch.id
+          ? { ...current, branchId: "" }
+          : current,
+      );
+      setBranches((current) =>
+        current.filter((nextBranch) => nextBranch.id !== branch.id),
+      );
+      setActiveView(nextView);
+      await loadThoughts(nextView);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Не удалось удалить коллекцию",
+      );
+      setIsLoading(false);
+    } finally {
+      setBranchMutationId(null);
+    }
   }
 
   async function createThought(event: FormEvent<HTMLFormElement>) {
@@ -689,25 +829,116 @@ export function ThoughtsApp() {
             </div>
 
             <div className={styles.branchList}>
-              {branches.map((branch) => (
-                <button
-                  key={branch.id}
-                  className={styles.branchItem}
-                  data-active={
-                    activeView.kind === "branch" &&
-                    activeView.branchId === branch.id
-                      ? "true"
-                      : "false"
-                  }
-                  type="button"
-                  onClick={() =>
-                    switchView({ kind: "branch", branchId: branch.id })
-                  }
-                >
-                  <BranchTick />
-                  <span>{branch.name}</span>
-                </button>
-              ))}
+              {branches.map((branch) => {
+                const isActive =
+                  activeView.kind === "branch" &&
+                  activeView.branchId === branch.id;
+                const isEditing = editingBranchId === branch.id;
+                const isMutating = branchMutationId === branch.id;
+
+                return (
+                  <motion.div
+                    className={styles.branchRow}
+                    key={branch.id}
+                    layout
+                    transition={viewTransition}
+                  >
+                    {isEditing ? (
+                      <motion.form
+                        className={styles.branchEditForm}
+                        onSubmit={renameBranch}
+                        initial={
+                          shouldReduceMotion
+                            ? false
+                            : { opacity: 0, x: -4, scale: 0.98 }
+                        }
+                        animate={
+                          shouldReduceMotion
+                            ? undefined
+                            : { opacity: 1, x: 0, scale: 1 }
+                        }
+                        exit={
+                          shouldReduceMotion
+                            ? undefined
+                            : { opacity: 0, x: -4, scale: 0.98 }
+                        }
+                        transition={viewTransition}
+                      >
+                        <BranchTick />
+                        <input
+                          autoFocus
+                          value={editingBranchName}
+                          disabled={isMutating}
+                          placeholder="Название коллекции"
+                          onChange={(event) =>
+                            setEditingBranchName(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              cancelEditBranch();
+                            }
+                          }}
+                        />
+                        <span className={styles.branchEditControls}>
+                          <button
+                            className={styles.branchActionButton}
+                            type="submit"
+                            aria-label="Сохранить название коллекции"
+                            disabled={isMutating}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            className={styles.branchActionButton}
+                            type="button"
+                            aria-label="Отменить переименование"
+                            disabled={isMutating}
+                            onClick={cancelEditBranch}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      </motion.form>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.branchItem}
+                          data-active={isActive ? "true" : "false"}
+                          disabled={isMutating}
+                          type="button"
+                          onClick={() =>
+                            switchView({ kind: "branch", branchId: branch.id })
+                          }
+                        >
+                          <BranchTick />
+                          <span>{branch.name}</span>
+                        </button>
+                        <span className={styles.branchActions}>
+                          <button
+                            className={styles.branchActionButton}
+                            type="button"
+                            aria-label={`Переименовать коллекцию ${branch.name}`}
+                            disabled={isMutating}
+                            onClick={() => startEditBranch(branch)}
+                          >
+                            <EditBranchIcon />
+                          </button>
+                          <button
+                            className={styles.branchActionButton}
+                            data-danger="true"
+                            type="button"
+                            aria-label={`Удалить коллекцию ${branch.name}`}
+                            disabled={isMutating}
+                            onClick={() => void deleteBranch(branch)}
+                          >
+                            <TrashIcon />
+                          </button>
+                        </span>
+                      </>
+                    )}
+                  </motion.div>
+                );
+              })}
 
               <AnimatePresence initial={false}>
                 {branchFormOpen ? (

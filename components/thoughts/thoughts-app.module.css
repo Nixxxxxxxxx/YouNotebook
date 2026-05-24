@@ -169,11 +169,28 @@
   padding-left: 12px;
 }
 
+.branchRow {
+  display: flex;
+  width: min(248px, 100%);
+  min-width: 0;
+  min-height: 24px;
+  align-items: center;
+  gap: 6px;
+}
+
 .branchItem {
   grid-template-columns: 24px minmax(0, 1fr);
+  width: auto;
+  min-width: 0;
   min-height: 24px;
+  flex: 1 1 auto;
   color: rgba(255, 255, 255, 0.56);
   font-size: 13px;
+}
+
+.branchItem:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .branchItem svg {
@@ -189,6 +206,70 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.branchActions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-5px) scale(0.96);
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.branchRow:hover .branchActions,
+.branchRow:focus-within .branchActions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0) scale(1);
+}
+
+.branchActionButton {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.branchActionButton svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.branchActionButton:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.branchActionButton[data-danger="true"]:hover {
+  color: #ff7a7a;
+  background: rgba(255, 105, 105, 0.14);
+}
+
+.branchActionButton:disabled {
+  cursor: default;
+  opacity: 0.48;
+  transform: none;
 }
 
 .branchForm {
@@ -232,6 +313,48 @@
 
 .branchForm input::placeholder {
   color: rgba(255, 255, 255, 0.42);
+}
+
+.branchEditForm {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 24px;
+  grid-template-columns: 24px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.branchEditForm svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.branchEditForm input {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  color: #ffffff;
+  background: transparent;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.branchEditForm input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.branchEditControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .contentScroller {
@@ -1099,6 +1222,8 @@
   .sideItem,
   .collectionAdd,
   .branchItem,
+  .branchActions,
+  .branchActionButton,
   .card,
   .deleteCardButton,
   .editorCheckbox span,
