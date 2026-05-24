@@ -26,8 +26,10 @@
 .logo {
   display: block;
   width: 125px;
-  height: 44px;
+  height: 46px;
+  flex: 0 0 125px;
   object-fit: contain;
+  object-position: center;
 }
 
 .separator {
@@ -154,6 +156,8 @@
 
   .logo {
     width: 92px;
+    height: 40px;
+    flex-basis: 92px;
   }
 
   .separator {

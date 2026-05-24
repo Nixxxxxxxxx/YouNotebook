@@ -42,7 +42,7 @@ export function AppTabs({ active, selectionMenu }: AppTabsProps) {
           className={styles.logo}
           src="/icons/quietly.svg"
           width="125"
-          height="44"
+          height="46"
           alt="Quietly"
         />
         <span className={styles.separator} aria-hidden="true" />
