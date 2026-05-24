@@ -43,6 +43,53 @@ type TelegramUpdateStatus = "processing" | "processed" | "ignored" | "error";
 
 let schemaPromise: Promise<void> | null = null;
 
+async function hasSchemaBaseline() {
+  const sql = getSql();
+  const [row] = await sql<{
+    has_branch_index: boolean;
+    has_branches: boolean;
+    has_created_index: boolean;
+    has_migrations: boolean;
+    has_source_index: boolean;
+    has_status_index: boolean;
+    has_telegram_updates: boolean;
+    has_thoughts: boolean;
+  }[]>`
+    select
+      to_regclass('public.thought_branches') is not null as has_branches,
+      to_regclass('public.thoughts') is not null as has_thoughts,
+      to_regclass('public.telegram_updates') is not null as has_telegram_updates,
+      to_regclass('public.thought_schema_migrations') is not null as has_migrations,
+      to_regclass('public.thoughts_branch_id_idx') is not null as has_branch_index,
+      to_regclass('public.thoughts_status_idx') is not null as has_status_index,
+      to_regclass('public.thoughts_created_at_idx') is not null as has_created_index,
+      to_regclass('public.thoughts_source_url_idx') is not null as has_source_index
+  `;
+
+  if (
+    !row?.has_branches ||
+    !row.has_thoughts ||
+    !row.has_telegram_updates ||
+    !row.has_migrations ||
+    !row.has_branch_index ||
+    !row.has_status_index ||
+    !row.has_created_index ||
+    !row.has_source_index
+  ) {
+    return false;
+  }
+
+  const [migration] = await sql<{ exists: boolean }[]>`
+    select exists(
+      select 1
+      from thought_schema_migrations
+      where id = 'telegram-image-backfill-v1'
+    ) as exists
+  `;
+
+  return Boolean(migration?.exists);
+}
+
 function toIso(value: Date | string) {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
@@ -109,6 +156,10 @@ export async function ensureThoughtsSchema() {
   }
 
   schemaPromise = (async () => {
+    if (await hasSchemaBaseline()) {
+      return;
+    }
+
     const sql = getSql();
 
     await sql`create extension if not exists pgcrypto`;
@@ -315,19 +366,27 @@ export async function listThoughts(
 ): Promise<ThoughtListResult> {
   await ensureThoughtsSchema();
   const sql = getSql();
-  const branches = await listThoughtBranches();
-  const unassignedCount = await getUnassignedThoughtCount();
-  let rows: ThoughtRow[];
+  const branchesPromise = sql<BranchRow[]>`
+    select id, name, slug, created_at, updated_at
+    from thought_branches
+    order by created_at asc
+  `;
+  const unassignedCountPromise = sql<{ count: string }[]>`
+    select count(*)::text as count
+    from thoughts
+    where branch_id is null and status = 'inbox'
+  `;
+  let rowsPromise: Promise<ThoughtRow[]>;
 
   if (filter.view === "branch") {
-    rows = await sql<ThoughtRow[]>`
+    rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
       where branch_id = ${filter.branchId} and status = 'inbox'
       order by created_at desc
     `;
   } else if (filter.view === "collections") {
-    rows = await sql<ThoughtRow[]>`
+    rowsPromise = sql<ThoughtRow[]>`
       select thoughts.*
       from thoughts
       join thought_branches on thought_branches.id = thoughts.branch_id
@@ -335,14 +394,14 @@ export async function listThoughts(
       order by thought_branches.created_at asc, thoughts.created_at desc
     `;
   } else if (filter.view === "useful") {
-    rows = await sql<ThoughtRow[]>`
+    rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
       where is_useful = true and status = 'inbox'
       order by created_at desc
     `;
   } else {
-    rows = await sql<ThoughtRow[]>`
+    rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
       where branch_id is null and status = 'inbox'
@@ -350,10 +409,16 @@ export async function listThoughts(
     `;
   }
 
+  const [branchRows, unassignedRows, rows] = await Promise.all([
+    branchesPromise,
+    unassignedCountPromise,
+    rowsPromise,
+  ]);
+
   return {
-    branches,
+    branches: branchRows.map(toBranch),
     thoughts: rows.map(toThought),
-    unassignedCount,
+    unassignedCount: Number(unassignedRows[0]?.count ?? 0),
   };
 }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import { moveThoughtsToBranch } from "@/lib/thoughts/repository";
 
 export const runtime = "nodejs";
@@ -23,6 +24,7 @@ export async function PATCH(request: Request) {
     }
 
     const thoughts = await moveThoughtsToBranch(ids, body.branchId ?? null);
+    revalidateThoughtsCache();
 
     return NextResponse.json({ thoughts });
   } catch (error) {

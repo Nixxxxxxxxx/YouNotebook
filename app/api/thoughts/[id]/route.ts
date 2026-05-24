@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   deleteThought,
   getThought,
@@ -40,6 +41,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Thought not found" }, { status: 404 });
     }
 
+    revalidateThoughtsCache();
+
     return NextResponse.json({ thought });
   } catch (error) {
     return NextResponse.json(
@@ -55,6 +58,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   await deleteThought(id);
+  revalidateThoughtsCache();
 
   return NextResponse.json({ ok: true });
 }

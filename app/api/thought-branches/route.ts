@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   createThoughtBranch,
   listThoughtBranches,
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { name?: string };
     const branch = await createThoughtBranch(body.name ?? "");
+
+    revalidateThoughtsCache();
 
     return NextResponse.json({ branch }, { status: 201 });
   } catch (error) {

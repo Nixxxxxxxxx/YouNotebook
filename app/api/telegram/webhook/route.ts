@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   beginTelegramUpdate,
   createThought,
@@ -149,6 +150,8 @@ export async function POST(request: Request) {
       telegramMessageId: message.message_id,
       telegramUserId: userId,
     });
+
+    revalidateThoughtsCache();
 
     await finishTelegramUpdate(update.update_id, "processed");
     await sendTelegramMessage(

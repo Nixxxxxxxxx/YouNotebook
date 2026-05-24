@@ -6,7 +6,11 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { AppTabs } from "@/components/app-tabs";
 import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
-import type { Thought, ThoughtBranch } from "@/lib/thoughts/types";
+import type {
+  Thought,
+  ThoughtBranch,
+  ThoughtListResult,
+} from "@/lib/thoughts/types";
 
 import styles from "./thoughts-app.module.css";
 
@@ -21,6 +25,10 @@ type ThoughtsResponse = {
   thoughts: Thought[];
   unassignedCount: number;
   error?: string;
+};
+
+type ThoughtsAppProps = {
+  initialData?: ThoughtListResult;
 };
 
 const viewTransition = {
@@ -611,14 +619,26 @@ function ThoughtWorkspace({
   );
 }
 
-export function ThoughtsApp() {
+export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
   const shouldReduceMotion = useReducedMotion();
   const branchSectionRefs = useRef(new Map<string, HTMLElement>());
   const pendingScrollBranchIdRef = useRef<string | null>(null);
+  const didUseInitialDataRef = useRef(Boolean(initialData));
+  const viewCacheRef = useRef(
+    new Map<string, ThoughtListResult>(
+      initialData ? [["inbox", initialData]] : [],
+    ),
+  );
   const [activeView, setActiveView] = useState<ActiveView>({ kind: "inbox" });
-  const [branches, setBranches] = useState<ThoughtBranch[]>([]);
-  const [thoughts, setThoughts] = useState<Thought[]>([]);
-  const [unassignedCount, setUnassignedCount] = useState(0);
+  const [branches, setBranches] = useState<ThoughtBranch[]>(
+    () => initialData?.branches ?? [],
+  );
+  const [thoughts, setThoughts] = useState<Thought[]>(
+    () => initialData?.thoughts ?? [],
+  );
+  const [unassignedCount, setUnassignedCount] = useState(
+    () => initialData?.unassignedCount ?? 0,
+  );
   const [focusedBranchId, setFocusedBranchId] = useState<string | null>(null);
   const [selectedThought, setSelectedThought] = useState<Thought | null>(null);
   const [selectedThoughtIds, setSelectedThoughtIds] = useState<Set<string>>(
@@ -636,7 +656,7 @@ export function ThoughtsApp() {
   const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
   const [editingBranchName, setEditingBranchName] = useState("");
   const [branchMutationId, setBranchMutationId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [bulkDropdownOpen, setBulkDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -675,6 +695,7 @@ export function ThoughtsApp() {
       throw new Error(data.error || "Не удалось открыть склад");
     }
 
+    viewCacheRef.current.set(getActiveViewKey(nextView), data);
     setBranches(data.branches);
     setThoughts(data.thoughts);
     setUnassignedCount(data.unassignedCount);
@@ -682,6 +703,11 @@ export function ThoughtsApp() {
   }
 
   useEffect(() => {
+    if (didUseInitialDataRef.current && activeView.kind === "inbox") {
+      didUseInitialDataRef.current = false;
+      return;
+    }
+
     const frame = window.requestAnimationFrame(() => {
       void loadThoughts().catch((loadError) => {
         setError(
@@ -734,12 +760,24 @@ export function ThoughtsApp() {
   }
 
   function prepareViewChange(nextView: ActiveView) {
-    if (getActiveViewKey(activeView) === getActiveViewKey(nextView)) {
+    const nextViewKey = getActiveViewKey(nextView);
+
+    if (getActiveViewKey(activeView) === nextViewKey) {
       return;
     }
 
-    setThoughts([]);
-    setIsLoading(true);
+    const cachedData = viewCacheRef.current.get(nextViewKey);
+
+    if (cachedData) {
+      setBranches(cachedData.branches);
+      setThoughts(cachedData.thoughts);
+      setUnassignedCount(cachedData.unassignedCount);
+      setIsLoading(false);
+    } else {
+      setThoughts([]);
+      setIsLoading(true);
+    }
+
     setError(null);
   }
 

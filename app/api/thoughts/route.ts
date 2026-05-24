@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import { createThought, listThoughts } from "@/lib/thoughts/repository";
 import type { ThoughtListFilter } from "@/lib/thoughts/types";
 
@@ -55,6 +56,8 @@ export async function POST(request: Request) {
       isUseful: body.isUseful ?? false,
       sourceType: "manual",
     });
+
+    revalidateThoughtsCache();
 
     return NextResponse.json({ thought }, { status: 201 });
   } catch (error) {

@@ -1,0 +1,113 @@
+.skeletonButton,
+.skeletonLine,
+.skeletonBadge,
+.skeletonCard {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.06)
+  );
+  background-size: 220% 100%;
+  animation: loadingSheen 1.35s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.skeletonButton {
+  width: 248px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.skeletonNav {
+  display: grid;
+  gap: 20px;
+  margin-top: 50px;
+}
+
+.skeletonNavRow {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  gap: 8px;
+}
+
+.skeletonBadge {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+}
+
+.skeletonLine {
+  height: 16px;
+  border-radius: 999px;
+}
+
+.skeletonContent {
+  display: grid;
+  gap: 34px;
+}
+
+.skeletonGroup {
+  display: grid;
+  gap: 12px;
+}
+
+.skeletonHeader {
+  display: flex;
+  width: min(1164px, 100%);
+  align-items: center;
+  gap: 16px;
+}
+
+.skeletonGrid {
+  display: grid;
+  width: min(976px, calc(100% - 194px));
+  margin-left: 194px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.skeletonColumn {
+  display: grid;
+  gap: 8px;
+}
+
+.skeletonCard {
+  height: 196px;
+  border-radius: 20px;
+}
+
+.skeletonCard:nth-child(2) {
+  height: 258px;
+}
+
+@keyframes loadingSheen {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (max-width: 980px) {
+  .skeletonGrid {
+    width: 100%;
+    margin-left: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .skeletonColumn {
+    display: contents;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonButton,
+  .skeletonLine,
+  .skeletonBadge,
+  .skeletonCard {
+    animation: none;
+  }
+}
