@@ -17,12 +17,12 @@
 .leftRail {
   position: fixed;
   z-index: 4;
-  top: 76px;
+  top: 32px;
   bottom: 0;
   left: 24px;
   display: grid;
   width: 272px;
-  padding-top: 30px;
+  padding-top: 0;
   align-content: start;
   background: #000000;
   border-right: 1px solid rgba(255, 255, 255, 0.14);
@@ -72,8 +72,8 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-  box-shadow: 0 0 14px rgba(255, 55, 0, 0.44);
+  background: var(--blue);
+  box-shadow: 0 0 14px rgba(83, 130, 254, 0.44);
   transform-origin: left center;
 }
 
@@ -91,7 +91,7 @@
 
 .weekScroller {
   position: fixed;
-  top: 106px;
+  top: 32px;
   right: 0;
   bottom: 0;
   left: var(--timeline-left);
@@ -135,7 +135,7 @@
   top: 0;
   right: calc(var(--day-column-gap) / -2);
   width: 1px;
-  height: min(646px, calc(100vh - 106px));
+  height: min(646px, calc(100vh - 32px));
   background: rgba(255, 255, 255, 0.14);
   content: "";
 }
@@ -210,9 +210,9 @@
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  background: var(--blue);
   box-shadow:
-    0 0 14px rgba(255, 64, 0, 0.86),
+    0 0 14px rgba(83, 130, 254, 0.86),
     inset 0 0 1px rgba(255, 255, 255, 0.44);
   flex: 0 0 auto;
   isolation: isolate;
@@ -226,9 +226,9 @@
   border-radius: inherit;
   background: radial-gradient(
     circle,
-    rgba(255, 96, 0, 0.72) 0%,
-    rgba(255, 12, 12, 0.38) 42%,
-    rgba(255, 12, 12, 0) 72%
+    rgba(83, 130, 254, 0.72) 0%,
+    rgba(83, 130, 254, 0.38) 42%,
+    rgba(83, 130, 254, 0) 72%
   );
   transform-origin: center;
   will-change: opacity, transform;
@@ -311,8 +311,8 @@
 .taskRow[data-completed="true"] .checkbox {
   border-color: transparent;
   color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-  box-shadow: 0 0 14px rgba(255, 55, 0, 0.28);
+  background: var(--blue);
+  box-shadow: 0 0 14px rgba(83, 130, 254, 0.28);
 }
 
 .taskRow[data-completed="true"] .taskTitle {
@@ -358,7 +358,7 @@
   border-color: rgba(255, 255, 255, 0.82);
   box-shadow:
     0 0 0 4px rgba(255, 255, 255, 0.06),
-    0 0 16px rgba(255, 98, 0, 0.14);
+    0 0 16px rgba(83, 130, 254, 0.14);
 }
 
 .checkbox svg {
@@ -373,8 +373,8 @@
 .checkbox[data-checked="true"] {
   border-color: transparent;
   color: #ffffff;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
-  box-shadow: 0 0 14px rgba(255, 55, 0, 0.28);
+  background: var(--blue);
+  box-shadow: 0 0 14px rgba(83, 130, 254, 0.28);
 }
 
 .checkbox[data-checked="true"] svg {
@@ -388,8 +388,8 @@
   border-radius: 999px;
   background: radial-gradient(
     circle,
-    rgba(255, 101, 0, 0.28) 0%,
-    rgba(255, 12, 12, 0.18) 42%,
+    rgba(83, 130, 254, 0.28) 0%,
+    rgba(83, 130, 254, 0.18) 42%,
     transparent 68%
   );
   pointer-events: none;
@@ -512,12 +512,12 @@
 }
 
 .addTask:hover .addTaskIcon {
-  color: #ff3d0c;
+  color: var(--blue);
 }
 
 .addTask:hover .addTaskLabel {
   color: transparent;
-  background: linear-gradient(90deg, #D46300 0%, #FF0C0C 100%);
+  background: var(--blue);
   background-clip: text;
   -webkit-background-clip: text;
 }
@@ -575,7 +575,7 @@
     position: relative;
     top: auto;
     left: auto;
-    margin: 92px 18px 34px;
+    margin: 32px 18px 34px;
   }
 
   .weekScroller {
@@ -585,7 +585,7 @@
     right: auto;
     bottom: auto;
     overflow-x: auto;
-    margin: 0 18px 120px;
+    margin: 0 18px 128px;
     border-left: 0;
   }
 

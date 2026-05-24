@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { AppTabs } from "@/components/app-tabs";
@@ -12,6 +12,7 @@ import styles from "./thoughts-app.module.css";
 
 type ActiveView =
   | { kind: "inbox" }
+  | { kind: "collections" }
   | { kind: "useful" }
   | { kind: "branch"; branchId: string };
 
@@ -31,6 +32,13 @@ const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   day: "2-digit",
   month: "2-digit",
 });
+
+type ThoughtGroup = {
+  branchId?: string;
+  key: string;
+  label: string;
+  thoughts: Thought[];
+};
 
 function InboxIcon() {
   return (
@@ -82,6 +90,14 @@ function DropdownChevron() {
       viewBox="0 0 16 16"
       aria-hidden="true"
     >
+      <path d="M4 6L8 10L12 6" />
+    </svg>
+  );
+}
+
+function MenuChevron({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" aria-hidden="true">
       <path d="M4 6L8 10L12 6" />
     </svg>
   );
@@ -180,17 +196,47 @@ function groupThoughtsByDay(thoughts: Thought[]) {
 
       return groups;
     },
-    [] as Array<{ key: string; label: string; thoughts: Thought[] }>,
+    [] as ThoughtGroup[],
   );
+}
+
+function groupThoughtsByBranch(
+  thoughts: Thought[],
+  branches: ThoughtBranch[],
+) {
+  return branches.reduce((groups, branch) => {
+    const branchThoughts = thoughts.filter(
+      (thought) => thought.branchId === branch.id,
+    );
+
+    if (branchThoughts.length === 0) {
+      return groups;
+    }
+
+    groups.push({
+      branchId: branch.id,
+      key: branch.id,
+      label: branch.name,
+      thoughts: branchThoughts,
+    });
+
+    return groups;
+  }, [] as ThoughtGroup[]);
 }
 
 function ThoughtCard({
   onDelete,
   onOpen,
+  onToggleSelect,
+  selectable,
+  selected,
   thought,
 }: {
   onDelete: (thought: Thought) => void;
   onOpen: (thought: Thought) => void;
+  onToggleSelect: (thought: Thought) => void;
+  selectable: boolean;
+  selected: boolean;
   thought: Thought;
 }) {
   const hasImage = isImageThought(thought);
@@ -204,13 +250,34 @@ function ThoughtCard({
           : isArticle
             ? styles.cardArticle
             : styles.cardNote
+      } ${selectable ? styles.cardSelectable : ""} ${
+        selected ? styles.cardSelected : ""
       }`}
+      data-selected={selected ? "true" : "false"}
       layout
       initial={{ opacity: 0, y: 14, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.98 }}
       transition={viewTransition}
     >
+      {selectable ? (
+        <button
+          className={styles.cardSelectButton}
+          type="button"
+          aria-label={
+            selected
+              ? `Снять выбор ${thought.title}`
+              : `Выбрать мысль ${thought.title}`
+          }
+          data-selected={selected ? "true" : "false"}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleSelect(thought);
+          }}
+        >
+          <span aria-hidden="true" />
+        </button>
+      ) : null}
       <button
         className={styles.cardOpen}
         type="button"
@@ -266,6 +333,94 @@ type ThoughtEditorValues = {
   isUseful: boolean;
   title: string;
 };
+
+type BulkSelectionMenuProps = {
+  branches: ThoughtBranch[];
+  count: number;
+  dropdownOpen: boolean;
+  isSaving: boolean;
+  onCancel: () => void;
+  onDelete: () => void;
+  onMove: (branchId: string) => void;
+  onToggleDropdown: () => void;
+};
+
+function BulkSelectionMenu({
+  branches,
+  count,
+  dropdownOpen,
+  isSaving,
+  onCancel,
+  onDelete,
+  onMove,
+  onToggleDropdown,
+}: BulkSelectionMenuProps) {
+  return (
+    <motion.div
+      className={styles.bulkMenu}
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.96 }}
+      transition={viewTransition}
+    >
+      <div className={styles.bulkActionWrap}>
+        <AnimatePresence>
+          {dropdownOpen ? (
+            <motion.div
+              className={styles.bulkDropdown}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={viewTransition}
+            >
+              {branches.length > 0 ? (
+                branches.map((branch) => (
+                  <button
+                    key={branch.id}
+                    type="button"
+                    disabled={isSaving}
+                    onClick={() => onMove(branch.id)}
+                  >
+                    {branch.name}
+                  </button>
+                ))
+              ) : (
+                <span>Сначала создай коллекцию</span>
+              )}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+        <button
+          className={styles.bulkMoveButton}
+          type="button"
+          disabled={isSaving || branches.length === 0}
+          onClick={onToggleDropdown}
+        >
+          <span>Добавить в коллекцию</span>
+          <MenuChevron className={styles.bulkChevron} />
+        </button>
+      </div>
+      <button
+        className={styles.bulkDeleteButton}
+        type="button"
+        aria-label={`Удалить выбранные мысли: ${count}`}
+        disabled={isSaving}
+        onClick={onDelete}
+      >
+        <TrashIcon />
+      </button>
+      <button
+        className={styles.bulkCancelButton}
+        type="button"
+        aria-label="Отменить массовый выбор"
+        disabled={isSaving}
+        onClick={onCancel}
+      >
+        ×
+      </button>
+    </motion.div>
+  );
+}
 
 function getThoughtEditorValues(thought: Thought): ThoughtEditorValues {
   return {
@@ -415,11 +570,17 @@ function ThoughtWorkspace({
 
 export function ThoughtsApp() {
   const shouldReduceMotion = useReducedMotion();
+  const branchSectionRefs = useRef(new Map<string, HTMLElement>());
+  const pendingScrollBranchIdRef = useRef<string | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>({ kind: "inbox" });
   const [branches, setBranches] = useState<ThoughtBranch[]>([]);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [unassignedCount, setUnassignedCount] = useState(0);
+  const [focusedBranchId, setFocusedBranchId] = useState<string | null>(null);
   const [selectedThought, setSelectedThought] = useState<Thought | null>(null);
+  const [selectedThoughtIds, setSelectedThoughtIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftContent, setDraftContent] = useState("");
@@ -434,14 +595,19 @@ export function ThoughtsApp() {
   const [branchMutationId, setBranchMutationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [bulkDropdownOpen, setBulkDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const selectedThoughtCount = selectedThoughtIds.size;
   const thoughtGroups = useMemo(
     () =>
-      groupThoughtsByDay(thoughts).map((group) => ({
+      (activeView.kind === "collections"
+        ? groupThoughtsByBranch(thoughts, branches)
+        : groupThoughtsByDay(thoughts)
+      ).map((group) => ({
         ...group,
         columns: distributeThoughtsByColumn(group.thoughts),
       })),
-    [thoughts],
+    [activeView.kind, branches, thoughts],
   );
 
   async function loadThoughts(nextView = activeView) {
@@ -451,6 +617,8 @@ export function ThoughtsApp() {
     const query =
       nextView.kind === "branch"
         ? `?view=branch&branchId=${nextView.branchId}`
+        : nextView.kind === "collections"
+          ? "?view=collections"
         : nextView.kind === "useful"
           ? "?view=useful"
           : "";
@@ -482,6 +650,68 @@ export function ThoughtsApp() {
     return () => window.cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView.kind, activeView.kind === "branch" ? activeView.branchId : ""]);
+
+  useEffect(() => {
+    if (activeView.kind !== "collections") {
+      return;
+    }
+
+    const branchId = pendingScrollBranchIdRef.current;
+
+    if (!branchId) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      branchSectionRefs.current.get(branchId)?.scrollIntoView({
+        behavior: shouldReduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+      pendingScrollBranchIdRef.current = null;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeView.kind, shouldReduceMotion, thoughtGroups]);
+
+  function setBranchSectionRef(branchId: string) {
+    return (node: HTMLElement | null) => {
+      if (node) {
+        branchSectionRefs.current.set(branchId, node);
+        return;
+      }
+
+      branchSectionRefs.current.delete(branchId);
+    };
+  }
+
+  function clearBulkSelection() {
+    setSelectedThoughtIds(new Set());
+    setBulkDropdownOpen(false);
+  }
+
+  function openCollections(branchId?: string) {
+    setActiveView({ kind: "collections" });
+    setFocusedBranchId(branchId ?? null);
+    setSelectedThought(null);
+    setSelectedDraft(null);
+    clearBulkSelection();
+
+    if (!branchId) {
+      return;
+    }
+
+    pendingScrollBranchIdRef.current = branchId;
+
+    if (activeView.kind === "collections") {
+      window.requestAnimationFrame(() => {
+        branchSectionRefs.current.get(branchId)?.scrollIntoView({
+          behavior: shouldReduceMotion ? "auto" : "smooth",
+          block: "start",
+        });
+        pendingScrollBranchIdRef.current = null;
+      });
+    }
+  }
 
   function startEditBranch(branch: ThoughtBranch) {
     setBranchFormOpen(false);
@@ -521,7 +751,9 @@ export function ThoughtsApp() {
 
     setBranchDraft("");
     setBranchFormOpen(false);
-    setActiveView({ kind: "branch", branchId: data.branch.id });
+    pendingScrollBranchIdRef.current = data.branch.id;
+    setFocusedBranchId(data.branch.id);
+    setActiveView({ kind: "collections" });
   }
 
   async function renameBranch(event: FormEvent<HTMLFormElement>) {
@@ -615,6 +847,10 @@ export function ThoughtsApp() {
 
       if (draftBranchId === branch.id) {
         setDraftBranchId("");
+      }
+
+      if (focusedBranchId === branch.id) {
+        setFocusedBranchId(null);
       }
 
       setSelectedDraft((current) =>
@@ -764,7 +1000,118 @@ export function ThoughtsApp() {
       setSelectedDraft(null);
     }
 
+    setSelectedThoughtIds((current) => {
+      if (!current.has(thought.id)) {
+        return current;
+      }
+
+      const next = new Set(current);
+      next.delete(thought.id);
+      return next;
+    });
+
     await loadThoughts();
+  }
+
+  function toggleThoughtSelection(thought: Thought) {
+    if (activeView.kind !== "inbox") {
+      return;
+    }
+
+    setSelectedThoughtIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(thought.id)) {
+        next.delete(thought.id);
+      } else {
+        next.add(thought.id);
+      }
+
+      return next;
+    });
+    setBulkDropdownOpen(false);
+  }
+
+  async function moveSelectedThoughts(branchId: string) {
+    const ids = Array.from(selectedThoughtIds);
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/thoughts/bulk", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids, branchId }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Не удалось перенести мысли");
+      }
+
+      clearBulkSelection();
+      pendingScrollBranchIdRef.current = branchId;
+      setFocusedBranchId(branchId);
+      setActiveView({ kind: "collections" });
+      await loadThoughts({ kind: "collections" });
+    } catch (moveError) {
+      setError(
+        moveError instanceof Error
+          ? moveError.message
+          : "Не удалось перенести мысли",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteSelectedThoughts() {
+    const ids = Array.from(selectedThoughtIds);
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      `Удалить выбранные мысли: ${ids.length}?`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await Promise.all(
+        ids.map(async (id) => {
+          const response = await fetch(`/api/thoughts/${id}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) {
+            throw new Error("Не удалось удалить выбранные мысли");
+          }
+        }),
+      );
+
+      clearBulkSelection();
+      await loadThoughts();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Не удалось удалить выбранные мысли",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function openThought(thought: Thought) {
@@ -779,13 +1126,33 @@ export function ThoughtsApp() {
 
   function switchView(nextView: ActiveView) {
     setActiveView(nextView);
+    setFocusedBranchId(null);
     setSelectedThought(null);
     setSelectedDraft(null);
+    clearBulkSelection();
   }
 
   return (
     <main className={styles.shell}>
-      <AppTabs active="thoughts" />
+      <AppTabs
+        active="thoughts"
+        selectionMenu={
+          selectedThoughtCount > 0 ? (
+            <BulkSelectionMenu
+              branches={branches}
+              count={selectedThoughtCount}
+              dropdownOpen={bulkDropdownOpen}
+              isSaving={isSaving}
+              onCancel={clearBulkSelection}
+              onDelete={() => void deleteSelectedThoughts()}
+              onMove={(branchId) => void moveSelectedThoughts(branchId)}
+              onToggleDropdown={() =>
+                setBulkDropdownOpen((current) => !current)
+              }
+            />
+          ) : undefined
+        }
+      />
 
       <aside className={styles.sidebar}>
         <button
@@ -812,8 +1179,11 @@ export function ThoughtsApp() {
             <div className={styles.collectionHeader}>
               <button
                 className={styles.sideItem}
+                data-active={
+                  activeView.kind === "collections" ? "true" : "false"
+                }
                 type="button"
-                onClick={() => setBranchFormOpen((current) => !current)}
+                onClick={() => openCollections()}
               >
                 <FolderIcon />
                 <span>Коллекции</span>
@@ -822,17 +1192,17 @@ export function ThoughtsApp() {
                 className={styles.collectionAdd}
                 type="button"
                 aria-label="Добавить коллекцию"
-                onClick={() => setBranchFormOpen(true)}
-              >
-                <AddTaskIcon />
+                  onClick={() => setBranchFormOpen(true)}
+                >
+                  <AddTaskIcon />
               </button>
             </div>
 
             <div className={styles.branchList}>
               {branches.map((branch) => {
                 const isActive =
-                  activeView.kind === "branch" &&
-                  activeView.branchId === branch.id;
+                  activeView.kind === "collections" &&
+                  focusedBranchId === branch.id;
                 const isEditing = editingBranchId === branch.id;
                 const isMutating = branchMutationId === branch.id;
 
@@ -906,9 +1276,7 @@ export function ThoughtsApp() {
                           data-active={isActive ? "true" : "false"}
                           disabled={isMutating}
                           type="button"
-                          onClick={() =>
-                            switchView({ kind: "branch", branchId: branch.id })
-                          }
+                          onClick={() => openCollections(branch.id)}
                         >
                           <BranchTick />
                           <span>{branch.name}</span>
@@ -983,10 +1351,20 @@ export function ThoughtsApp() {
 
           <div className={styles.dayStack}>
             {thoughtGroups.map((group, groupIndex) => (
-              <section className={styles.daySection} key={group.key}>
+              <section
+                className={styles.daySection}
+                key={group.key}
+                ref={
+                  group.branchId ? setBranchSectionRef(group.branchId) : null
+                }
+              >
                 <div
                   className={styles.dayHeader}
-                  data-first={groupIndex === 0 ? "true" : "false"}
+                  data-first={
+                    groupIndex === 0 && activeView.kind !== "collections"
+                      ? "true"
+                      : "false"
+                  }
                 >
                   <span>{group.label}</span>
                   <i aria-hidden="true" />
@@ -1004,10 +1382,13 @@ export function ThoughtsApp() {
                           <ThoughtCard
                             key={thought.id}
                             thought={thought}
+                            selectable={activeView.kind === "inbox"}
+                            selected={selectedThoughtIds.has(thought.id)}
                             onDelete={(nextThought) =>
                               void deleteThought(nextThought)
                             }
                             onOpen={openThought}
+                            onToggleSelect={toggleThoughtSelection}
                           />
                         ))}
                       </AnimatePresence>

@@ -15,6 +15,10 @@ function getFilter(request: Request): ThoughtListFilter {
     return { view, branchId };
   }
 
+  if (view === "collections") {
+    return { view };
+  }
+
   if (view === "useful") {
     return { view };
   }

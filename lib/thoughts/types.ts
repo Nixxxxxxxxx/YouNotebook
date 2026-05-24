@@ -64,6 +64,7 @@ export type UpdateThoughtInput = {
 
 export type ThoughtListFilter =
   | { view?: "inbox"; branchId?: never }
+  | { view: "collections"; branchId?: never }
   | { view: "useful"; branchId?: never }
   | { view: "branch"; branchId: string };
 

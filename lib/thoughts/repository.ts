@@ -326,6 +326,14 @@ export async function listThoughts(
       where branch_id = ${filter.branchId} and status = 'inbox'
       order by created_at desc
     `;
+  } else if (filter.view === "collections") {
+    rows = await sql<ThoughtRow[]>`
+      select thoughts.*
+      from thoughts
+      join thought_branches on thought_branches.id = thoughts.branch_id
+      where thoughts.branch_id is not null and thoughts.status = 'inbox'
+      order by thought_branches.created_at asc, thoughts.created_at desc
+    `;
   } else if (filter.view === "useful") {
     rows = await sql<ThoughtRow[]>`
       select *
@@ -452,6 +460,28 @@ export async function updateThought(id: string, patch: UpdateThoughtInput) {
   `;
 
   return toThought(row);
+}
+
+export async function moveThoughtsToBranch(
+  ids: string[],
+  branchId: string | null,
+) {
+  await ensureThoughtsSchema();
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const sql = getSql();
+  const rows = await sql<ThoughtRow[]>`
+    update thoughts
+    set branch_id = ${branchId},
+      updated_at = now()
+    where id in ${sql(ids)}
+    returning *
+  `;
+
+  return rows.map(toThought);
 }
 
 export async function deleteThought(id: string) {

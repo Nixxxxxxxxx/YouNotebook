@@ -9,8 +9,8 @@
   --glass: rgba(30, 44, 55, 0.4);
   --glass-solid: #1e2c37;
   --glass-hover: rgba(243, 243, 243, 0.2);
-  --blue: #0088ff;
-  --blue-soft: rgba(0, 136, 255, 0.24);
+  --blue: #5382fe;
+  --blue-soft: rgba(83, 130, 254, 0.24);
   --danger: #ff6b7a;
   --success: #8fffd2;
   --font-ui: "SF Pro Text", "SF Pro Display", "IBM Plex Sans", "Montserrat",
@@ -55,5 +55,5 @@ button:disabled {
 }
 
 ::selection {
-  background: rgba(0, 136, 255, 0.36);
+  background: rgba(83, 130, 254, 0.36);
 }
