@@ -375,6 +375,11 @@
   padding: 0 16px 180px 32px;
 }
 
+.contentStage {
+  min-height: 220px;
+  will-change: opacity, transform, filter;
+}
+
 .error {
   max-width: 640px;
   margin: -8px 0 18px;
@@ -758,7 +763,8 @@
   font-size: 14px;
 }
 
-.bulkMenu {
+.bulkMenu,
+.editorActionMenu {
   display: flex;
   height: 64px;
   align-items: center;
@@ -777,6 +783,7 @@
 }
 
 .bulkMoveButton,
+.editorSaveButton,
 .bulkDeleteButton,
 .bulkCancelButton {
   border: 0;
@@ -788,7 +795,8 @@
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.bulkMoveButton {
+.bulkMoveButton,
+.editorSaveButton {
   display: flex;
   height: 42px;
   align-items: center;
@@ -800,6 +808,10 @@
   background: var(--blue);
   font-size: 14px;
   line-height: 1.2;
+}
+
+.editorSaveButton {
+  min-width: 218px;
 }
 
 .bulkChevron {
@@ -841,6 +853,7 @@
 }
 
 .bulkMoveButton:hover,
+.editorSaveButton:hover,
 .bulkDeleteButton:hover,
 .bulkCancelButton:hover {
   filter: brightness(1.07);
@@ -848,6 +861,7 @@
 }
 
 .bulkMoveButton:disabled,
+.editorSaveButton:disabled,
 .bulkDeleteButton:disabled,
 .bulkCancelButton:disabled {
   cursor: default;
@@ -1225,38 +1239,6 @@
   object-fit: contain;
 }
 
-.editorSubmitButton {
-  position: fixed;
-  bottom: 40px;
-  left: 50%;
-  display: grid;
-  width: 248px;
-  height: 42px;
-  place-items: center;
-  border: 0;
-  border-radius: 12px;
-  color: #ffffff;
-  background: var(--blue);
-  box-shadow: 0 16px 34px rgba(83, 130, 254, 0.22);
-  font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.2;
-  transform: translateX(-50%);
-  transition:
-    filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.editorSubmitButton:hover {
-  filter: brightness(1.08);
-  transform: translateX(-50%) translateY(-1px);
-}
-
-.editorSubmitButton:disabled {
-  cursor: default;
-  filter: grayscale(0.4) brightness(0.8);
-}
-
 .addEditorTextarea {
   width: 100%;
   min-height: 360px;
@@ -1423,11 +1405,6 @@
     width: 100%;
   }
 
-  .editorSubmitButton {
-    bottom: 24px;
-    width: calc(100% - 36px);
-  }
-
   .readerClose {
     top: 18px;
     right: 18px;
@@ -1451,7 +1428,7 @@
   .bulkCancelButton,
   .editorCheckbox span,
   .editorCheckbox span::after,
-  .editorSubmitButton,
+  .editorSaveButton,
   .readerClose {
     transition: none;
   }

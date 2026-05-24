@@ -28,6 +28,8 @@ const viewTransition = {
   ease: [0.22, 1, 0.36, 1],
 } as const;
 const THOUGHT_COLUMN_COUNT = 3;
+const CREATE_THOUGHT_FORM_ID = "thought-create-form";
+const EDIT_THOUGHT_FORM_ID = "thought-edit-form";
 const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   day: "2-digit",
   month: "2-digit",
@@ -39,6 +41,10 @@ type ThoughtGroup = {
   label: string;
   thoughts: Thought[];
 };
+
+function getActiveViewKey(view: ActiveView) {
+  return view.kind === "branch" ? `${view.kind}:${view.branchId}` : view.kind;
+}
 
 function InboxIcon() {
   return (
@@ -422,6 +428,50 @@ function BulkSelectionMenu({
   );
 }
 
+type ThoughtEditorActionMenuProps = {
+  formId: string;
+  isSaving: boolean;
+  mode: "create" | "edit";
+  onClose: () => void;
+};
+
+function ThoughtEditorActionMenu({
+  formId,
+  isSaving,
+  mode,
+  onClose,
+}: ThoughtEditorActionMenuProps) {
+  const label = mode === "create" ? "Добавить мысль" : "Сохранить изменения";
+
+  return (
+    <motion.div
+      className={styles.editorActionMenu}
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.96 }}
+      transition={viewTransition}
+    >
+      <button
+        className={styles.editorSaveButton}
+        type="submit"
+        form={formId}
+        disabled={isSaving}
+      >
+        {isSaving ? "Сохраняю..." : label}
+      </button>
+      <button
+        className={styles.bulkCancelButton}
+        type="button"
+        aria-label="Закрыть редактор"
+        disabled={isSaving}
+        onClick={onClose}
+      >
+        ×
+      </button>
+    </motion.div>
+  );
+}
+
 function getThoughtEditorValues(thought: Thought): ThoughtEditorValues {
   return {
     branchId: thought.branchId ?? "",
@@ -435,8 +485,8 @@ type ThoughtWorkspaceProps = {
   branches: ThoughtBranch[];
   content: string;
   contentHtml?: string | null;
+  formId: string;
   imageUrl?: string | null;
-  isSaving: boolean;
   isUseful: boolean;
   mode: "create" | "edit";
   onBranchChange: (value: string) => void;
@@ -455,8 +505,8 @@ function ThoughtWorkspace({
   branches,
   content,
   contentHtml,
+  formId,
   imageUrl,
-  isSaving,
   isUseful,
   mode,
   onBranchChange,
@@ -474,6 +524,7 @@ function ThoughtWorkspace({
 
   return (
     <motion.form
+      id={formId}
       className={styles.thoughtWorkspace}
       onSubmit={onSubmit}
       initial={
@@ -556,14 +607,6 @@ function ThoughtWorkspace({
           />
         )}
       </section>
-
-      <button className={styles.editorSubmitButton} disabled={isSaving}>
-        {isSaving
-          ? "Сохраняю..."
-          : isCreateMode
-            ? "Добавить мысль"
-            : "Сохранить изменения"}
-      </button>
     </motion.form>
   );
 }
@@ -598,6 +641,7 @@ export function ThoughtsApp() {
   const [bulkDropdownOpen, setBulkDropdownOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const selectedThoughtCount = selectedThoughtIds.size;
+  const activeViewKey = getActiveViewKey(activeView);
   const thoughtGroups = useMemo(
     () =>
       (activeView.kind === "collections"
@@ -689,8 +733,21 @@ export function ThoughtsApp() {
     setBulkDropdownOpen(false);
   }
 
+  function prepareViewChange(nextView: ActiveView) {
+    if (getActiveViewKey(activeView) === getActiveViewKey(nextView)) {
+      return;
+    }
+
+    setThoughts([]);
+    setIsLoading(true);
+    setError(null);
+  }
+
   function openCollections(branchId?: string) {
-    setActiveView({ kind: "collections" });
+    const nextView: ActiveView = { kind: "collections" };
+
+    prepareViewChange(nextView);
+    setActiveView(nextView);
     setFocusedBranchId(branchId ?? null);
     setSelectedThought(null);
     setSelectedDraft(null);
@@ -1125,6 +1182,7 @@ export function ThoughtsApp() {
   }
 
   function switchView(nextView: ActiveView) {
+    prepareViewChange(nextView);
     setActiveView(nextView);
     setFocusedBranchId(null);
     setSelectedThought(null);
@@ -1137,7 +1195,21 @@ export function ThoughtsApp() {
       <AppTabs
         active="thoughts"
         selectionMenu={
-          selectedThoughtCount > 0 ? (
+          addOpen ? (
+            <ThoughtEditorActionMenu
+              formId={CREATE_THOUGHT_FORM_ID}
+              isSaving={isSaving}
+              mode="create"
+              onClose={() => setAddOpen(false)}
+            />
+          ) : selectedThought && selectedDraft ? (
+            <ThoughtEditorActionMenu
+              formId={EDIT_THOUGHT_FORM_ID}
+              isSaving={isSaving}
+              mode="edit"
+              onClose={closeThought}
+            />
+          ) : selectedThoughtCount > 0 ? (
             <BulkSelectionMenu
               branches={branches}
               count={selectedThoughtCount}
@@ -1349,61 +1421,86 @@ export function ThoughtsApp() {
         <div className={styles.content}>
           {error ? <p className={styles.error}>{error}</p> : null}
 
-          <div className={styles.dayStack}>
-            {thoughtGroups.map((group, groupIndex) => (
-              <section
-                className={styles.daySection}
-                key={group.key}
-                ref={
-                  group.branchId ? setBranchSectionRef(group.branchId) : null
-                }
-              >
-                <div
-                  className={styles.dayHeader}
-                  data-first={
-                    groupIndex === 0 && activeView.kind !== "collections"
-                      ? "true"
-                      : "false"
-                  }
-                >
-                  <span>{group.label}</span>
-                  <i aria-hidden="true" />
-                </div>
-                <div className={styles.masonryGrid}>
-                  {group.columns.map((column, index) => (
-                    <motion.div
-                      className={styles.masonryColumn}
-                      data-column={index}
-                      key={index}
-                      layout
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeViewKey}
+              className={styles.contentStage}
+              initial={
+                shouldReduceMotion
+                  ? false
+                  : { opacity: 0, y: 10, filter: "blur(6px)" }
+              }
+              animate={
+                shouldReduceMotion
+                  ? undefined
+                  : { opacity: 1, y: 0, filter: "blur(0px)" }
+              }
+              exit={
+                shouldReduceMotion
+                  ? undefined
+                  : { opacity: 0, y: -8, filter: "blur(5px)" }
+              }
+              transition={viewTransition}
+            >
+              <div className={styles.dayStack}>
+                {thoughtGroups.map((group, groupIndex) => (
+                  <section
+                    className={styles.daySection}
+                    key={group.key}
+                    ref={
+                      group.branchId ? setBranchSectionRef(group.branchId) : null
+                    }
+                  >
+                    <div
+                      className={styles.dayHeader}
+                      data-first={
+                        groupIndex === 0 && activeView.kind !== "collections"
+                          ? "true"
+                          : "false"
+                      }
                     >
-                      <AnimatePresence mode="popLayout" initial={false}>
-                        {column.map((thought) => (
-                          <ThoughtCard
-                            key={thought.id}
-                            thought={thought}
-                            selectable={activeView.kind === "inbox"}
-                            selected={selectedThoughtIds.has(thought.id)}
-                            onDelete={(nextThought) =>
-                              void deleteThought(nextThought)
-                            }
-                            onOpen={openThought}
-                            onToggleSelect={toggleThoughtSelection}
-                          />
-                        ))}
-                      </AnimatePresence>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+                      <span>{group.label}</span>
+                      <i aria-hidden="true" />
+                    </div>
+                    <div className={styles.masonryGrid}>
+                      {group.columns.map((column, index) => (
+                        <motion.div
+                          className={styles.masonryColumn}
+                          data-column={index}
+                          key={index}
+                          layout
+                        >
+                          <AnimatePresence mode="popLayout" initial={false}>
+                            {column.map((thought) => (
+                              <ThoughtCard
+                                key={thought.id}
+                                thought={thought}
+                                selectable={activeView.kind === "inbox"}
+                                selected={selectedThoughtIds.has(thought.id)}
+                                onDelete={(nextThought) =>
+                                  void deleteThought(nextThought)
+                                }
+                                onOpen={openThought}
+                                onToggleSelect={toggleThoughtSelection}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
 
-          {!isLoading && thoughts.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>Здесь пока пусто. Скинь мысль вручную или перешли пост боту.</p>
-            </div>
-          ) : null}
+              {!isLoading && thoughts.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p>
+                    Здесь пока пусто. Скинь мысль вручную или перешли пост боту.
+                  </p>
+                </div>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </section>
 
@@ -1418,7 +1515,7 @@ export function ThoughtsApp() {
             <ThoughtWorkspace
               branches={branches}
               content={draftContent}
-              isSaving={isSaving}
+              formId={CREATE_THOUGHT_FORM_ID}
               isUseful={draftUseful}
               mode="create"
               selectedBranchId={draftBranchId}
@@ -1452,7 +1549,7 @@ export function ThoughtsApp() {
                   : null
               }
               imageUrl={selectedThought.imageUrl}
-              isSaving={isSaving}
+              formId={EDIT_THOUGHT_FORM_ID}
               isUseful={selectedDraft.isUseful}
               mode="edit"
               selectedBranchId={selectedDraft.branchId}
