@@ -24,12 +24,19 @@
 }
 
 .logo {
-  display: block;
+  display: flex;
   width: 125px;
-  height: 46px;
+  height: 48px;
   flex: 0 0 125px;
-  object-fit: contain;
-  object-position: center;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: var(--font-logo), fantasy;
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .separator {
@@ -155,9 +162,10 @@
   }
 
   .logo {
-    width: 92px;
-    height: 40px;
-    flex-basis: 92px;
+    width: 108px;
+    height: 44px;
+    flex-basis: 108px;
+    font-size: 34px;
   }
 
   .separator {

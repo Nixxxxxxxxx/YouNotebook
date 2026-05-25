@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Caveat } from "next/font/google";
+import { Caveat, Lacquer } from "next/font/google";
 import "./globals.css";
 
 const caveat = Caveat({
   subsets: ["cyrillic", "latin"],
   variable: "--font-hand",
+  display: "swap",
+});
+
+const lacquer = Lacquer({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-logo",
   display: "swap",
 });
 
@@ -27,7 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={caveat.variable}>{children}</body>
+      <body className={`${caveat.variable} ${lacquer.variable}`}>
+        {children}
+      </body>
     </html>
   );
 }

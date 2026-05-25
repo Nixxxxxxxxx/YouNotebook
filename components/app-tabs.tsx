@@ -38,13 +38,7 @@ export function AppTabs({ active, selectionMenu }: AppTabsProps) {
   return (
     <div className={styles.menuDock}>
       <nav className={styles.tabs} aria-label="Разделы YouNotebook">
-        <img
-          className={styles.logo}
-          src="/icons/quietly.svg"
-          width="125"
-          height="46"
-          alt="Quietly"
-        />
+        <span className={styles.logo}>Quietly</span>
         <span className={styles.separator} aria-hidden="true" />
         {MENU_ITEMS.map((item) => (
           <Link
