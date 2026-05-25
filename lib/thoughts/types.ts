@@ -21,10 +21,12 @@ export type Thought = {
   sourceUrl: string | null;
   sourceType: ThoughtSourceType;
   imageUrl: string | null;
+  imageUrls: string[];
   faviconUrl: string | null;
   isUseful: boolean;
   status: ThoughtStatus;
   telegramChatId: string | null;
+  telegramMediaGroupId: string | null;
   telegramMessageId: string | null;
   telegramUserId: string | null;
   createdAt: string;
@@ -36,6 +38,7 @@ export type CreateThoughtInput = {
   branchId?: string | null;
   faviconUrl?: string | null;
   imageUrl?: string | null;
+  imageUrls?: string[];
   isUseful?: boolean;
   sourceType?: ThoughtSourceType;
   snapshot?: {
@@ -50,6 +53,7 @@ export type CreateThoughtInput = {
     faviconUrl: string | null;
   };
   telegramChatId?: string | number | null;
+  telegramMediaGroupId?: string | null;
   telegramMessageId?: string | number | null;
   telegramUserId?: string | number | null;
 };

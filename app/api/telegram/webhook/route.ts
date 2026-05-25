@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   beginTelegramUpdate,
-  createThought,
+  createOrAppendTelegramThought,
   finishTelegramUpdate,
 } from "@/lib/thoughts/repository";
 import {
@@ -134,11 +134,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const thought = await createThought({
+    const thought = await createOrAppendTelegramThought({
       input: telegramReader.snapshot.rawInput,
       sourceType: "telegram",
       faviconUrl,
       imageUrl,
+      imageUrls: imageUrl ? [imageUrl] : [],
       snapshot: telegramReader.shouldUseSnapshot
         ? {
             ...telegramReader.snapshot,
@@ -147,6 +148,7 @@ export async function POST(request: Request) {
           }
         : undefined,
       telegramChatId: message.chat.id,
+      telegramMediaGroupId: message.media_group_id ?? null,
       telegramMessageId: message.message_id,
       telegramUserId: userId,
     });

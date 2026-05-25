@@ -138,8 +138,20 @@ function getThoughtPreview(thought: Thought) {
   return thought.summary || thought.contentText || thought.rawInput || "";
 }
 
+function getThoughtImages(thought: Thought) {
+  return thought.imageUrls.length > 0
+    ? thought.imageUrls
+    : thought.imageUrl
+      ? [thought.imageUrl]
+      : [];
+}
+
+function getPrimaryThoughtImage(thought: Thought) {
+  return getThoughtImages(thought)[0] ?? null;
+}
+
 function isImageThought(thought: Thought) {
-  return Boolean(thought.imageUrl);
+  return getThoughtImages(thought).length > 0;
 }
 
 function isArticleThought(thought: Thought) {
@@ -255,6 +267,7 @@ function ThoughtCard({
 }) {
   const hasImage = isImageThought(thought);
   const isArticle = isArticleThought(thought);
+  const primaryImage = getPrimaryThoughtImage(thought);
 
   return (
     <motion.article
@@ -301,7 +314,7 @@ function ThoughtCard({
           <>
             <img
               className={styles.cardImage}
-              src={thought.imageUrl ?? ""}
+              src={primaryImage ?? ""}
               alt=""
             />
             <span className={styles.cardSource}>
@@ -504,7 +517,7 @@ type ThoughtWorkspaceProps = {
   content: string;
   contentHtml?: string | null;
   formId: string;
-  imageUrl?: string | null;
+  imageUrls?: string[];
   isUseful: boolean;
   mode: "create" | "edit";
   onBranchChange: (value: string) => void;
@@ -524,7 +537,7 @@ function ThoughtWorkspace({
   content,
   contentHtml,
   formId,
-  imageUrl,
+  imageUrls = [],
   isUseful,
   mode,
   onBranchChange,
@@ -539,6 +552,7 @@ function ThoughtWorkspace({
   title,
 }: ThoughtWorkspaceProps) {
   const isCreateMode = mode === "create";
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   return (
     <motion.form
@@ -608,8 +622,26 @@ function ThoughtWorkspace({
         {sourceLabel ? (
           <p className={styles.editorSourceLabel}>{sourceLabel}</p>
         ) : null}
-        {imageUrl ? (
-          <img className={styles.editorImage} src={imageUrl} alt="" />
+        {imageUrls.length > 0 ? (
+          <div
+            className={styles.editorImageGallery}
+            data-count={Math.min(imageUrls.length, 5)}
+          >
+            {imageUrls.map((imageUrl, index) => (
+              <motion.button
+                className={styles.editorImageTile}
+                key={imageUrl}
+                type="button"
+                data-wide={index % 5 === 0 ? "true" : "false"}
+                layout
+                whileHover={shouldReduceMotion ? undefined : { scale: 0.985 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
+                onClick={() => setLightboxImage(imageUrl)}
+              >
+                <img src={imageUrl} alt="" />
+              </motion.button>
+            ))}
+          </div>
         ) : null}
         {contentHtml ? (
           <div
@@ -625,6 +657,49 @@ function ThoughtWorkspace({
           />
         )}
       </section>
+
+      <AnimatePresence>
+        {lightboxImage ? (
+          <motion.div
+            className={styles.imageLightbox}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Просмотр изображения"
+            initial={shouldReduceMotion ? false : { opacity: 0 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+            transition={viewTransition}
+            onClick={() => setLightboxImage(null)}
+          >
+            <button
+              className={styles.imageLightboxClose}
+              type="button"
+              aria-label="Закрыть изображение"
+              onClick={(event) => {
+                event.stopPropagation();
+                setLightboxImage(null);
+              }}
+            >
+              ×
+            </button>
+            <motion.img
+              src={lightboxImage}
+              alt=""
+              initial={
+                shouldReduceMotion ? false : { opacity: 0, y: 18, scale: 0.97 }
+              }
+              animate={
+                shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
+              }
+              exit={
+                shouldReduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }
+              }
+              transition={viewTransition}
+              onClick={(event) => event.stopPropagation()}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </motion.form>
   );
 }
@@ -1648,7 +1723,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
                   ? selectedThought.contentHtml
                   : null
               }
-              imageUrl={selectedThought.imageUrl}
+              imageUrls={getThoughtImages(selectedThought)}
               formId={EDIT_THOUGHT_FORM_ID}
               isUseful={selectedDraft.isUseful}
               mode="edit"

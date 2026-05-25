@@ -1245,12 +1245,93 @@
   padding: 12px;
 }
 
-.editorImage {
+.editorImageGallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.editorImageTile {
+  display: block;
+  height: 136px;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  background: #121212;
+  padding: 0;
+  cursor: zoom-in;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 18px 38px rgba(0, 0, 0, 0.22);
+}
+
+.editorImageTile[data-wide="true"] {
+  grid-column: span 2;
+  height: 178px;
+}
+
+.editorImageTile img {
   display: block;
   width: 100%;
-  height: auto;
-  border-radius: 18px;
+  height: 100%;
+  object-fit: cover;
+  transition:
+    filter 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.editorImageTile:hover img {
+  filter: brightness(1.08);
+  transform: scale(1.04);
+}
+
+.imageLightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 48px;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(18px);
+}
+
+.imageLightbox img {
+  display: block;
+  max-width: min(1120px, calc(100vw - 96px));
+  max-height: calc(100vh - 96px);
+  border-radius: 22px;
   object-fit: contain;
+  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.58);
+}
+
+.imageLightboxClose {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.imageLightboxClose:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(1.04);
 }
 
 .addEditorTextarea {
@@ -1419,6 +1500,26 @@
     width: 100%;
   }
 
+  .editorImageGallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .editorImageTile,
+  .editorImageTile[data-wide="true"] {
+    grid-column: auto;
+    height: 126px;
+  }
+
+  .imageLightbox {
+    padding: 24px;
+  }
+
+  .imageLightbox img {
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 96px);
+    border-radius: 16px;
+  }
+
   .readerClose {
     top: 18px;
     right: 18px;
@@ -1440,9 +1541,11 @@
   .bulkMoveButton,
   .bulkDeleteButton,
   .bulkCancelButton,
+  .editorImageTile img,
   .editorCheckbox span,
   .editorCheckbox span::after,
   .editorSaveButton,
+  .imageLightboxClose,
   .readerClose {
     transition: none;
   }

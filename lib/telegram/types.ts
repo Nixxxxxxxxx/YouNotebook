@@ -62,6 +62,7 @@ export type TelegramReplyMarkup = {
 
 export type TelegramMessage = {
   message_id: number;
+  media_group_id?: string;
   from?: TelegramUser;
   sender_chat?: TelegramChat;
   forward_from_chat?: TelegramChat;
