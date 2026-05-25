@@ -356,6 +356,7 @@ type BulkSelectionMenuProps = {
   onCancel: () => void;
   onDelete: () => void;
   onMove: (branchId: string) => void;
+  onMoveToUseful: () => void;
   onToggleDropdown: () => void;
 };
 
@@ -367,6 +368,7 @@ function BulkSelectionMenu({
   onCancel,
   onDelete,
   onMove,
+  onMoveToUseful,
   onToggleDropdown,
 }: BulkSelectionMenuProps) {
   return (
@@ -387,6 +389,14 @@ function BulkSelectionMenu({
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
               transition={viewTransition}
             >
+              <button
+                className={styles.bulkDropdownPrimary}
+                type="button"
+                disabled={isSaving}
+                onClick={onMoveToUseful}
+              >
+                Под рукой
+              </button>
               {branches.length > 0 ? (
                 branches.map((branch) => (
                   <button
@@ -399,7 +409,7 @@ function BulkSelectionMenu({
                   </button>
                 ))
               ) : (
-                <span>Сначала создай коллекцию</span>
+                <span>Коллекций пока нет</span>
               )}
             </motion.div>
           ) : null}
@@ -407,7 +417,7 @@ function BulkSelectionMenu({
         <button
           className={styles.bulkMoveButton}
           type="button"
-          disabled={isSaving || branches.length === 0}
+          disabled={isSaving}
           onClick={onToggleDropdown}
         >
           <span>Добавить в коллекцию</span>
@@ -759,6 +769,10 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
     setBulkDropdownOpen(false);
   }
 
+  function invalidateViewCache() {
+    viewCacheRef.current.clear();
+  }
+
   function prepareViewChange(nextView: ActiveView) {
     const nextViewKey = getActiveViewKey(nextView);
 
@@ -846,9 +860,11 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
 
     setBranchDraft("");
     setBranchFormOpen(false);
+    invalidateViewCache();
     pendingScrollBranchIdRef.current = data.branch.id;
     setFocusedBranchId(data.branch.id);
     setActiveView({ kind: "collections" });
+    await loadThoughts({ kind: "collections" });
   }
 
   async function renameBranch(event: FormEvent<HTMLFormElement>) {
@@ -897,6 +913,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
           branch.id === updatedBranch.id ? updatedBranch : branch,
         ),
       );
+      invalidateViewCache();
       cancelEditBranch();
     } catch (renameError) {
       setError(
@@ -956,6 +973,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       setBranches((current) =>
         current.filter((nextBranch) => nextBranch.id !== branch.id),
       );
+      invalidateViewCache();
       setActiveView(nextView);
       await loadThoughts(nextView);
     } catch (deleteError) {
@@ -1005,6 +1023,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       setDraftBranchId("");
       setDraftUseful(false);
       setAddOpen(false);
+      invalidateViewCache();
       await loadThoughts();
     } catch (createError) {
       setError(
@@ -1067,6 +1086,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
 
       setSelectedThought(data.thought);
       setSelectedDraft(getThoughtEditorValues(data.thought));
+      invalidateViewCache();
       await loadThoughts();
     } catch (saveError) {
       setError(
@@ -1105,6 +1125,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       return next;
     });
 
+    invalidateViewCache();
     await loadThoughts();
   }
 
@@ -1150,6 +1171,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       }
 
       clearBulkSelection();
+      invalidateViewCache();
       pendingScrollBranchIdRef.current = branchId;
       setFocusedBranchId(branchId);
       setActiveView({ kind: "collections" });
@@ -1159,6 +1181,44 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
         moveError instanceof Error
           ? moveError.message
           : "Не удалось перенести мысли",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function moveSelectedThoughtsToUseful() {
+    const ids = Array.from(selectedThoughtIds);
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/thoughts/bulk", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids, isUseful: true }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Не удалось добавить мысли в Под рукой");
+      }
+
+      clearBulkSelection();
+      invalidateViewCache();
+      setFocusedBranchId(null);
+      setActiveView({ kind: "useful" });
+      await loadThoughts({ kind: "useful" });
+    } catch (moveError) {
+      setError(
+        moveError instanceof Error
+          ? moveError.message
+          : "Не удалось добавить мысли в Под рукой",
       );
     } finally {
       setIsSaving(false);
@@ -1197,6 +1257,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       );
 
       clearBulkSelection();
+      invalidateViewCache();
       await loadThoughts();
     } catch (deleteError) {
       setError(
@@ -1256,6 +1317,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
               onCancel={clearBulkSelection}
               onDelete={() => void deleteSelectedThoughts()}
               onMove={(branchId) => void moveSelectedThoughts(branchId)}
+              onMoveToUseful={() => void moveSelectedThoughtsToUseful()}
               onToggleDropdown={() =>
                 setBulkDropdownOpen((current) => !current)
               }

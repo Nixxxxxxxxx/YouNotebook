@@ -355,7 +355,7 @@ export async function getUnassignedThoughtCount() {
   const [row] = await sql<{ count: string }[]>`
     select count(*)::text as count
     from thoughts
-    where branch_id is null and status = 'inbox'
+    where branch_id is null and is_useful = false and status = 'inbox'
   `;
 
   return Number(row?.count ?? 0);
@@ -374,7 +374,7 @@ export async function listThoughts(
   const unassignedCountPromise = sql<{ count: string }[]>`
     select count(*)::text as count
     from thoughts
-    where branch_id is null and status = 'inbox'
+    where branch_id is null and is_useful = false and status = 'inbox'
   `;
   let rowsPromise: Promise<ThoughtRow[]>;
 
@@ -404,7 +404,7 @@ export async function listThoughts(
     rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
-      where branch_id is null and status = 'inbox'
+      where branch_id is null and is_useful = false and status = 'inbox'
       order by created_at desc
     `;
   }
@@ -541,6 +541,25 @@ export async function moveThoughtsToBranch(
   const rows = await sql<ThoughtRow[]>`
     update thoughts
     set branch_id = ${branchId},
+      updated_at = now()
+    where id in ${sql(ids)}
+    returning *
+  `;
+
+  return rows.map(toThought);
+}
+
+export async function markThoughtsAsUseful(ids: string[]) {
+  await ensureThoughtsSchema();
+
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const sql = getSql();
+  const rows = await sql<ThoughtRow[]>`
+    update thoughts
+    set is_useful = true,
       updated_at = now()
     where id in ${sql(ids)}
     returning *

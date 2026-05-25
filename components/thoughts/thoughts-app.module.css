@@ -905,6 +905,20 @@
   background: #212121;
 }
 
+.bulkDropdownPrimary {
+  color: #ffffff;
+}
+
+.bulkDropdownPrimary::after {
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--blue);
+  box-shadow: 0 0 18px rgba(83, 130, 254, 0.52);
+  content: "";
+}
+
 .readerOverlay {
   position: fixed;
   inset: 0;
