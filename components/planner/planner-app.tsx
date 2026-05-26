@@ -33,7 +33,6 @@ import {
   type MouseEvent,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { AppTabs } from "@/components/app-tabs";
 import { DynamicBackground } from "@/components/diary/dynamic-background";
 import {
   AddTaskIcon,
@@ -1168,7 +1167,6 @@ export function PlannerApp() {
   return (
     <main className={styles.shell}>
       <DynamicBackground />
-      <AppTabs active="planner" />
 
       <div className={styles.leftRail} data-planner-rail>
         <PlannerDayStatus isLoading={!storageReady} summary={dayStatus} />

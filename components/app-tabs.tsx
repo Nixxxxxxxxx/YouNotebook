@@ -1,11 +1,16 @@
+ "use client";
+
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import styles from "./app-tabs.module.css";
 
+type AppSection = "diary" | "planner" | "thoughts";
+
 type AppTabsProps = {
-  active: "diary" | "planner" | "thoughts";
+  active: AppSection;
   selectionMenu?: ReactNode;
 };
 
@@ -30,11 +35,19 @@ const MENU_ITEMS = [
   },
 ] as const;
 
-export function AppTabs({ active, selectionMenu }: AppTabsProps) {
-  if (selectionMenu) {
-    return <div className={styles.actionDock}>{selectionMenu}</div>;
+function getActiveSection(pathname: string): AppSection {
+  if (pathname.startsWith("/planner")) {
+    return "planner";
   }
 
+  if (pathname.startsWith("/thoughts")) {
+    return "thoughts";
+  }
+
+  return "diary";
+}
+
+function NavigationRail({ active }: { active: AppSection }) {
   return (
     <div className={styles.menuDock}>
       <nav className={styles.tabs} aria-label="Разделы YouNotebook">
@@ -66,4 +79,26 @@ export function AppTabs({ active, selectionMenu }: AppTabsProps) {
       </nav>
     </div>
   );
+}
+
+export function AppNavigation() {
+  const pathname = usePathname();
+
+  return <NavigationRail active={getActiveSection(pathname)} />;
+}
+
+export function AppActionDock({ children }: { children?: ReactNode }) {
+  if (!children) {
+    return null;
+  }
+
+  return <div className={styles.actionDock}>{children}</div>;
+}
+
+export function AppTabs({ active, selectionMenu }: AppTabsProps) {
+  if (selectionMenu) {
+    return <AppActionDock>{selectionMenu}</AppActionDock>;
+  }
+
+  return <NavigationRail active={active} />;
 }

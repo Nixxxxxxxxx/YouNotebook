@@ -11,7 +11,6 @@ import { cloneContent, deriveTitle, EMPTY_CONTENT, WELCOME_CONTENT } from "@/lib
 import { formatHistoryDate } from "@/lib/diary/dates";
 import { diaryStorage } from "@/lib/diary/storage";
 import type { DiaryContent, DiaryEntry, DiaryExportPayload } from "@/lib/diary/types";
-import { AppTabs } from "@/components/app-tabs";
 import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
 import { DynamicBackground } from "./dynamic-background";
 import { RichEditor, type RichEditorHandle } from "./rich-editor";
@@ -419,7 +418,6 @@ export function DiaryApp() {
   return (
     <main className={styles.shell}>
       <DynamicBackground />
-      <AppTabs active="diary" />
 
       <button
         className={styles.mobileHistoryButton}

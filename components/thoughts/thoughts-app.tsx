@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { AppTabs } from "@/components/app-tabs";
+import { AppActionDock } from "@/components/app-tabs";
 import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
 import type {
   Thought,
@@ -1366,9 +1366,8 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
 
   return (
     <main className={styles.shell}>
-      <AppTabs
-        active="thoughts"
-        selectionMenu={
+      <AppActionDock>
+        {
           addOpen ? (
             <ThoughtEditorActionMenu
               formId={CREATE_THOUGHT_FORM_ID}
@@ -1399,7 +1398,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
             />
           ) : undefined
         }
-      />
+      </AppActionDock>
 
       <aside className={styles.sidebar}>
         <button

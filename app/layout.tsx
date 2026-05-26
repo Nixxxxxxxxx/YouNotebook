@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Caveat, Lacquer } from "next/font/google";
+import { AppNavigation } from "@/components/app-tabs";
 import "./globals.css";
 
 const caveat = Caveat({
@@ -35,6 +36,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={`${caveat.variable} ${lacquer.variable}`}>
+        <AppNavigation />
         {children}
       </body>
     </html>

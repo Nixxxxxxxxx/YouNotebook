@@ -1,4 +1,3 @@
-import { AppTabs } from "@/components/app-tabs";
 import thoughtStyles from "@/components/thoughts/thoughts-app.module.css";
 
 import styles from "./loading.module.css";
@@ -6,8 +5,6 @@ import styles from "./loading.module.css";
 export default function ThoughtsLoading() {
   return (
     <main className={thoughtStyles.shell}>
-      <AppTabs active="thoughts" />
-
       <aside className={thoughtStyles.sidebar}>
         <div className={styles.skeletonButton} />
         <nav className={styles.skeletonNav} aria-label="Загрузка склада мыслей">
