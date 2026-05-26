@@ -32,13 +32,15 @@ const MENU_ITEMS = [
 
 export function AppTabs({ active, selectionMenu }: AppTabsProps) {
   if (selectionMenu) {
-    return <div className={styles.menuDock}>{selectionMenu}</div>;
+    return <div className={styles.actionDock}>{selectionMenu}</div>;
   }
 
   return (
     <div className={styles.menuDock}>
       <nav className={styles.tabs} aria-label="Разделы YouNotebook">
-        <span className={styles.logo}>Quietly</span>
+        <span className={styles.logo} aria-label="Quietly">
+          Q
+        </span>
         <span className={styles.separator} aria-hidden="true" />
         {MENU_ITEMS.map((item) => (
           <Link

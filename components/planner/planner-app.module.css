@@ -3,7 +3,7 @@
   --status-width: 239px;
   --day-column-width: 220px;
   --day-column-gap: 36px;
-  --timeline-left: 263px;
+  --timeline-left: calc(var(--app-nav-width) + 263px);
 
   position: relative;
   min-height: 100vh;
@@ -19,7 +19,7 @@
   z-index: 4;
   top: 32px;
   bottom: 0;
-  left: 24px;
+  left: calc(var(--app-nav-width) + 24px);
   display: grid;
   width: 272px;
   padding-top: 0;
@@ -567,7 +567,7 @@
     --rail-width: 0px;
     --day-column-width: min(82vw, 316px);
     --day-column-gap: 28px;
-    --timeline-left: 0px;
+    --timeline-left: var(--app-nav-width);
     overflow-x: hidden;
   }
 
@@ -575,7 +575,8 @@
     position: relative;
     top: auto;
     left: auto;
-    margin: 32px 18px 34px;
+    width: calc(100% - var(--app-nav-width) - 36px);
+    margin: 32px 18px 34px calc(var(--app-nav-width) + 18px);
   }
 
   .weekScroller {
@@ -585,7 +586,7 @@
     right: auto;
     bottom: auto;
     overflow-x: auto;
-    margin: 0 18px 128px;
+    margin: 0 18px 128px calc(var(--app-nav-width) + 18px);
     border-left: 0;
   }
 

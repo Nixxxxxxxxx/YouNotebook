@@ -1,47 +1,68 @@
 .menuDock {
   position: fixed;
   z-index: 30;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  width: var(--app-nav-width);
+  align-items: flex-start;
+  padding-left: 12px;
+  color: #ffffff;
+  animation: menuDockEnter 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menuDock::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  content: "";
+}
+
+.actionDock {
+  position: fixed;
+  z-index: 30;
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
-  animation: menuDockEnter 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: actionDockEnter 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tabs {
   display: flex;
-  height: 64px;
+  width: 48px;
   align-items: center;
+  flex-direction: column;
   gap: 16px;
-  padding: 8px 12px 8px 20px;
+  padding: 12px 0;
   border-radius: 20px;
   color: #ffffff;
-  background: #141414;
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.44),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: transparent;
   font-family: var(--font-ui);
   overflow: visible;
 }
 
 .logo {
-  display: flex;
-  width: 125px;
-  height: 48px;
-  flex: 0 0 125px;
-  align-items: center;
-  justify-content: flex-start;
+  display: block;
+  width: 28px;
+  height: 60px;
+  flex: 0 0 60px;
   color: var(--blue);
   font-family: var(--font-logo), fantasy;
   font-size: 40px;
   font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  line-height: 60px;
+  text-align: center;
   white-space: nowrap;
 }
 
 .separator {
-  width: 1px;
-  height: 40px;
+  width: 48px;
+  height: 1px;
+  flex: 0 0 1px;
   background: rgba(255, 255, 255, 0.14);
 }
 
@@ -53,9 +74,10 @@
   height: 48px;
   place-items: center;
   border: 0;
-  border-radius: 12px;
+  border-radius: 9px;
   color: #ffffff;
   background: transparent;
+  padding: 7.5px;
   text-decoration: none;
   transform-origin: center;
   transition:
@@ -69,7 +91,7 @@
 .tab img {
   width: 24px;
   height: 24px;
-  opacity: 0.88;
+  opacity: 0.92;
   transform-origin: center;
   transition:
     opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -84,7 +106,7 @@
 .tab:hover,
 .profileButton:hover {
   background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px) scale(1.02);
+  transform: translateX(2px) scale(1.02);
 }
 
 .tab[data-active="true"]:hover {
@@ -98,18 +120,23 @@
 }
 
 .profileButton {
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 999px;
   background:
-    radial-gradient(circle at 32% 24%, rgba(83, 130, 254, 0.62), transparent 36%),
+    radial-gradient(circle at 42% 26%, rgba(83, 130, 254, 0.72), transparent 36%),
+    radial-gradient(circle at 58% 64%, rgba(212, 99, 0, 0.34), transparent 38%),
     linear-gradient(145deg, #151b25, #070707);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 520;
   line-height: 1;
 }
 
 .tooltip {
   position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
+  top: 50%;
+  left: calc(100% + 10px);
   width: max-content;
   max-width: 180px;
   padding: 7px 10px;
@@ -121,7 +148,7 @@
   line-height: 1.2;
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-50%) translateY(5px) scale(0.96);
+  transform: translateY(-50%) translateX(-5px) scale(0.96);
   transition:
     opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -133,10 +160,24 @@
 .profileButton:hover .tooltip,
 .profileButton:focus-visible .tooltip {
   opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateY(-50%) translateX(0) scale(1);
 }
 
 @keyframes menuDockEnter {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateX(-12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes actionDockEnter {
   from {
     opacity: 0;
     filter: blur(8px);
@@ -152,35 +193,42 @@
 
 @media (max-width: 760px) {
   .menuDock {
-    bottom: 32px;
+    width: 61px;
+    padding-left: 8px;
   }
 
   .tabs {
-    gap: 8px;
-    max-width: calc(100vw - 24px);
-    padding: 8px 8px 8px 14px;
+    width: 44px;
+    gap: 12px;
+    padding-top: 10px;
   }
 
   .logo {
-    width: 108px;
-    height: 44px;
-    flex-basis: 108px;
+    width: 24px;
+    height: 54px;
+    flex-basis: 54px;
     font-size: 34px;
+    line-height: 54px;
   }
 
   .separator {
-    height: 34px;
+    width: 44px;
   }
 
-  .tab,
-  .profileButton {
+  .tab {
     width: 44px;
     height: 44px;
+  }
+
+  .profileButton {
+    width: 40px;
+    height: 40px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .menuDock {
+  .menuDock,
+  .actionDock {
     animation: none;
   }
 

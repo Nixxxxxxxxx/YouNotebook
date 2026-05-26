@@ -14,7 +14,7 @@
   z-index: 4;
   top: 32px;
   bottom: 0;
-  left: 0;
+  left: var(--app-nav-width);
   width: 296px;
   padding: 0 24px 180px;
   background: #000000;
@@ -363,7 +363,7 @@
   top: 32px;
   right: 0;
   bottom: 0;
-  left: 296px;
+  left: calc(var(--app-nav-width) + 296px);
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -1427,8 +1427,9 @@
   .sidebar {
     position: relative;
     top: auto;
-    width: 100%;
+    width: calc(100% - var(--app-nav-width));
     min-height: auto;
+    margin-left: var(--app-nav-width);
     padding: 32px 18px 18px;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.14);
@@ -1446,6 +1447,8 @@
   .contentScroller {
     position: relative;
     inset: auto;
+    width: calc(100% - var(--app-nav-width));
+    margin-left: var(--app-nav-width);
     overflow: visible;
   }
 

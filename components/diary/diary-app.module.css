@@ -15,7 +15,7 @@
 .historyPanel {
   position: fixed;
   top: 32px;
-  left: 24px;
+  left: calc(var(--app-nav-width) + 24px);
   width: 281px;
   max-height: calc(100vh - 212px);
   padding: 0;
@@ -209,6 +209,7 @@
 
 .editorPanel {
   position: relative;
+  left: calc(var(--app-nav-width) / 2);
   width: min(582px, calc(100vw - 40px));
   min-height: 629px;
   margin: 32px auto 180px;
@@ -351,7 +352,7 @@
   .mobileHistoryButton {
     position: fixed;
     top: 32px;
-    left: 18px;
+    left: calc(var(--app-nav-width) + 18px);
     z-index: 5;
     display: block;
     height: 38px;
@@ -363,8 +364,8 @@
     z-index: 8;
     top: 32px;
     bottom: 10px;
-    left: 10px;
-    width: min(318px, calc(100vw - 20px));
+    left: calc(var(--app-nav-width) + 10px);
+    width: min(318px, calc(100vw - var(--app-nav-width) - 20px));
     max-height: none;
     transform: translateX(calc(-100% - 16px));
     transition: transform 220ms ease;
@@ -383,10 +384,11 @@
   }
 
   .editorPanel {
-    width: 100%;
+    width: calc(100% - var(--app-nav-width));
     min-height: calc(100vh - 28px);
-    margin: 32px 0 0;
+    margin: 32px 0 0 var(--app-nav-width);
     padding: 68px 6px 128px;
+    left: auto;
   }
 
 }
