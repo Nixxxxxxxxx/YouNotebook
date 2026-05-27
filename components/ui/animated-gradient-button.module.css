@@ -115,12 +115,11 @@
 }
 
 .iconOnly {
-  width: 48px;
-  min-width: 48px;
-  height: 48px;
-  min-height: 48px;
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
   padding: 0;
-  border-radius: 16px 7px 16px 16px;
 }
 
 .iconOnly .content {

@@ -12,6 +12,7 @@ import { formatHistoryDate } from "@/lib/diary/dates";
 import { diaryStorage } from "@/lib/diary/storage";
 import type { DiaryContent, DiaryEntry, DiaryExportPayload } from "@/lib/diary/types";
 import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
+import { AnimatedGradientButton } from "@/components/ui/animated-gradient-button";
 import { DynamicBackground } from "./dynamic-background";
 import { RichEditor, type RichEditorHandle } from "./rich-editor";
 import styles from "./diary-app.module.css";
@@ -435,13 +436,15 @@ export function DiaryApp() {
       >
         <div className={styles.historyHeader}>
           <h1>История</h1>
-          <button
+          <AnimatedGradientButton
             className={styles.iconButton}
             type="button"
+            iconOnly
+            aria-label="Создать заметку"
             onClick={() => void createEntry()}
           >
             <AddTaskIcon />
-          </button>
+          </AnimatedGradientButton>
         </div>
 
         <LayoutGroup id="diary-history">
@@ -563,9 +566,13 @@ export function DiaryApp() {
           <div className={styles.emptyState}>
             <h2>Здесь пока тихо</h2>
             <p>Создай первую заметку, и дневник начнет собирать историю.</p>
-            <button type="button" onClick={() => void createEntry()}>
+            <AnimatedGradientButton
+              className={styles.emptyStateButton}
+              type="button"
+              onClick={() => void createEntry()}
+            >
               Новая заметка
-            </button>
+            </AnimatedGradientButton>
           </div>
         )}
 
