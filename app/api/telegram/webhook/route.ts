@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getUserByTelegramUserId } from "@/lib/auth/repository";
 import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   beginTelegramUpdate,
@@ -8,7 +9,6 @@ import {
 } from "@/lib/thoughts/repository";
 import {
   getTelegramChat,
-  getTelegramAllowedUserIds,
   isTelegramWebhookSecretValid,
   sendTelegramMessage,
 } from "@/lib/telegram/client";
@@ -107,13 +107,13 @@ export async function POST(request: Request) {
   }
 
   const userId = message.from?.id;
-  const allowedUserIds = getTelegramAllowedUserIds();
+  const linkedUser = userId ? await getUserByTelegramUserId(userId) : null;
 
-  if (!userId || !allowedUserIds.has(userId)) {
+  if (!userId || !linkedUser) {
     await finishTelegramUpdate(update.update_id, "ignored");
     await sendTelegramMessage(
       message.chat.id,
-      "Я пока принимаю мысли только от владельца склада.",
+      "Я пока принимаю мысли только от привязанного владельца склада.",
     );
     return NextResponse.json({ ok: true, ignored: true });
   }
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const thought = await createOrAppendTelegramThought({
+    const thought = await createOrAppendTelegramThought(linkedUser.id, {
       input: telegramReader.snapshot.rawInput,
       sourceType: "telegram",
       faviconUrl,
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       telegramUserId: userId,
     });
 
-    revalidateThoughtsCache();
+    revalidateThoughtsCache(linkedUser.id);
 
     await finishTelegramUpdate(update.update_id, "processed");
     await sendTelegramMessage(

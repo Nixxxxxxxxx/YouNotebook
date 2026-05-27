@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db/client";
+import { ensureAuthSchema } from "@/lib/auth/repository";
 
 import { createReaderSnapshot, createTextSnapshot } from "./reader";
 import type {
@@ -12,6 +13,7 @@ import type {
 
 type BranchRow = {
   id: string;
+  user_id: string | null;
   name: string;
   slug: string;
   created_at: Date | string;
@@ -20,6 +22,7 @@ type BranchRow = {
 
 type ThoughtRow = {
   id: string;
+  user_id: string | null;
   branch_id: string | null;
   title: string;
   summary: string | null;
@@ -61,6 +64,12 @@ async function hasSchemaBaseline() {
     has_telegram_media_group: boolean;
     has_telegram_updates: boolean;
     has_thoughts: boolean;
+    has_thought_user_index: boolean;
+    has_thought_user_id: boolean;
+    has_branch_user_id: boolean;
+    has_branch_user_name_constraint: boolean;
+    has_branch_user_slug_constraint: boolean;
+    has_user_media_group_index: boolean;
   }[]>`
     select
       to_regclass('public.thought_branches') is not null as has_branches,
@@ -72,6 +81,18 @@ async function hasSchemaBaseline() {
       to_regclass('public.thoughts_created_at_idx') is not null as has_created_index,
       to_regclass('public.thoughts_source_url_idx') is not null as has_source_index,
       to_regclass('public.thoughts_telegram_media_group_idx') is not null as has_media_group_index,
+      to_regclass('public.thoughts_user_id_idx') is not null as has_thought_user_index,
+      to_regclass('public.thoughts_user_telegram_media_group_idx') is not null as has_user_media_group_index,
+      exists(
+        select 1
+        from pg_constraint
+        where conname = 'thought_branches_user_name_key'
+      ) as has_branch_user_name_constraint,
+      exists(
+        select 1
+        from pg_constraint
+        where conname = 'thought_branches_user_slug_key'
+      ) as has_branch_user_slug_constraint,
       exists(
         select 1
         from information_schema.columns
@@ -79,6 +100,20 @@ async function hasSchemaBaseline() {
           and table_name = 'thoughts'
           and column_name = 'image_urls'
       ) as has_image_urls,
+      exists(
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'thoughts'
+          and column_name = 'user_id'
+      ) as has_thought_user_id,
+      exists(
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'thought_branches'
+          and column_name = 'user_id'
+      ) as has_branch_user_id,
       exists(
         select 1
         from information_schema.columns
@@ -97,9 +132,14 @@ async function hasSchemaBaseline() {
     !row.has_status_index ||
     !row.has_created_index ||
     !row.has_source_index ||
-    !row.has_media_group_index ||
     !row.has_image_urls ||
-    !row.has_telegram_media_group
+    !row.has_telegram_media_group ||
+    !row.has_thought_user_index ||
+    !row.has_user_media_group_index ||
+    !row.has_thought_user_id ||
+    !row.has_branch_user_id ||
+    !row.has_branch_user_name_constraint ||
+    !row.has_branch_user_slug_constraint
   ) {
     return false;
   }
@@ -272,11 +312,13 @@ async function resolveThoughtInput(input: CreateThoughtInput) {
 }
 
 async function insertResolvedThought(
+  userId: string,
   resolved: Awaited<ReturnType<typeof resolveThoughtInput>>,
 ) {
   const sql = getSql();
   const [row] = await sql<ThoughtRow[]>`
     insert into thoughts (
+      user_id,
       branch_id,
       title,
       summary,
@@ -295,6 +337,7 @@ async function insertResolvedThought(
       telegram_user_id
     )
     values (
+      ${userId},
       ${resolved.branchId},
       ${resolved.title},
       ${resolved.summary},
@@ -319,6 +362,7 @@ async function insertResolvedThought(
 }
 
 async function findTelegramMediaGroupThought(
+  userId: string,
   telegramChatId: string | null,
   telegramMediaGroupId: string | null,
 ) {
@@ -330,7 +374,8 @@ async function findTelegramMediaGroupThought(
   const [row] = await sql<ThoughtRow[]>`
     select *
     from thoughts
-    where telegram_chat_id = ${telegramChatId}
+    where user_id = ${userId}
+      and telegram_chat_id = ${telegramChatId}
       and telegram_media_group_id = ${telegramMediaGroupId}
     order by created_at asc
     limit 1
@@ -393,6 +438,8 @@ export async function ensureThoughtsSchema() {
   }
 
   schemaPromise = (async () => {
+    await ensureAuthSchema();
+
     if (await hasSchemaBaseline()) {
       return;
     }
@@ -403,8 +450,9 @@ export async function ensureThoughtsSchema() {
     await sql`
       create table if not exists thought_branches (
         id uuid primary key default gen_random_uuid(),
-        name text not null unique,
-        slug text not null unique,
+        user_id uuid references quietly_users(id) on delete cascade,
+        name text not null,
+        slug text not null,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
       )
@@ -412,6 +460,7 @@ export async function ensureThoughtsSchema() {
     await sql`
       create table if not exists thoughts (
         id uuid primary key default gen_random_uuid(),
+        user_id uuid references quietly_users(id) on delete cascade,
         branch_id uuid references thought_branches(id) on delete set null,
         title text not null,
         summary text,
@@ -434,6 +483,40 @@ export async function ensureThoughtsSchema() {
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
       )
+    `;
+    await sql`
+      alter table thought_branches
+      add column if not exists user_id uuid references quietly_users(id) on delete cascade
+    `;
+    await sql`alter table thought_branches drop constraint if exists thought_branches_name_key`;
+    await sql`alter table thought_branches drop constraint if exists thought_branches_slug_key`;
+    await sql`
+      do $$
+      begin
+        if not exists (
+          select 1 from pg_constraint
+          where conname = 'thought_branches_user_name_key'
+        ) then
+          alter table thought_branches
+          add constraint thought_branches_user_name_key unique (user_id, name);
+        end if;
+      end $$;
+    `;
+    await sql`
+      do $$
+      begin
+        if not exists (
+          select 1 from pg_constraint
+          where conname = 'thought_branches_user_slug_key'
+        ) then
+          alter table thought_branches
+          add constraint thought_branches_user_slug_key unique (user_id, slug);
+        end if;
+      end $$;
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists user_id uuid references quietly_users(id) on delete cascade
     `;
     await sql`
       alter table thoughts
@@ -682,31 +765,55 @@ export async function ensureThoughtsSchema() {
       `;
     }
     await sql`create index if not exists thoughts_branch_id_idx on thoughts(branch_id)`;
+    await sql`create index if not exists thoughts_user_id_idx on thoughts(user_id)`;
     await sql`create index if not exists thoughts_status_idx on thoughts(status)`;
     await sql`create index if not exists thoughts_created_at_idx on thoughts(created_at desc)`;
     await sql`create index if not exists thoughts_source_url_idx on thoughts(source_url)`;
+    await sql`drop index if exists thoughts_telegram_media_group_idx`;
     await sql`
-      create unique index if not exists thoughts_telegram_media_group_idx
-      on thoughts(telegram_chat_id, telegram_media_group_id)
+      create unique index if not exists thoughts_user_telegram_media_group_idx
+      on thoughts(user_id, telegram_chat_id, telegram_media_group_id)
+      where user_id is not null
+        and telegram_chat_id is not null
+        and telegram_media_group_id is not null
     `;
   })();
 
   return schemaPromise;
 }
 
-export async function listThoughtBranches() {
+async function assertBranchBelongsToUser(userId: string, branchId: string | null) {
+  if (!branchId) {
+    return;
+  }
+
+  const sql = getSql();
+  const [row] = await sql<{ id: string }[]>`
+    select id
+    from thought_branches
+    where id = ${branchId} and user_id = ${userId}
+    limit 1
+  `;
+
+  if (!row) {
+    throw new Error("Branch not found");
+  }
+}
+
+export async function listThoughtBranches(userId: string) {
   await ensureThoughtsSchema();
   const sql = getSql();
   const rows = await sql<BranchRow[]>`
-    select id, name, slug, created_at, updated_at
+    select id, user_id, name, slug, created_at, updated_at
     from thought_branches
+    where user_id = ${userId}
     order by created_at asc
   `;
 
   return rows.map(toBranch);
 }
 
-export async function createThoughtBranch(name: string) {
+export async function createThoughtBranch(userId: string, name: string) {
   await ensureThoughtsSchema();
   const sql = getSql();
   const cleanName = normalizeName(name);
@@ -716,17 +823,21 @@ export async function createThoughtBranch(name: string) {
   }
 
   const [row] = await sql<BranchRow[]>`
-    insert into thought_branches (name, slug)
-    values (${cleanName}, ${createSlug(cleanName)})
-    on conflict (name) do update
+    insert into thought_branches (user_id, name, slug)
+    values (${userId}, ${cleanName}, ${createSlug(cleanName)})
+    on conflict (user_id, name) do update
       set updated_at = now()
-    returning id, name, slug, created_at, updated_at
+    returning id, user_id, name, slug, created_at, updated_at
   `;
 
   return toBranch(row);
 }
 
-export async function updateThoughtBranch(id: string, name: string) {
+export async function updateThoughtBranch(
+  userId: string,
+  id: string,
+  name: string,
+) {
   await ensureThoughtsSchema();
   const sql = getSql();
   const cleanName = normalizeName(name);
@@ -740,49 +851,57 @@ export async function updateThoughtBranch(id: string, name: string) {
     set name = ${cleanName},
       slug = ${createSlug(cleanName)},
       updated_at = now()
-    where id = ${id}
-    returning id, name, slug, created_at, updated_at
+    where id = ${id} and user_id = ${userId}
+    returning id, user_id, name, slug, created_at, updated_at
   `;
 
   return row ? toBranch(row) : null;
 }
 
-export async function deleteThoughtBranch(id: string) {
+export async function deleteThoughtBranch(userId: string, id: string) {
   await ensureThoughtsSchema();
   const sql = getSql();
 
   await sql`
     delete from thought_branches
-    where id = ${id}
+    where id = ${id} and user_id = ${userId}
   `;
 }
 
-export async function getUnassignedThoughtCount() {
+export async function getUnassignedThoughtCount(userId: string) {
   await ensureThoughtsSchema();
   const sql = getSql();
   const [row] = await sql<{ count: string }[]>`
     select count(*)::text as count
     from thoughts
-    where branch_id is null and is_useful = false and status = 'inbox'
+    where user_id = ${userId}
+      and branch_id is null
+      and is_useful = false
+      and status = 'inbox'
   `;
 
   return Number(row?.count ?? 0);
 }
 
 export async function listThoughts(
+  userId: string,
   filter: ThoughtListFilter = { view: "inbox" },
 ): Promise<ThoughtListResult> {
   await ensureThoughtsSchema();
   const sql = getSql();
   const branchesPromise = sql<BranchRow[]>`
-    select id, name, slug, created_at, updated_at
+    select id, user_id, name, slug, created_at, updated_at
     from thought_branches
+    where user_id = ${userId}
     order by created_at asc
   `;
   const unassignedCountPromise = sql<{ count: string }[]>`
     select count(*)::text as count
     from thoughts
-    where branch_id is null and is_useful = false and status = 'inbox'
+    where user_id = ${userId}
+      and branch_id is null
+      and is_useful = false
+      and status = 'inbox'
   `;
   let rowsPromise: Promise<ThoughtRow[]>;
 
@@ -790,7 +909,9 @@ export async function listThoughts(
     rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
-      where branch_id = ${filter.branchId} and status = 'inbox'
+      where user_id = ${userId}
+        and branch_id = ${filter.branchId}
+        and status = 'inbox'
       order by created_at desc
     `;
   } else if (filter.view === "collections") {
@@ -798,21 +919,29 @@ export async function listThoughts(
       select thoughts.*
       from thoughts
       join thought_branches on thought_branches.id = thoughts.branch_id
-      where thoughts.branch_id is not null and thoughts.status = 'inbox'
+      where thoughts.user_id = ${userId}
+        and thought_branches.user_id = ${userId}
+        and thoughts.branch_id is not null
+        and thoughts.status = 'inbox'
       order by thought_branches.created_at asc, thoughts.created_at desc
     `;
   } else if (filter.view === "useful") {
     rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
-      where is_useful = true and status = 'inbox'
+      where user_id = ${userId}
+        and is_useful = true
+        and status = 'inbox'
       order by created_at desc
     `;
   } else {
     rowsPromise = sql<ThoughtRow[]>`
       select *
       from thoughts
-      where branch_id is null and is_useful = false and status = 'inbox'
+      where user_id = ${userId}
+        and branch_id is null
+        and is_useful = false
+        and status = 'inbox'
       order by created_at desc
     `;
   }
@@ -830,35 +959,40 @@ export async function listThoughts(
   };
 }
 
-export async function getThought(id: string) {
+export async function getThought(userId: string, id: string) {
   await ensureThoughtsSchema();
   const sql = getSql();
   const [row] = await sql<ThoughtRow[]>`
     select *
     from thoughts
-    where id = ${id}
+    where id = ${id} and user_id = ${userId}
     limit 1
   `;
 
   return row ? toThought(row) : null;
 }
 
-export async function createThought(input: CreateThoughtInput) {
+export async function createThought(userId: string, input: CreateThoughtInput) {
   await ensureThoughtsSchema();
+  await assertBranchBelongsToUser(userId, input.branchId ?? null);
   const resolved = await resolveThoughtInput(input);
 
-  return insertResolvedThought(resolved);
+  return insertResolvedThought(userId, resolved);
 }
 
-export async function createOrAppendTelegramThought(input: CreateThoughtInput) {
+export async function createOrAppendTelegramThought(
+  userId: string,
+  input: CreateThoughtInput,
+) {
   await ensureThoughtsSchema();
   const resolved = await resolveThoughtInput(input);
 
   if (!resolved.telegramChatId || !resolved.telegramMediaGroupId) {
-    return insertResolvedThought(resolved);
+    return insertResolvedThought(userId, resolved);
   }
 
   const existingRow = await findTelegramMediaGroupThought(
+    userId,
     resolved.telegramChatId,
     resolved.telegramMediaGroupId,
   );
@@ -868,13 +1002,14 @@ export async function createOrAppendTelegramThought(input: CreateThoughtInput) {
   }
 
   try {
-    return await insertResolvedThought(resolved);
+    return await insertResolvedThought(userId, resolved);
   } catch (error) {
     if (!isUniqueViolation(error)) {
       throw error;
     }
 
     const nextExistingRow = await findTelegramMediaGroupThought(
+      userId,
       resolved.telegramChatId,
       resolved.telegramMediaGroupId,
     );
@@ -887,14 +1022,23 @@ export async function createOrAppendTelegramThought(input: CreateThoughtInput) {
   }
 }
 
-export async function updateThought(id: string, patch: UpdateThoughtInput) {
+export async function updateThought(
+  userId: string,
+  id: string,
+  patch: UpdateThoughtInput,
+) {
   await ensureThoughtsSchema();
   const sql = getSql();
-  const existing = await getThought(id);
+  const existing = await getThought(userId, id);
 
   if (!existing) {
     return null;
   }
+
+  await assertBranchBelongsToUser(
+    userId,
+    patch.branchId === undefined ? existing.branchId : patch.branchId,
+  );
 
   const contentPatch =
     patch.contentText !== undefined
@@ -917,7 +1061,7 @@ export async function updateThought(id: string, patch: UpdateThoughtInput) {
       is_useful = ${patch.isUseful ?? existing.isUseful},
       status = ${patch.status ?? existing.status},
       updated_at = now()
-    where id = ${id}
+    where id = ${id} and user_id = ${userId}
     returning *
   `;
 
@@ -925,6 +1069,7 @@ export async function updateThought(id: string, patch: UpdateThoughtInput) {
 }
 
 export async function moveThoughtsToBranch(
+  userId: string,
   ids: string[],
   branchId: string | null,
 ) {
@@ -935,18 +1080,20 @@ export async function moveThoughtsToBranch(
   }
 
   const sql = getSql();
+  await assertBranchBelongsToUser(userId, branchId);
   const rows = await sql<ThoughtRow[]>`
     update thoughts
     set branch_id = ${branchId},
       updated_at = now()
-    where id in ${sql(ids)}
+    where user_id = ${userId}
+      and id in ${sql(ids)}
     returning *
   `;
 
   return rows.map(toThought);
 }
 
-export async function markThoughtsAsUseful(ids: string[]) {
+export async function markThoughtsAsUseful(userId: string, ids: string[]) {
   await ensureThoughtsSchema();
 
   if (ids.length === 0) {
@@ -958,17 +1105,18 @@ export async function markThoughtsAsUseful(ids: string[]) {
     update thoughts
     set is_useful = true,
       updated_at = now()
-    where id in ${sql(ids)}
+    where user_id = ${userId}
+      and id in ${sql(ids)}
     returning *
   `;
 
   return rows.map(toThought);
 }
 
-export async function deleteThought(id: string) {
+export async function deleteThought(userId: string, id: string) {
   await ensureThoughtsSchema();
   const sql = getSql();
-  await sql`delete from thoughts where id = ${id}`;
+  await sql`delete from thoughts where id = ${id} and user_id = ${userId}`;
 }
 
 export async function beginTelegramUpdate(updateId: number, payload: unknown) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireCurrentUser } from "@/lib/auth/server";
 import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   markThoughtsAsUseful,
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(request: Request) {
   try {
+    const user = await requireCurrentUser();
     const body = (await request.json()) as {
       branchId?: string | null;
       ids?: unknown;
@@ -28,12 +30,16 @@ export async function PATCH(request: Request) {
     }
 
     const thoughts = body.isUseful
-      ? await markThoughtsAsUseful(ids)
-      : await moveThoughtsToBranch(ids, body.branchId ?? null);
-    revalidateThoughtsCache();
+      ? await markThoughtsAsUseful(user.id, ids)
+      : await moveThoughtsToBranch(user.id, ids, body.branchId ?? null);
+    revalidateThoughtsCache(user.id);
 
     return NextResponse.json({ thoughts });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     return NextResponse.json(
       {
         error:

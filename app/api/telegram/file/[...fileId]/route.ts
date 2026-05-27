@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getCurrentUser } from "@/lib/auth/server";
 import { fetchTelegramFile } from "@/lib/telegram/client";
 
 export const runtime = "nodejs";
@@ -10,6 +11,12 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { fileId: fileIdParts } = await context.params;
   const fileId = fileIdParts.map((part) => decodeURIComponent(part)).join("/");
 

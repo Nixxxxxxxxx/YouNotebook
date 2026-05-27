@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireCurrentUser } from "@/lib/auth/server";
 import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import { createThought, listThoughts } from "@/lib/thoughts/repository";
 import type { ThoughtListFilter } from "@/lib/thoughts/types";
@@ -29,10 +30,15 @@ function getFilter(request: Request): ThoughtListFilter {
 
 export async function GET(request: Request) {
   try {
-    const result = await listThoughts(getFilter(request));
+    const user = await requireCurrentUser();
+    const result = await listThoughts(user.id, getFilter(request));
 
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     return NextResponse.json(
       {
         error:
@@ -45,22 +51,27 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await requireCurrentUser();
     const body = (await request.json()) as {
       input?: string;
       branchId?: string | null;
       isUseful?: boolean;
     };
-    const thought = await createThought({
+    const thought = await createThought(user.id, {
       input: body.input ?? "",
       branchId: body.branchId ?? null,
       isUseful: body.isUseful ?? false,
       sourceType: "manual",
     });
 
-    revalidateThoughtsCache();
+    revalidateThoughtsCache(user.id);
 
     return NextResponse.json({ thought }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     return NextResponse.json(
       {
         error:

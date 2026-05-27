@@ -4,7 +4,7 @@
 Build YouNotebook v1: a private, local-first personal diary with a calm glass interface, fast writing flow, reliable autosave, and a pixel-aligned static Figma background.
 
 ## Scope v1
-- One personal diary, no accounts or profiles
+- Private personal workspace with email/password authentication
 - History list grouped by date: `Сегодня`, `Вчера`, then short dates like `05.04`
 - Rich note editor where the note name is derived from the first heading
 - Autosave and basic formatting
@@ -16,8 +16,7 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 
 ## Out of Scope v1
 - Cloud sync
-- User profiles and authentication
-- Public APIs and backend database
+- Public APIs beyond internal app/auth/Telegram routes
 - Encryption at rest
 - AI features
 - Collaboration
@@ -27,7 +26,8 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 - Store saved materials as reader-view snapshots, not just URLs
 - Default view is `Входящие`; unassigned count is shown in the sidebar indicator
 - Branches are lightweight user-created collections by name
-- Telegram capture is owner-only through `TELEGRAM_ALLOWED_USER_IDS`
+- Telegram capture is scoped through `user_telegram_links`; bootstrap can seed links from `TELEGRAM_ALLOWED_USER_IDS`
+- Thought Store rows are scoped by `user_id`; users must never see each other's branches or thoughts
 - Telegram webhook requests must validate `X-Telegram-Bot-Api-Secret-Token`
 - Server clients must be lazy-initialized and must not crash at module scope
 
@@ -42,6 +42,8 @@ Build YouNotebook v1: a private, local-first personal diary with a calm glass in
 ## Engineering Rules
 - TypeScript strict
 - Next.js App Router
+- Auth uses custom Postgres-backed email/password sessions and httpOnly cookies
+- Never store plaintext passwords; password hashing must stay server-only
 - Browser-only persistence is isolated behind `DiaryStorage`
 - Store schema is versioned as `younotebook:v1`
 - No backend clients at module scope
