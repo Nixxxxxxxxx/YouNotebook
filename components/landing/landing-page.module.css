@@ -156,7 +156,7 @@
 .heroCopy {
   position: absolute;
   z-index: 3;
-  top: var(--landing-copy-top);
+  top: calc(var(--landing-copy-top) - 10px);
   left: 24px;
   display: grid;
   width: min(520px, calc(45% - 42px));

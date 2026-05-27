@@ -4,6 +4,16 @@ type SqlClient = ReturnType<typeof postgres>;
 
 let sqlClient: SqlClient | null = null;
 
+function getMaxConnections() {
+  const configuredMax = Number(process.env.POSTGRES_MAX_CONNECTIONS);
+
+  if (Number.isInteger(configuredMax) && configuredMax > 0) {
+    return configuredMax;
+  }
+
+  return process.env.VERCEL ? 1 : 4;
+}
+
 export function getSql() {
   if (sqlClient) {
     return sqlClient;
@@ -17,7 +27,10 @@ export function getSql() {
   }
 
   sqlClient = postgres(connectionString, {
-    max: 4,
+    connect_timeout: 10,
+    idle_timeout: process.env.VERCEL ? 5 : 20,
+    max: getMaxConnections(),
+    max_lifetime: process.env.VERCEL ? 60 : 60 * 30,
     prepare: false,
     ssl: "require",
   });
