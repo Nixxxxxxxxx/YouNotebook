@@ -1,71 +1,235 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import styles from "./morphic-background.module.css";
 
-export type MorphicBackgroundProps = {
+type Coordinates = {
+  x: number;
+  y: number;
+};
+
+type Bounds = {
+  height: number;
+  width: number;
+};
+
+class Particle {
+  private readonly container: HTMLElement;
+  private readonly dimensions = { height: 30, width: 30 };
+  private readonly element: SVGElement;
+  private readonly friction: number;
+  private readonly initialX: number;
+  private readonly scale: number;
+  private readonly siner: number;
+  private readonly steps: number;
+  private position: number;
+  private rotationValue: number;
+  private readonly rotationDirection: 1 | -1;
+
+  constructor(
+    container: HTMLElement,
+    coordinates: Coordinates,
+    friction: number,
+    ballColor: string,
+    bounds: Bounds,
+  ) {
+    this.container = container;
+    this.friction = friction;
+    this.initialX = coordinates.x;
+    this.position = coordinates.y;
+    this.steps = Math.max(240, bounds.height / 2);
+    this.rotationValue = Math.random() * 180;
+    this.rotationDirection = Math.random() > 0.5 ? 1 : -1;
+    this.scale = 0.52 + Math.random() * 2.15;
+    this.siner = (bounds.width / 4.2) * (0.35 + Math.random());
+    this.element = this.render(ballColor, coordinates);
+  }
+
+  public move() {
+    this.position -= this.friction;
+    const top = this.position;
+    const left =
+      this.initialX +
+      Math.sin((this.position * Math.PI) / this.steps) * this.siner;
+
+    this.rotationValue += this.friction * 0.85;
+    const rotation = this.rotationValue * this.rotationDirection;
+
+    this.element.style.transform = `translate3d(${left}px, ${top}px, 0) scale(${this.scale}) rotate(${rotation}deg)`;
+
+    if (this.position < -this.dimensions.height * this.scale * 3) {
+      this.destroy();
+      return false;
+    }
+
+    return true;
+  }
+
+  private destroy() {
+    this.element.remove();
+  }
+
+  private render(ballColor: string, coordinates: Coordinates) {
+    const svgNamespace = "http://www.w3.org/2000/svg";
+    const svgElement = document.createElementNS(svgNamespace, "svg");
+    svgElement.setAttribute("viewBox", "0 0 67.4 67.4");
+    svgElement.setAttribute("class", styles.particle);
+
+    const circleElement = document.createElementNS(svgNamespace, "circle");
+    circleElement.setAttribute("cx", "33.7");
+    circleElement.setAttribute("cy", "33.7");
+    circleElement.setAttribute("r", "33.7");
+    circleElement.setAttribute("fill", ballColor);
+
+    svgElement.appendChild(circleElement);
+    svgElement.style.width = `${this.dimensions.width}px`;
+    svgElement.style.height = `${this.dimensions.height}px`;
+    svgElement.style.transform = `translate3d(${coordinates.x}px, ${coordinates.y}px, 0)`;
+
+    this.container.appendChild(svgElement);
+    return svgElement;
+  }
+}
+
+type MorphicBackgroundProps = {
   ballColor?: string;
   className?: string;
 };
 
-const BALLS = [
-  { delay: -1.2, drift: 74, duration: 18, opacity: 0.72, size: 54, x: 8 },
-  { delay: -8.4, drift: -96, duration: 24, opacity: 0.58, size: 96, x: 20 },
-  { delay: -14.8, drift: 120, duration: 28, opacity: 0.42, size: 132, x: 32 },
-  { delay: -5.6, drift: -72, duration: 20, opacity: 0.7, size: 64, x: 47 },
-  { delay: -18.2, drift: 84, duration: 26, opacity: 0.52, size: 112, x: 62 },
-  { delay: -11.6, drift: -126, duration: 30, opacity: 0.4, size: 154, x: 78 },
-  { delay: -22.4, drift: 64, duration: 22, opacity: 0.64, size: 72, x: 90 },
-  { delay: -27.2, drift: -44, duration: 34, opacity: 0.34, size: 190, x: 12 },
-  { delay: -3.8, drift: 106, duration: 25, opacity: 0.5, size: 88, x: 55 },
-  { delay: -16.6, drift: -86, duration: 29, opacity: 0.46, size: 128, x: 84 },
-] as const;
-
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function getBounds(container: HTMLElement): Bounds {
+  const rect = container.getBoundingClientRect();
+
+  return {
+    height: Math.max(360, rect.height),
+    width: Math.max(320, rect.width),
+  };
 }
 
 export function MorphicBackground({
   ballColor = "#5382fe",
   className,
 }: MorphicBackgroundProps) {
+  const rawFilterId = useId();
+  const filterId = `quietly-morphic-${rawFilterId.replaceAll(":", "")}`;
+  const particleContainerRef = useRef<HTMLDivElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const animationFrameIdRef = useRef<number | null>(null);
+  const intervalIdRef = useRef<number | null>(null);
+  const isPausedRef = useRef(false);
+
+  useEffect(() => {
+    const container = particleContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const createParticle = (startY?: number) => {
+      const bounds = getBounds(container);
+      const particle = new Particle(
+        container,
+        {
+          x: Math.random() * bounds.width,
+          y: startY ?? bounds.height + 120 + Math.random() * 80,
+        },
+        0.72 + Math.random() * 0.82,
+        ballColor,
+        bounds,
+      );
+
+      particlesRef.current.push(particle);
+    };
+
+    const seedParticles = () => {
+      const bounds = getBounds(container);
+      const particleCount = 46;
+
+      container.innerHTML = "";
+      particlesRef.current = [];
+
+      for (let index = 0; index < particleCount; index++) {
+        const progress = index / Math.max(1, particleCount - 1);
+        const y = bounds.height + 130 - progress * (bounds.height + 320);
+        createParticle(y);
+      }
+    };
+
+    const animate = () => {
+      if (!isPausedRef.current) {
+        particlesRef.current = particlesRef.current.filter((particle) =>
+          particle.move(),
+        );
+      }
+
+      animationFrameIdRef.current = requestAnimationFrame(animate);
+    };
+
+    const handleFocus = () => {
+      isPausedRef.current = false;
+    };
+    const handleBlur = () => {
+      isPausedRef.current = true;
+    };
+
+    const resizeObserver = new ResizeObserver(seedParticles);
+
+    seedParticles();
+    resizeObserver.observe(container);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+
+    intervalIdRef.current = window.setInterval(() => {
+      if (isPausedRef.current || particlesRef.current.length > 96) {
+        return;
+      }
+
+      createParticle();
+    }, 170);
+
+    animate();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+
+      if (intervalIdRef.current) {
+        window.clearInterval(intervalIdRef.current);
+      }
+
+      if (animationFrameIdRef.current) {
+        window.cancelAnimationFrame(animationFrameIdRef.current);
+      }
+
+      particlesRef.current = [];
+      container.innerHTML = "";
+    };
+  }, [ballColor]);
+
   return (
-    <div
-      className={cx(styles.root, className)}
-      style={{ "--morphic-ball": ballColor } as CSSProperties}
-    >
-      <div className={styles.ambient} aria-hidden="true" />
-      <div className={styles.particleField} aria-hidden="true">
-        {BALLS.map((ball, index) => (
-          <span
-            key={`${ball.x}-${ball.size}-${ball.delay}`}
-            className={styles.ball}
-            data-variant={index % 3}
-            style={
-              {
-                "--ball-delay": `${ball.delay}s`,
-                "--ball-drift": `${ball.drift}px`,
-                "--ball-drift-mid": `${Math.round(ball.drift * 0.42)}px`,
-                "--ball-duration": `${ball.duration}s`,
-                "--ball-opacity": ball.opacity,
-                "--ball-size": `${ball.size}px`,
-                "--ball-x": `${ball.x}%`,
-              } as CSSProperties
-            }
-          />
-        ))}
-      </div>
+    <div className={cx(styles.root, className)}>
+      <div className={styles.backdrop} aria-hidden="true" />
+      <div
+        ref={particleContainerRef}
+        className={styles.particles}
+        style={{ filter: `url(#${filterId})` }}
+        aria-hidden="true"
+      />
       <div className={styles.grain} aria-hidden="true" />
       <svg className={styles.filterSvg} aria-hidden="true" focusable="false">
         <defs>
-          <filter id="quietly-morphic-goo">
-            <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="14" />
+          <filter id={filterId}>
+            <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="12" />
             <feColorMatrix
               in="blur"
               result="goo"
               type="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 21 -9"
             />
             <feBlend in="SourceGraphic" in2="goo" />
           </filter>
