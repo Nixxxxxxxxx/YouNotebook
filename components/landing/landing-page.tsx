@@ -53,8 +53,8 @@ export function LandingPage() {
           <div className={styles.heroCopy}>
             <h1>
               <span>Выгрузите голову</span>
-              <span className={styles.titleBreak}>в</span>
-              <span>одно спокойное пространство</span>
+              <span>в одно спокойное</span>
+              <span>пространство</span>
             </h1>
             <p>
               Дневник, задачи и склад мыслей — чтобы быстро записать важное,

@@ -7,6 +7,8 @@
 }
 
 .desktopStage {
+  --landing-copy-top: clamp(408px, 63vh, calc(100svh - 330px));
+
   display: grid;
   height: 100svh;
   max-height: 100svh;
@@ -72,8 +74,8 @@
 
 .featureBlock {
   position: absolute;
+  top: var(--landing-copy-top);
   right: 24px;
-  bottom: 28px;
   left: 24px;
   display: grid;
   gap: 28px;
@@ -154,7 +156,7 @@
 .heroCopy {
   position: absolute;
   z-index: 3;
-  bottom: clamp(28px, 7vh, 70px);
+  top: var(--landing-copy-top);
   left: 24px;
   display: grid;
   width: min(520px, calc(45% - 42px));
@@ -176,10 +178,6 @@
 
 .heroCopy h1 span {
   display: block;
-}
-
-.titleBreak {
-  width: max-content;
 }
 
 .heroCopy p {
@@ -522,8 +520,11 @@
 }
 
 @media (max-height: 760px) and (min-width: 1200px) {
+  .desktopStage {
+    --landing-copy-top: clamp(318px, 56vh, calc(100svh - 295px));
+  }
+
   .heroCopy {
-    bottom: 28px;
     gap: 14px;
   }
 
@@ -532,7 +533,6 @@
   }
 
   .featureBlock {
-    bottom: 22px;
     gap: 18px;
   }
 

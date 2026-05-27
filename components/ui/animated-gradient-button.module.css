@@ -110,6 +110,22 @@
   flex: 0 0 auto;
 }
 
+.content svg {
+  color: currentColor;
+}
+
+.content svg [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+}
+
+.content svg [fill]:not([fill="none"]) {
+  fill: currentColor;
+}
+
+.content img {
+  filter: brightness(0) saturate(1);
+}
+
 .fullWidth {
   width: 100%;
 }
