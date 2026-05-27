@@ -41,10 +41,10 @@
   max-width: 420px;
   margin: 0;
   color: rgba(255, 255, 255, 0.56);
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 400;
   letter-spacing: -0.03em;
-  line-height: 1.32;
+  line-height: 1.45;
 }
 
 .form {
@@ -177,7 +177,7 @@
   inset: 0;
   overflow: hidden;
   border-radius: 10px;
-  background: #d9d9d9;
+  background: #0d0d0d;
   box-shadow: none;
   isolation: isolate;
 }
@@ -253,7 +253,15 @@
   }
 
   .copy p {
-    font-size: 17px;
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 981px) {
+  .screen[data-mode="login"] .copy h1,
+  .screen[data-mode="login"] .copy p {
+    max-width: none;
+    white-space: nowrap;
   }
 }
 
@@ -297,7 +305,7 @@
   }
 
   .copy p {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.42;
   }
 }

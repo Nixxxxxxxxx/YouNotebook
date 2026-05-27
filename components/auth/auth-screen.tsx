@@ -99,7 +99,7 @@ export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
   }
 
   return (
-    <main className={styles.screen}>
+    <main className={styles.screen} data-mode={mode}>
       <section className={styles.formPanel} aria-labelledby="auth-title">
         <div className={styles.logo} aria-label="Quietly">
           Q
