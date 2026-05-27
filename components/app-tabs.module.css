@@ -51,13 +51,26 @@
   height: 60px;
   flex: 0 0 60px;
   color: var(--blue);
+  background:
+    radial-gradient(circle at 18% 22%, #a9d6fd 0 18%, transparent 42%),
+    linear-gradient(110deg, #5382fe 0%, #7eacfe 44%, #a9d6fd 70%, #5382fe 100%);
+  background-clip: text;
+  background-position:
+    0% 45%,
+    0% 50%;
+  background-size:
+    180% 180%,
+    240% 240%;
+  -webkit-background-clip: text;
   font-family: var(--font-logo), fantasy;
   font-size: 40px;
   font-weight: 400;
   line-height: 60px;
   text-align: center;
   text-decoration: none;
+  -webkit-text-fill-color: transparent;
   white-space: nowrap;
+  animation: logoGradientFlow 5.6s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
   transition:
     color 180ms cubic-bezier(0.22, 1, 0.36, 1),
     filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -77,7 +90,10 @@
 }
 
 .logo .tooltip {
+  background: rgba(20, 20, 20, 0.94);
+  color: #ffffff;
   font-family: var(--font-ui);
+  -webkit-text-fill-color: #ffffff;
 }
 
 .separator {
@@ -249,6 +265,20 @@
   }
 }
 
+@keyframes logoGradientFlow {
+  0% {
+    background-position:
+      0% 45%,
+      0% 50%;
+  }
+
+  100% {
+    background-position:
+      86% 35%,
+      100% 50%;
+  }
+}
+
 @media (max-width: 760px) {
   .menuDock {
     width: 61px;
@@ -291,6 +321,10 @@
   }
 
   .tab[data-active="true"]::before {
+    animation: none;
+  }
+
+  .logo {
     animation: none;
   }
 

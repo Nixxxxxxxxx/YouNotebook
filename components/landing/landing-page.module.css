@@ -36,9 +36,23 @@
   top: 45px;
   left: 24px;
   display: inline-flex;
-  font-size: 30px;
+  background:
+    radial-gradient(circle at 18% 22%, #a9d6fd 0 18%, transparent 42%),
+    linear-gradient(110deg, #5382fe 0%, #7eacfe 44%, #a9d6fd 70%, #5382fe 100%);
+  background-clip: text;
+  background-position:
+    0% 45%,
+    0% 50%;
+  background-size:
+    180% 180%,
+    240% 240%;
+  -webkit-background-clip: text;
+  font-size: 40px;
   line-height: 1;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
   transform: rotate(-2deg);
+  animation: logoGradientFlow 5.6s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
   transition:
     filter 220ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -130,7 +144,7 @@
   left: 24px;
   margin: 0;
   color: #a9d6fd;
-  font-size: clamp(30px, 3.1vw, 44px);
+  font-size: 40px;
   line-height: 1;
   text-transform: uppercase;
   transform: rotate(-1deg);
@@ -149,6 +163,8 @@
 }
 
 .heroCopy h1 {
+  display: grid;
+  gap: 0;
   max-width: 520px;
   margin: 0;
   color: #ffffff;
@@ -156,6 +172,14 @@
   font-weight: 620;
   letter-spacing: -0.065em;
   line-height: 0.93;
+}
+
+.heroCopy h1 span {
+  display: block;
+}
+
+.titleBreak {
+  width: max-content;
 }
 
 .heroCopy p {
@@ -198,6 +222,19 @@
   min-width: 205px;
   border: 1px solid #a9d6fd;
   color: #0e0e0e;
+  background: #7eacfe;
+}
+
+.primaryAction::before,
+.primaryAction::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+}
+
+.primaryAction::before {
   background:
     radial-gradient(circle at 16% 22%, rgba(169, 214, 253, 0.98) 0 18%, transparent 44%),
     radial-gradient(circle at 80% 18%, rgba(126, 172, 254, 0.96) 0 20%, transparent 48%),
@@ -216,11 +253,30 @@
   animation: actionGradient 5.8s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
 
+.primaryAction::after {
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.34) 34%,
+    rgba(255, 255, 255, 0.12) 48%,
+    transparent 66%
+  );
+  opacity: 0;
+  transform: translateX(-120%) skewX(-14deg);
+  animation: actionShine 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
 .secondaryAction {
   min-width: 92px;
   border: 1px solid rgba(255, 255, 255, 0.82);
   color: #ffffff;
   background: rgba(255, 255, 255, 0.02);
+}
+
+.primaryAction span,
+.secondaryAction span {
+  position: relative;
+  z-index: 1;
 }
 
 .primaryAction:hover,
@@ -368,6 +424,37 @@
   }
 }
 
+@keyframes actionShine {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-14deg);
+  }
+
+  58% {
+    opacity: 0.48;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(120%) skewX(-14deg);
+  }
+}
+
+@keyframes logoGradientFlow {
+  0% {
+    background-position:
+      0% 45%,
+      0% 50%;
+  }
+
+  100% {
+    background-position:
+      86% 35%,
+      100% 50%;
+  }
+}
+
 @media (max-width: 1199px) {
   .page {
     background: #000000;
@@ -400,9 +487,22 @@
     position: fixed;
     top: 28px;
     left: 28px;
+    background:
+      radial-gradient(circle at 18% 22%, #a9d6fd 0 18%, transparent 42%),
+      linear-gradient(110deg, #5382fe 0%, #7eacfe 44%, #a9d6fd 70%, #5382fe 100%);
+    background-clip: text;
+    background-position:
+      0% 45%,
+      0% 50%;
+    background-size:
+      180% 180%,
+      240% 240%;
+    -webkit-background-clip: text;
     margin: 0;
     font-size: 32px;
     line-height: 1;
+    -webkit-text-fill-color: transparent;
+    animation: logoGradientFlow 5.6s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
   }
 
   .unsupported h1 {
@@ -445,6 +545,10 @@
   .featureItem,
   .heroCopy,
   .primaryAction,
+  .primaryAction::before,
+  .primaryAction::after,
+  .logo,
+  .unsupportedLogo,
   .spaceLabel {
     animation: none;
     transition: none;

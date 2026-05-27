@@ -29,7 +29,7 @@ export function LandingPage() {
       <section className={styles.desktopStage} aria-label="Quietly">
         <aside className={styles.sidePanel}>
           <Link className={styles.logo} href="/auth" aria-label="Quietly">
-            Quietly
+            QUIETLY
           </Link>
 
           <div className={styles.featureBlock}>
@@ -51,17 +51,21 @@ export function LandingPage() {
           </p>
 
           <div className={styles.heroCopy}>
-            <h1>Выгрузите голову в одно спокойное пространство</h1>
+            <h1>
+              <span>Выгрузите голову</span>
+              <span className={styles.titleBreak}>в</span>
+              <span>одно спокойное пространство</span>
+            </h1>
             <p>
               Дневник, задачи и склад мыслей — чтобы быстро записать важное,
               разобрать позже и держать нужное под рукой
             </p>
             <div className={styles.actions} aria-label="Действия авторизации">
               <Link className={styles.primaryAction} href="/register">
-                Создать пространство
+                <span>Создать пространство</span>
               </Link>
               <Link className={styles.secondaryAction} href="/login">
-                Войти
+                <span>Войти</span>
               </Link>
             </div>
           </div>
