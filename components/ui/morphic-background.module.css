@@ -1,0 +1,125 @@
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 74% 74%, rgba(83, 130, 254, 0.12), transparent 34%),
+    linear-gradient(145deg, #dfdfdf 0%, #d3d3d3 56%, #cfcfcf 100%);
+}
+
+.ambient {
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(circle at 24% 28%, rgba(169, 214, 253, 0.18), transparent 24%),
+    radial-gradient(circle at 82% 66%, rgba(83, 130, 254, 0.16), transparent 28%);
+  animation: morphicAmbient 16s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+}
+
+.particleField {
+  position: absolute;
+  inset: -18%;
+  filter: url("#quietly-morphic-goo");
+}
+
+.ball {
+  position: absolute;
+  top: 112%;
+  left: var(--ball-x);
+  width: var(--ball-size);
+  height: var(--ball-size);
+  border-radius: 999px;
+  opacity: var(--ball-opacity);
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.92) 0 10%, transparent 24%),
+    radial-gradient(circle at 60% 72%, var(--morphic-ball), rgba(126, 172, 254, 0.82) 58%, rgba(169, 214, 253, 0.66) 100%);
+  box-shadow:
+    0 0 24px rgba(83, 130, 254, 0.2),
+    inset 0 0 18px rgba(255, 255, 255, 0.24);
+  transform: translate3d(-50%, 0, 0) scale(0.92);
+  animation: morphicRise var(--ball-duration) linear infinite;
+  animation-delay: var(--ball-delay);
+  will-change: transform;
+}
+
+.ball[data-variant="1"] {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.88) 0 9%, transparent 24%),
+    radial-gradient(circle at 58% 70%, rgba(169, 214, 253, 0.82), rgba(126, 172, 254, 0.76) 56%, rgba(83, 130, 254, 0.7) 100%);
+}
+
+.ball[data-variant="2"] {
+  filter: saturate(0.92);
+  background:
+    radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.84) 0 9%, transparent 25%),
+    radial-gradient(circle at 60% 72%, rgba(126, 172, 254, 0.78), rgba(83, 130, 254, 0.64) 62%, rgba(169, 214, 253, 0.56) 100%);
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(0, 0, 0, 0.32) 0 1px, transparent 1px),
+    radial-gradient(circle at 78% 68%, rgba(255, 255, 255, 0.32) 0 1px, transparent 1px);
+  background-size: 19px 19px, 27px 27px;
+  mix-blend-mode: multiply;
+}
+
+.filterSvg {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+@keyframes morphicRise {
+  0% {
+    transform: translate3d(-50%, 0, 0) scale(0.82);
+  }
+
+  45% {
+    transform: translate3d(calc(-50% + var(--ball-drift-mid)), -66vh, 0) scale(1);
+  }
+
+  100% {
+    transform: translate3d(calc(-50% + var(--ball-drift)), -142vh, 0) scale(0.9);
+  }
+}
+
+@keyframes morphicAmbient {
+  from {
+    opacity: 0.72;
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient,
+  .ball {
+    animation: none;
+  }
+
+  .ball {
+    top: auto;
+    transform: translate3d(-50%, 0, 0) scale(0.9);
+  }
+
+  .ball:nth-child(1) {
+    top: 18%;
+  }
+
+  .ball:nth-child(2) {
+    top: 42%;
+  }
+
+  .ball:nth-child(3) {
+    top: 68%;
+  }
+}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 
 import { AnimatedGradientButton } from "@/components/ui/animated-gradient-button";
+import { MorphicBackground } from "@/components/ui/morphic-background";
 import { validateAuthInput } from "@/lib/auth/validation";
 
 import styles from "./auth-screen.module.css";
@@ -186,21 +187,7 @@ function AuthQuietIllustration() {
   return (
     <section className={styles.visual} aria-hidden="true">
       <div className={styles.unionShape}>
-        <div className={styles.ambientLayer}>
-          <span className={styles.lightOne} />
-          <span className={styles.lightTwo} />
-          <span className={styles.driftLine} data-line="one" />
-          <span className={styles.driftLine} data-line="two" />
-          <span className={styles.driftLine} data-line="three" />
-          <span className={styles.thoughtDot} data-dot="one" />
-          <span className={styles.thoughtDot} data-dot="two" />
-          <span className={styles.thoughtDot} data-dot="three" />
-          <span className={styles.textStroke} data-stroke="one" />
-          <span className={styles.textStroke} data-stroke="two" />
-          <span className={styles.textStroke} data-stroke="three" />
-          <span className={styles.textStroke} data-stroke="four" />
-          <span className={styles.grain} />
-        </div>
+        <MorphicBackground className={styles.morphicLayer} />
         <div className={styles.dividers}>
           <span data-divider="vertical-one" />
           <span data-divider="vertical-two" />

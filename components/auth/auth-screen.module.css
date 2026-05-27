@@ -182,140 +182,10 @@
   isolation: isolate;
 }
 
-.ambientLayer {
+.morphicLayer {
   position: absolute;
-  inset: -4%;
-  background:
-    radial-gradient(circle at 22% 26%, rgba(255, 255, 255, 0.2), transparent 25%),
-    radial-gradient(circle at 74% 72%, rgba(126, 172, 254, 0.06), transparent 28%),
-    linear-gradient(145deg, #dfdfdf, #d2d2d2);
-}
-
-.lightOne,
-.lightTwo,
-.driftLine,
-.thoughtDot,
-.textStroke,
-.grain {
-  position: absolute;
-  display: block;
-}
-
-.lightOne {
-  width: 46%;
-  height: 42%;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.48), transparent 64%);
-  filter: blur(8px);
-  animation: quietLightOne 11s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
-}
-
-.lightTwo {
-  right: 8%;
-  bottom: 8%;
-  width: 38%;
-  height: 34%;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(83, 130, 254, 0.14), transparent 68%);
-  filter: blur(10px);
-  animation: quietLightTwo 12s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
-}
-
-.driftLine {
-  height: 1px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-  transform-origin: left center;
-  animation: quietLineDrift 10s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-}
-
-.driftLine[data-line="one"] {
-  top: 24%;
-  left: 9%;
-  width: 38%;
-}
-
-.driftLine[data-line="two"] {
-  top: 52%;
-  left: 44%;
-  width: 34%;
-  animation-delay: -3.5s;
-}
-
-.driftLine[data-line="three"] {
-  top: 78%;
-  left: 18%;
-  width: 28%;
-  animation-delay: -6s;
-}
-
-.thoughtDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.28);
-  animation: quietDotPulse 9s ease-in-out infinite;
-}
-
-.thoughtDot[data-dot="one"] {
-  top: 19%;
-  left: 68%;
-}
-
-.thoughtDot[data-dot="two"] {
-  top: 62%;
-  left: 25%;
-  animation-delay: -3s;
-}
-
-.thoughtDot[data-dot="three"] {
-  top: 74%;
-  left: 76%;
-  animation-delay: -5.8s;
-}
-
-.textStroke {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.12);
-  animation: quietStroke 8.5s ease-in-out infinite;
-}
-
-.textStroke[data-stroke="one"] {
-  top: 35%;
-  left: 14%;
-  width: 18%;
-}
-
-.textStroke[data-stroke="two"] {
-  top: 39%;
-  left: 14%;
-  width: 27%;
-  animation-delay: -1.2s;
-}
-
-.textStroke[data-stroke="three"] {
-  top: 58%;
-  left: 57%;
-  width: 21%;
-  animation-delay: -3.4s;
-}
-
-.textStroke[data-stroke="four"] {
-  top: 82%;
-  left: 50%;
-  width: 16%;
-  animation-delay: -5.2s;
-}
-
-.grain {
   inset: 0;
-  opacity: 0.13;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(0, 0, 0, 0.32) 0 1px, transparent 1px),
-    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1px);
-  background-size: 18px 18px, 23px 23px;
-  mix-blend-mode: multiply;
+  z-index: 0;
 }
 
 .dividers {
@@ -370,74 +240,6 @@
   left: 0;
   right: 0;
   height: 4px;
-}
-
-@keyframes quietLightOne {
-  from {
-    opacity: 0.72;
-    transform: translate(2%, 2%) scale(1);
-  }
-
-  to {
-    opacity: 0.92;
-    transform: translate(38%, 24%) scale(1.16);
-  }
-}
-
-@keyframes quietLightTwo {
-  from {
-    opacity: 0.62;
-    transform: translate(0, 0) scale(1);
-  }
-
-  to {
-    opacity: 0.86;
-    transform: translate(-36%, -26%) scale(1.18);
-  }
-}
-
-@keyframes quietLineDrift {
-  0% {
-    opacity: 0;
-    transform: translateX(-16px) rotate(0deg);
-  }
-
-  28%,
-  72% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(54px) rotate(-2deg);
-  }
-}
-
-@keyframes quietDotPulse {
-  0%,
-  100% {
-    opacity: 0.15;
-    transform: scale(0.72);
-  }
-
-  45% {
-    opacity: 0.72;
-    transform: scale(1);
-  }
-}
-
-@keyframes quietStroke {
-  0%,
-  100% {
-    opacity: 0.1;
-    transform: translateY(4px);
-  }
-
-  42%,
-  68% {
-    opacity: 0.52;
-    transform: translateY(0);
-  }
 }
 
 @media (max-width: 1180px) {
@@ -501,11 +303,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lightOne,
-  .lightTwo,
-  .driftLine,
-  .thoughtDot,
-  .textStroke,
   .switchLink,
   .field input,
   .error {
