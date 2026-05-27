@@ -13,6 +13,7 @@ type AuthMode = "login" | "register";
 
 type AuthScreenProps = {
   mode: AuthMode;
+  switchHref?: string;
 };
 
 const COPY = {
@@ -46,7 +47,7 @@ async function readError(response: Response) {
   }
 }
 
-export function AuthScreen({ mode }: AuthScreenProps) {
+export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
   const router = useRouter();
   const emailId = useId();
   const passwordId = useId();
@@ -166,7 +167,7 @@ export function AuthScreen({ mode }: AuthScreenProps) {
             {isSubmitting ? copy.loading : copy.button}
           </AnimatedGradientButton>
         </form>
-        <Link className={styles.switchLink} href={copy.switchHref}>
+        <Link className={styles.switchLink} href={switchHref || copy.switchHref}>
           {copy.switchText}
         </Link>
         {mode === "register" ? (

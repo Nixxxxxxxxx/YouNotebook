@@ -45,6 +45,7 @@
 }
 
 .logo {
+  position: relative;
   display: block;
   width: 28px;
   height: 60px;
@@ -55,7 +56,28 @@
   font-weight: 400;
   line-height: 60px;
   text-align: center;
+  text-decoration: none;
   white-space: nowrap;
+  transition:
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.logo:hover {
+  color: #a9d6fd;
+  filter: drop-shadow(0 0 12px rgba(126, 172, 254, 0.36));
+  transform: translateY(-1px);
+}
+
+.logo:focus-visible {
+  border-radius: 10px;
+  outline: 2px solid rgba(169, 214, 253, 0.78);
+  outline-offset: 4px;
+}
+
+.logo .tooltip {
+  font-family: var(--font-ui);
 }
 
 .separator {
@@ -189,6 +211,8 @@
 
 .tab:hover .tooltip,
 .tab:focus-visible .tooltip,
+.logo:hover .tooltip,
+.logo:focus-visible .tooltip,
 .profileButton:hover .tooltip,
 .profileButton:focus-visible .tooltip {
   opacity: 1;
@@ -271,6 +295,7 @@
   }
 
   .tab,
+  .logo,
   .profileButton,
   .tab img,
   .tooltip {

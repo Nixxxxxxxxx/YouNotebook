@@ -51,9 +51,14 @@ function NavigationRail({ active }: { active: AppSection }) {
   return (
     <div className={styles.menuDock}>
       <nav className={styles.tabs} aria-label="Разделы YouNotebook">
-        <span className={styles.logo} aria-label="Quietly">
+        <Link
+          className={styles.logo}
+          href="/auth"
+          aria-label="Открыть экран авторизации"
+        >
           Q
-        </span>
+          <span className={styles.tooltip}>Авторизация</span>
+        </Link>
         <span className={styles.separator} aria-hidden="true" />
         {MENU_ITEMS.map((item) => (
           <Link
