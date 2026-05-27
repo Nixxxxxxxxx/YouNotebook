@@ -1,0 +1,175 @@
+.button {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  min-height: 42px;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #a9d6fd;
+  border-radius: 24px 8px 24px 24px;
+  color: #0e0e0e;
+  background: #7eacfe;
+  padding: 10px 24px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-decoration: none;
+  transform: translateZ(0);
+  transition:
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.button::before,
+.button::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+}
+
+.button::before {
+  background:
+    radial-gradient(circle at 16% 22%, rgba(169, 214, 253, 0.98) 0 18%, transparent 44%),
+    radial-gradient(circle at 80% 18%, rgba(126, 172, 254, 0.96) 0 20%, transparent 48%),
+    radial-gradient(circle at 48% 92%, rgba(83, 130, 254, 0.96) 0 28%, transparent 58%),
+    linear-gradient(110deg, #5382fe 0%, #7eacfe 48%, #a9d6fd 100%);
+  background-position:
+    0% 45%,
+    100% 20%,
+    42% 100%,
+    0% 50%;
+  background-size:
+    190% 190%,
+    170% 170%,
+    180% 180%,
+    230% 230%;
+  animation: buttonGradientFlow 5.8s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
+}
+
+.button::after {
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 34%,
+    rgba(255, 255, 255, 0.1) 48%,
+    transparent 66%
+  );
+  opacity: 0.4;
+  transform: translateX(-120%) skewX(-14deg);
+  animation: buttonSoftShine 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.button:hover {
+  border-color: rgba(202, 229, 255, 0.96);
+  box-shadow:
+    0 14px 34px rgba(83, 130, 254, 0.24),
+    0 0 0 4px rgba(169, 214, 253, 0.08);
+  filter: brightness(1.035) saturate(1.04);
+  transform: translateY(-1px);
+}
+
+.button:active {
+  filter: brightness(0.98) saturate(1.02);
+  transform: translateY(0) scale(0.99);
+}
+
+.button:focus-visible {
+  outline: 2px solid rgba(169, 214, 253, 0.92);
+  outline-offset: 3px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  filter: saturate(0.86);
+  transform: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content svg,
+.content img {
+  flex: 0 0 auto;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.iconOnly {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 16px 7px 16px 16px;
+}
+
+.iconOnly .content {
+  width: 24px;
+  height: 24px;
+}
+
+@keyframes buttonGradientFlow {
+  0% {
+    background-position:
+      0% 45%,
+      100% 20%,
+      42% 100%,
+      0% 50%;
+  }
+
+  100% {
+    background-position:
+      86% 32%,
+      28% 70%,
+      74% 20%,
+      100% 50%;
+  }
+}
+
+@keyframes buttonSoftShine {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-14deg);
+  }
+
+  58% {
+    opacity: 0.42;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(120%) skewX(-14deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button::before,
+  .button::after {
+    animation: none;
+  }
+}

@@ -22,26 +22,7 @@
 }
 
 .addButton {
-  display: grid;
-  place-items: center;
   width: 248px;
-  height: 42px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  color: #ffffff;
-  background: transparent;
-  font-size: 14px;
-  line-height: 1.2;
-  transition:
-    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.addButton:hover {
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.04);
-  transform: translateY(-1px);
 }
 
 .sideNav {
@@ -782,8 +763,6 @@
   position: relative;
 }
 
-.bulkMoveButton,
-.editorSaveButton,
 .bulkDeleteButton,
 .bulkCancelButton {
   border: 0;
@@ -795,23 +774,17 @@
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.bulkMoveButton,
-.editorSaveButton {
-  display: flex;
-  height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  color: #ffffff;
-  background: var(--blue);
-  font-size: 14px;
-  line-height: 1.2;
+.bulkMoveButton {
+  min-width: 218px;
 }
 
 .editorSaveButton {
   min-width: 218px;
+}
+
+.bulkMoveButton,
+.editorSaveButton {
+  height: 42px;
 }
 
 .bulkChevron {
@@ -852,16 +825,12 @@
   line-height: 1;
 }
 
-.bulkMoveButton:hover,
-.editorSaveButton:hover,
 .bulkDeleteButton:hover,
 .bulkCancelButton:hover {
   filter: brightness(1.07);
   transform: translateY(-1px);
 }
 
-.bulkMoveButton:disabled,
-.editorSaveButton:disabled,
 .bulkDeleteButton:disabled,
 .bulkCancelButton:disabled {
   cursor: default;

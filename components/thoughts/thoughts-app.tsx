@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { AppActionDock } from "@/components/app-tabs";
 import { AddTaskIcon, TrashIcon } from "@/components/icons/app-icons";
+import { AnimatedGradientButton } from "@/components/ui/animated-gradient-button";
 import type {
   Thought,
   ThoughtBranch,
@@ -139,8 +140,10 @@ function getThoughtPreview(thought: Thought) {
 }
 
 function getThoughtImages(thought: Thought) {
-  return thought.imageUrls.length > 0
-    ? thought.imageUrls
+  const imageUrls = Array.isArray(thought.imageUrls) ? thought.imageUrls : [];
+
+  return imageUrls.length > 0
+    ? imageUrls
     : thought.imageUrl
       ? [thought.imageUrl]
       : [];
@@ -427,7 +430,7 @@ function BulkSelectionMenu({
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <button
+        <AnimatedGradientButton
           className={styles.bulkMoveButton}
           type="button"
           disabled={isSaving}
@@ -435,7 +438,7 @@ function BulkSelectionMenu({
         >
           <span>Добавить в коллекцию</span>
           <MenuChevron className={styles.bulkChevron} />
-        </button>
+        </AnimatedGradientButton>
       </div>
       <button
         className={styles.bulkDeleteButton}
@@ -482,14 +485,14 @@ function ThoughtEditorActionMenu({
       exit={{ opacity: 0, y: 10, scale: 0.96 }}
       transition={viewTransition}
     >
-      <button
+      <AnimatedGradientButton
         className={styles.editorSaveButton}
         type="submit"
         form={formId}
         disabled={isSaving}
       >
         {isSaving ? "Сохраняю..." : label}
-      </button>
+      </AnimatedGradientButton>
       <button
         className={styles.bulkCancelButton}
         type="button"
@@ -1401,13 +1404,14 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       </AppActionDock>
 
       <aside className={styles.sidebar}>
-        <button
+        <AnimatedGradientButton
           className={styles.addButton}
           type="button"
+          fullWidth
           onClick={() => setAddOpen(true)}
         >
           Скинуть мысль
-        </button>
+        </AnimatedGradientButton>
 
         <nav className={styles.sideNav} aria-label="Склад мыслей">
           <button

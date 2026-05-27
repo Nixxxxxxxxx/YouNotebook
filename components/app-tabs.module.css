@@ -68,6 +68,7 @@
 .tab,
 .profileButton {
   position: relative;
+  isolation: isolate;
   display: grid;
   width: 48px;
   height: 48px;
@@ -86,7 +87,35 @@
     opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.tab {
+  border: 1px solid transparent;
+}
+
+.tab::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(169, 214, 253, 0.98) 0 18%, transparent 46%),
+    radial-gradient(circle at 72% 78%, rgba(83, 130, 254, 0.96) 0 30%, transparent 58%),
+    linear-gradient(110deg, #5382fe 0%, #7eacfe 52%, #a9d6fd 100%);
+  background-position:
+    0% 40%,
+    100% 80%,
+    0% 50%;
+  background-size:
+    190% 190%,
+    180% 180%,
+    230% 230%;
+  opacity: 0;
+  content: "";
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .tab img {
+  position: relative;
+  z-index: 1;
   width: 24px;
   height: 24px;
   opacity: 0.92;
@@ -97,8 +126,14 @@
 }
 
 .tab[data-active="true"] {
-  background: var(--blue);
+  border: 1px solid #a9d6fd;
+  background: transparent;
   box-shadow: 0 14px 34px rgba(83, 130, 254, 0.24);
+}
+
+.tab[data-active="true"]::before {
+  opacity: 1;
+  animation: navGradientFlow 5.8s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
 
 .tab:hover,
@@ -107,7 +142,7 @@
 }
 
 .tab[data-active="true"]:hover {
-  background: var(--blue);
+  background: transparent;
   filter: brightness(1.06);
 }
 
@@ -131,6 +166,7 @@
 
 .tooltip {
   position: absolute;
+  z-index: 2;
   top: 50%;
   left: calc(100% + 10px);
   width: max-content;
@@ -173,6 +209,22 @@
   }
 }
 
+@keyframes navGradientFlow {
+  0% {
+    background-position:
+      0% 40%,
+      100% 80%,
+      0% 50%;
+  }
+
+  100% {
+    background-position:
+      82% 30%,
+      22% 24%,
+      100% 50%;
+  }
+}
+
 @media (max-width: 760px) {
   .menuDock {
     width: 61px;
@@ -211,6 +263,10 @@
 @media (prefers-reduced-motion: reduce) {
   .menuDock,
   .actionDock {
+    animation: none;
+  }
+
+  .tab[data-active="true"]::before {
     animation: none;
   }
 
