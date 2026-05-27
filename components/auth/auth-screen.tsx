@@ -201,10 +201,12 @@ function AuthQuietIllustration() {
           <span className={styles.grain} />
         </div>
         <div className={styles.dividers}>
-          <span data-divider="vertical-left" />
-          <span data-divider="vertical-right" />
-          <span data-divider="horizontal-top" />
-          <span data-divider="horizontal-bottom" />
+          <span data-divider="vertical-one" />
+          <span data-divider="vertical-two" />
+          <span data-divider="vertical-three" />
+          <span data-divider="horizontal-one" />
+          <span data-divider="horizontal-two" />
+          <span data-divider="horizontal-three" />
         </div>
       </div>
     </section>
