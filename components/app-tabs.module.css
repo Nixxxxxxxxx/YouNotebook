@@ -9,6 +9,11 @@
   align-items: flex-start;
   padding-left: 12px;
   color: #ffffff;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .menuDock::after {
@@ -19,6 +24,12 @@
   width: 1px;
   background: rgba(255, 255, 255, 0.14);
   content: "";
+}
+
+:global(body[data-app-navigation-hidden="true"]) .menuDock {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-18px);
 }
 
 .actionDock {
@@ -337,6 +348,7 @@
   .tab,
   .logo,
   .profileButton,
+  .menuDock,
   .tab img,
   .tooltip {
     transition: none;

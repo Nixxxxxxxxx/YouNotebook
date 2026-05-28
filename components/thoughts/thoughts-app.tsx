@@ -829,6 +829,7 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
   const [error, setError] = useState<string | null>(null);
   const selectedThoughtCount = selectedThoughtIds.size;
   const activeViewKey = getActiveViewKey(activeView);
+  const editorOpen = addOpen || Boolean(selectedThought);
   const thoughtGroups = useMemo(
     () =>
       (activeView.kind === "collections"
@@ -840,6 +841,18 @@ export function ThoughtsApp({ initialData }: ThoughtsAppProps) {
       })),
     [activeView.kind, branches, thoughts],
   );
+
+  useEffect(() => {
+    if (editorOpen) {
+      document.body.dataset.appNavigationHidden = "true";
+    } else {
+      delete document.body.dataset.appNavigationHidden;
+    }
+
+    return () => {
+      delete document.body.dataset.appNavigationHidden;
+    };
+  }, [editorOpen]);
 
   async function loadThoughts(nextView = activeView) {
     setIsLoading(true);

@@ -1220,6 +1220,10 @@
   gap: 8px;
 }
 
+.editorImageGallery[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .editorImageTile {
   display: grid;
   height: 136px;
@@ -1241,6 +1245,17 @@
   height: 178px;
 }
 
+.editorImageGallery[data-count="1"] .editorImageTile,
+.editorImageGallery[data-count="1"] .editorImageTile[data-wide="true"] {
+  grid-column: 1 / -1;
+  height: auto;
+  overflow: visible;
+  border-radius: 22px;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
 .editorImageTile img,
 .editorImageTile video {
   display: block;
@@ -1251,6 +1266,15 @@
   object-position: center;
   transition:
     filter 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.editorImageGallery[data-count="1"] .editorImageTile img,
+.editorImageGallery[data-count="1"] .editorImageTile video {
+  width: 100%;
+  height: auto;
+  max-height: none;
+  border-radius: 22px;
+  background: #f7f6f2;
 }
 
 .editorImageTile:hover img,
@@ -1518,6 +1542,7 @@
   .bulkDeleteButton,
   .bulkCancelButton,
   .editorImageTile img,
+  .editorImageTile video,
   .editorCheckbox span,
   .editorCheckbox span::after,
   .editorSaveButton,
