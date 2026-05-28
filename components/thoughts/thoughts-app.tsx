@@ -149,6 +149,95 @@ function getThoughtImages(thought: Thought) {
       : [];
 }
 
+function isVideoLikeTelegramMedia(url: string) {
+  return url.includes("media=animation");
+}
+
+function ThoughtMedia({
+  alt = "",
+  className,
+  controls = false,
+  src,
+}: {
+  alt?: string;
+  className?: string;
+  controls?: boolean;
+  src: string;
+}) {
+  const [shouldRenderVideo, setShouldRenderVideo] = useState(
+    isVideoLikeTelegramMedia(src),
+  );
+
+  if (shouldRenderVideo) {
+    return (
+      <video
+        className={className}
+        src={src}
+        autoPlay
+        controls={controls}
+        loop
+        muted
+        playsInline
+        onError={() => setShouldRenderVideo(false)}
+      />
+    );
+  }
+
+  return <img className={className} src={src} alt={alt} />;
+}
+
+function ThoughtLightboxMedia({
+  shouldReduceMotion,
+  src,
+}: {
+  shouldReduceMotion: boolean | null;
+  src: string;
+}) {
+  const [shouldRenderVideo, setShouldRenderVideo] = useState(
+    isVideoLikeTelegramMedia(src),
+  );
+  const motionInitial = shouldReduceMotion
+    ? false
+    : { opacity: 0, y: 18, scale: 0.97 };
+  const motionAnimate = shouldReduceMotion
+    ? undefined
+    : { opacity: 1, y: 0, scale: 1 };
+  const motionExit = shouldReduceMotion
+    ? undefined
+    : { opacity: 0, y: 8, scale: 0.98 };
+
+  if (shouldRenderVideo) {
+    return (
+      <motion.video
+        src={src}
+        autoPlay
+        controls
+        loop
+        muted
+        playsInline
+        initial={motionInitial}
+        animate={motionAnimate}
+        exit={motionExit}
+        transition={viewTransition}
+        onClick={(event) => event.stopPropagation()}
+        onError={() => setShouldRenderVideo(false)}
+      />
+    );
+  }
+
+  return (
+    <motion.img
+      src={src}
+      alt=""
+      initial={motionInitial}
+      animate={motionAnimate}
+      exit={motionExit}
+      transition={viewTransition}
+      onClick={(event) => event.stopPropagation()}
+    />
+  );
+}
+
 function getPrimaryThoughtImage(thought: Thought) {
   return getThoughtImages(thought)[0] ?? null;
 }
@@ -315,7 +404,7 @@ function ThoughtCard({
       >
         {hasImage ? (
           <>
-            <img
+            <ThoughtMedia
               className={styles.cardImage}
               src={primaryImage ?? ""}
               alt=""
@@ -641,7 +730,7 @@ function ThoughtWorkspace({
                 whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
                 onClick={() => setLightboxImage(imageUrl)}
               >
-                <img src={imageUrl} alt="" />
+                <ThoughtMedia src={imageUrl} alt="" />
               </motion.button>
             ))}
           </div>
@@ -685,20 +774,10 @@ function ThoughtWorkspace({
             >
               ×
             </button>
-            <motion.img
+            <ThoughtLightboxMedia
+              key={lightboxImage}
               src={lightboxImage}
-              alt=""
-              initial={
-                shouldReduceMotion ? false : { opacity: 0, y: 18, scale: 0.97 }
-              }
-              animate={
-                shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
-              }
-              exit={
-                shouldReduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }
-              }
-              transition={viewTransition}
-              onClick={(event) => event.stopPropagation()}
+              shouldReduceMotion={shouldReduceMotion}
             />
           </motion.div>
         ) : null}

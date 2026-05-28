@@ -312,7 +312,10 @@ function linksToText(links: TelegramLink[]) {
 
 export function createTelegramReaderSnapshot(
   message: TelegramMessage,
-  { hasImage = false }: { hasImage?: boolean } = {},
+  {
+    fallbackText,
+    hasImage = false,
+  }: { fallbackText?: string; hasImage?: boolean } = {},
 ): TelegramReaderResult {
   const { entities, text } = getMessageTextAndEntities(message);
   const cleanText = text.trim();
@@ -324,14 +327,15 @@ export function createTelegramReaderSnapshot(
   const entityLinks = dedupeLinks(collectEntityLinks(text, entities));
   const primaryUrl =
     entityLinks[0]?.url ?? attachedLinks[0]?.url ?? findFirstUrl(cleanText);
-  const fallbackText = hasImage ? "Изображение из Telegram" : "";
-  const bodyText = cleanText || fallbackText;
+  const mediaFallbackText =
+    fallbackText ?? (hasImage ? "Изображение из Telegram" : "");
+  const bodyText = cleanText || mediaFallbackText;
   const attachedLinksText = linksToText(attachedLinks);
   const contentText = [bodyText, attachedLinksText].filter(Boolean).join("\n\n");
   const contentHtml = [
     cleanText
       ? renderTelegramTextHtml(text, entities)
-      : `<p>${escapeHtml(fallbackText)}</p>`,
+      : `<p>${escapeHtml(mediaFallbackText)}</p>`,
     renderAttachedLinks(attachedLinks),
   ].join("");
   const title = bodyText.split("\n").find((line) => line.trim()) ?? bodyText;

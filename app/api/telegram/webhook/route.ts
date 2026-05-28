@@ -32,22 +32,45 @@ function getMessage(update: TelegramUpdate): TelegramMessage | null {
   );
 }
 
-function getTelegramImageUrl(message: TelegramMessage) {
+function getTelegramFileUrl(fileId: string, mediaType?: "animation") {
+  const url = `/api/telegram/file/${encodeURIComponent(fileId)}`;
+
+  return mediaType ? `${url}?media=${mediaType}` : url;
+}
+
+function getTelegramMedia(message: TelegramMessage) {
   const photo = [...(message.photo ?? [])].sort((current, next) => {
     const currentWeight = current.file_size ?? current.width * current.height;
     const nextWeight = next.file_size ?? next.width * next.height;
 
     return nextWeight - currentWeight;
   })[0];
-  const imageFileId =
-    photo?.file_id ??
-    (message.document?.mime_type?.startsWith("image/")
-      ? message.document.file_id
-      : null);
 
-  return imageFileId
-    ? `/api/telegram/file/${encodeURIComponent(imageFileId)}`
-    : null;
+  if (photo) {
+    return {
+      fallbackText: "Изображение из Telegram",
+      url: getTelegramFileUrl(photo.file_id),
+    };
+  }
+
+  if (message.animation?.file_id) {
+    return {
+      fallbackText: "GIF из Telegram",
+      url: getTelegramFileUrl(message.animation.file_id, "animation"),
+    };
+  }
+
+  if (message.document?.mime_type?.startsWith("image/")) {
+    return {
+      fallbackText:
+        message.document.mime_type === "image/gif"
+          ? "GIF из Telegram"
+          : "Изображение из Telegram",
+      url: getTelegramFileUrl(message.document.file_id),
+    };
+  }
+
+  return null;
 }
 
 function getTelegramSourceChat(message: TelegramMessage) {
@@ -118,9 +141,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
-  const imageUrl = getTelegramImageUrl(message);
+  const telegramMedia = getTelegramMedia(message);
+  const imageUrl = telegramMedia?.url ?? null;
   const faviconUrl = await getTelegramAvatarUrl(message);
   const telegramReader = createTelegramReaderSnapshot(message, {
+    fallbackText: telegramMedia?.fallbackText,
     hasImage: Boolean(imageUrl),
   });
 

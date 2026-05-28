@@ -37,6 +37,19 @@ export type TelegramDocument = {
   file_size?: number;
 };
 
+export type TelegramAnimation = {
+  file_id: string;
+  file_unique_id?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+  thumbnail?: TelegramPhotoSize;
+  thumb?: TelegramPhotoSize;
+};
+
 export type TelegramMessageEntity = {
   type: string;
   offset: number;
@@ -77,6 +90,7 @@ export type TelegramMessage = {
   caption?: string;
   caption_entities?: TelegramMessageEntity[];
   photo?: TelegramPhotoSize[];
+  animation?: TelegramAnimation;
   document?: TelegramDocument;
   reply_markup?: TelegramReplyMarkup;
 };

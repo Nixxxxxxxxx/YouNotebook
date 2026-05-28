@@ -145,6 +145,7 @@ async function hasSchemaBaseline() {
   }
 
   const [migration] = await sql<{
+    has_animation_migration: boolean;
     has_gallery_migration: boolean;
     has_image_migration: boolean;
   }[]>`
@@ -158,11 +159,18 @@ async function hasSchemaBaseline() {
         select 1
         from thought_schema_migrations
         where id = 'telegram-gallery-v1'
-      ) as has_gallery_migration
+      ) as has_gallery_migration,
+      exists(
+        select 1
+        from thought_schema_migrations
+        where id = 'telegram-animation-backfill-v1'
+      ) as has_animation_migration
   `;
 
   return Boolean(
-    migration?.has_image_migration && migration.has_gallery_migration,
+    migration?.has_image_migration &&
+      migration.has_gallery_migration &&
+      migration.has_animation_migration,
   );
 }
 
@@ -764,6 +772,69 @@ export async function ensureThoughtsSchema() {
         on conflict (id) do nothing
       `;
     }
+    const [telegramAnimationMigration] = await sql<{ exists: boolean }[]>`
+      select exists(
+        select 1
+        from thought_schema_migrations
+        where id = 'telegram-animation-backfill-v1'
+      ) as exists
+    `;
+
+    if (!telegramAnimationMigration?.exists) {
+      await sql`
+        update telegram_updates
+        set payload_json = (payload_json #>> '{}')::jsonb
+        where jsonb_typeof(payload_json) = 'string'
+          and (payload_json #>> '{}') like '{%'
+      `;
+      await sql`
+        with update_messages as (
+          select coalesce(
+            payload_json -> 'message',
+            payload_json -> 'edited_message',
+            payload_json -> 'channel_post',
+            payload_json -> 'edited_channel_post'
+          ) as message
+          from telegram_updates
+          where jsonb_typeof(payload_json) = 'object'
+        ),
+        message_animations as (
+          select
+            message ->> 'message_id' as message_id,
+            case
+              when message #>> '{animation,file_id}' is not null
+              then '/api/telegram/file/' || (message #>> '{animation,file_id}') ||
+                '?media=animation'
+              when message #>> '{document,mime_type}' = 'image/gif'
+              then '/api/telegram/file/' || (message #>> '{document,file_id}')
+            end as media_url
+          from update_messages
+          where message is not null
+        )
+        update thoughts
+        set image_url = coalesce(thoughts.image_url, message_animations.media_url),
+          image_urls = case
+            when jsonb_array_length(thoughts.image_urls) = 0
+            then jsonb_build_array(message_animations.media_url)
+            else thoughts.image_urls
+          end,
+          updated_at = now()
+        from message_animations
+        where thoughts.source_type = 'telegram'
+          and thoughts.telegram_message_id::text = message_animations.message_id
+          and message_animations.media_url is not null
+          and (
+            thoughts.image_url is null
+            or jsonb_array_length(thoughts.image_urls) = 0
+          )
+      `;
+      await sql`
+        insert into thought_schema_migrations (id)
+        values ('telegram-animation-backfill-v1')
+        on conflict (id) do nothing
+      `;
+    }
+
     await sql`create index if not exists thoughts_branch_id_idx on thoughts(branch_id)`;
     await sql`create index if not exists thoughts_user_id_idx on thoughts(user_id)`;
     await sql`create index if not exists thoughts_status_idx on thoughts(status)`;
