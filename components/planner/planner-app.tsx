@@ -39,13 +39,10 @@ import {
   TaskCheckIcon,
   TrashIcon,
 } from "@/components/icons/app-icons";
+import type { PlannerTask as ServerPlannerTask } from "@/lib/planner/types";
 import styles from "./planner-app.module.css";
 
-type PlannerTask = {
-  id: string;
-  title: string;
-  completed: boolean;
-};
+type PlannerTask = ServerPlannerTask;
 
 type PlannerState = Record<string, PlannerTask[]>;
 
@@ -68,7 +65,9 @@ type CompletionSummary = {
 };
 
 const STORAGE_KEY = "younotebook:planner:v2";
+const SERVER_MIGRATION_KEY = "younotebook:planner:v2:migrated-to-server";
 const COMPLETION_REORDER_DELAY = 500;
+const TITLE_SAVE_DELAY = 420;
 const REORDER_TRANSITION = {
   duration: 0.55,
   ease: [0.22, 1, 0.36, 1],
@@ -191,12 +190,24 @@ function clonePlanner(state: PlannerState): PlannerState {
   );
 }
 
-function createTask(dayId: string): PlannerTask {
+function createOptimisticTask(dayId: string): PlannerTask {
+  const now = new Date().toISOString();
+
   return {
-    id: `${dayId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title: "",
     completed: false,
+    completedAt: null,
+    createdAt: now,
+    date: dayId,
+    id: `temp-${dayId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    sortOrder: 0,
+    source: "web",
+    title: "",
+    updatedAt: now,
   };
+}
+
+function isTemporaryTaskId(taskId: string) {
+  return taskId.startsWith("temp-");
 }
 
 function getMeaningfulTasks(tasks: PlannerTask[]) {
@@ -238,6 +249,160 @@ function insertTaskBeforeCompleted(tasks: PlannerTask[], task: PlannerTask) {
     task,
     ...tasks.slice(firstCompletedIndex),
   ];
+}
+
+function getTimelineRange(days: PlannerDay[]) {
+  return {
+    from: days[0]?.id ?? toDateKey(getToday()),
+    to: days.at(-1)?.id ?? toDateKey(getToday()),
+  };
+}
+
+function mergeServerTasksForDays(
+  state: PlannerState,
+  days: PlannerDay[],
+  tasks: PlannerTask[],
+) {
+  const next = ensurePlannerDays(state, days);
+
+  days.forEach((day) => {
+    next[day.id] = [];
+  });
+  tasks.forEach((task) => {
+    next[task.date] = next[task.date] ?? [];
+    next[task.date].push(task);
+  });
+
+  return next;
+}
+
+function getStoredPlannerMigrationTasks() {
+  let storedPlanner: PlannerState | null = null;
+
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+
+    storedPlanner = stored ? normalizeStoredPlanner(JSON.parse(stored)) : null;
+  } catch {
+    storedPlanner = null;
+  }
+
+  if (!storedPlanner) {
+    return [];
+  }
+
+  return Object.entries(storedPlanner).flatMap(([date, tasks]) =>
+    tasks
+      .filter((task) => task.title.trim().length > 0)
+      .map((task, index) => ({
+        completed: task.completed,
+        date,
+        sortOrder: index,
+        source: "web" as const,
+        title: task.title,
+      })),
+  );
+}
+
+async function fetchPlannerTasks(from: string, to: string) {
+  const response = await fetch(`/api/planner/tasks?from=${from}&to=${to}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to load planner tasks");
+  }
+
+  const data = (await response.json()) as { tasks?: PlannerTask[] };
+
+  return data.tasks ?? [];
+}
+
+async function createPlannerTaskRequest(date: string, title = "") {
+  const response = await fetch("/api/planner/tasks", {
+    body: JSON.stringify({ date, title }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create planner task");
+  }
+
+  const data = (await response.json()) as { task: PlannerTask };
+
+  return data.task;
+}
+
+async function createPlannerTasksRequest(
+  tasks: ReturnType<typeof getStoredPlannerMigrationTasks>,
+) {
+  const response = await fetch("/api/planner/tasks", {
+    body: JSON.stringify({ tasks }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to migrate planner tasks");
+  }
+}
+
+async function updatePlannerTaskRequest(
+  taskId: string,
+  patch: Partial<Pick<PlannerTask, "completed" | "date" | "sortOrder" | "title">>,
+) {
+  if (isTemporaryTaskId(taskId)) {
+    return null;
+  }
+
+  const response = await fetch(`/api/planner/tasks/${taskId}`, {
+    body: JSON.stringify(patch),
+    headers: { "content-type": "application/json" },
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update planner task");
+  }
+
+  const data = (await response.json()) as { task: PlannerTask };
+
+  return data.task;
+}
+
+async function deletePlannerTaskRequest(taskId: string) {
+  if (isTemporaryTaskId(taskId)) {
+    return;
+  }
+
+  const response = await fetch(`/api/planner/tasks/${taskId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete planner task");
+  }
+}
+
+async function reorderPlannerTasksRequest(dayId: string, tasks: PlannerTask[]) {
+  const ids = tasks
+    .filter((task) => !isTemporaryTaskId(task.id))
+    .map((task) => task.id);
+
+  if (ids.length === 0) {
+    return;
+  }
+
+  const response = await fetch("/api/planner/tasks/reorder", {
+    body: JSON.stringify({ date: dayId, ids }),
+    headers: { "content-type": "application/json" },
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to reorder planner tasks");
+  }
 }
 
 function getCompletionMessage(completed: number, total: number) {
@@ -359,16 +524,31 @@ function normalizeStoredPlanner(value: unknown): PlannerState | null {
     }
 
     next[dayId] = tasks
-      .filter((task): task is PlannerTask => {
+      .filter((task): task is Pick<PlannerTask, "completed" | "id" | "title"> => {
         return (
           Boolean(task) &&
           typeof task === "object" &&
-          typeof (task as PlannerTask).id === "string" &&
-          typeof (task as PlannerTask).title === "string" &&
-          typeof (task as PlannerTask).completed === "boolean"
+          typeof (task as Pick<PlannerTask, "id">).id === "string" &&
+          typeof (task as Pick<PlannerTask, "title">).title === "string" &&
+          typeof (task as Pick<PlannerTask, "completed">).completed ===
+            "boolean"
         );
       })
-      .map((task) => ({ ...task }));
+      .map((task, index) => {
+        const now = new Date().toISOString();
+
+        return {
+          completed: task.completed,
+          completedAt: task.completed ? now : null,
+          createdAt: now,
+          date: dayId,
+          id: task.id,
+          sortOrder: index,
+          source: "web" as const,
+          title: task.title,
+          updatedAt: now,
+        };
+      });
   });
 
   return next;
@@ -804,12 +984,16 @@ export function PlannerApp() {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
+  const dragStartDayRef = useRef<string | null>(null);
+  const loadedDayIdsRef = useRef<Set<string>>(new Set());
+  const plannerRef = useRef<PlannerState>({});
   const timelineRef = useRef<HTMLDivElement>(null);
   const didInitialTimelineScrollRef = useRef(false);
   const isAnchoringTimelineRef = useRef(true);
   const isPrependingTimelineRef = useRef(false);
   const isAppendingTimelineRef = useRef(false);
   const reorderTimeoutsRef = useRef<Record<string, number>>({});
+  const titleSaveTimeoutsRef = useRef<Record<string, number>>({});
   const shouldReduceMotion = useReducedMotion();
   const days = useMemo(
     () => buildTimelineDays(timelineStartDate, timelineDayCount, today),
@@ -837,6 +1021,32 @@ export function PlannerApp() {
     }),
   );
 
+  function commitPlanner(next: PlannerState) {
+    plannerRef.current = next;
+    setPlanner(next);
+  }
+
+  function markDaysLoaded(daysToMark: PlannerDay[]) {
+    daysToMark.forEach((day) => loadedDayIdsRef.current.add(day.id));
+  }
+
+  function persistTaskOrder(dayId: string, tasks = plannerRef.current[dayId] ?? []) {
+    void reorderPlannerTasksRequest(dayId, tasks).catch(() => {
+      // The next server fetch will repair order if a transient write fails.
+    });
+  }
+
+  function clearTitleSave(taskId: string) {
+    const timeoutId = titleSaveTimeoutsRef.current[taskId];
+
+    if (!timeoutId) {
+      return;
+    }
+
+    window.clearTimeout(timeoutId);
+    delete titleSaveTimeoutsRef.current[taskId];
+  }
+
   useEffect(() => {
     const previousScrollRestoration = window.history.scrollRestoration;
 
@@ -848,7 +1058,13 @@ export function PlannerApp() {
   }, []);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    plannerRef.current = planner;
+  }, [planner]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadInitialPlanner() {
       const currentDate = getToday();
       const initialStartDate = addDays(currentDate, -INITIAL_PAST_DAYS);
       const initialDays = buildTimelineDays(
@@ -856,30 +1072,49 @@ export function PlannerApp() {
         INITIAL_DAY_COUNT,
         currentDate,
       );
-      let nextPlanner = ensurePlannerDays({}, initialDays);
-
-      try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-
-        if (stored) {
-          const parsed = normalizeStoredPlanner(JSON.parse(stored));
-
-          if (parsed) {
-            nextPlanner = ensurePlannerDays(parsed, initialDays);
-          }
-        }
-      } catch {
-        nextPlanner = ensurePlannerDays({}, initialDays);
-      }
 
       setToday(currentDate);
       setTimelineStartDate(initialStartDate);
       setTimelineDayCount(INITIAL_DAY_COUNT);
-      setPlanner(nextPlanner);
-      setStorageReady(true);
-    });
+      commitPlanner(ensurePlannerDays({}, initialDays));
 
-    return () => window.cancelAnimationFrame(frame);
+      try {
+        if (!window.localStorage.getItem(SERVER_MIGRATION_KEY)) {
+          const migrationTasks = getStoredPlannerMigrationTasks();
+
+          if (migrationTasks.length > 0) {
+            await createPlannerTasksRequest(migrationTasks);
+          }
+
+          window.localStorage.setItem(SERVER_MIGRATION_KEY, "true");
+        }
+
+        const { from, to } = getTimelineRange(initialDays);
+        const tasks = await fetchPlannerTasks(from, to);
+
+        if (isCancelled) {
+          return;
+        }
+
+        markDaysLoaded(initialDays);
+        commitPlanner(mergeServerTasksForDays({}, initialDays, tasks));
+      } catch {
+        if (!isCancelled) {
+          markDaysLoaded(initialDays);
+          commitPlanner(ensurePlannerDays({}, initialDays));
+        }
+      } finally {
+        if (!isCancelled) {
+          setStorageReady(true);
+        }
+      }
+    }
+
+    void loadInitialPlanner();
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -908,9 +1143,13 @@ export function PlannerApp() {
 
   useEffect(() => {
     const reorderTimeouts = reorderTimeoutsRef.current;
+    const titleSaveTimeouts = titleSaveTimeoutsRef.current;
 
     return () => {
       Object.values(reorderTimeouts).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      Object.values(titleSaveTimeouts).forEach((timeoutId) => {
         window.clearTimeout(timeoutId);
       });
     };
@@ -921,8 +1160,39 @@ export function PlannerApp() {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(planner));
-  }, [planner, storageReady]);
+    const missingDays = days.filter(
+      (day) => !loadedDayIdsRef.current.has(day.id),
+    );
+
+    if (missingDays.length === 0) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadMissingDays() {
+      const { from, to } = getTimelineRange(missingDays);
+      const tasks = await fetchPlannerTasks(from, to);
+
+      if (isCancelled) {
+        return;
+      }
+
+      markDaysLoaded(missingDays);
+      commitPlanner(mergeServerTasksForDays(plannerRef.current, missingDays, tasks));
+    }
+
+    void loadMissingDays().catch(() => {
+      if (!isCancelled) {
+        markDaysLoaded(missingDays);
+        commitPlanner(ensurePlannerDays(plannerRef.current, missingDays));
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [days, storageReady]);
 
   useLayoutEffect(() => {
     if (didInitialTimelineScrollRef.current) {
@@ -1021,7 +1291,10 @@ export function PlannerApp() {
   }
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveTaskId(String(event.active.id));
+    const taskId = String(event.active.id);
+
+    dragStartDayRef.current = findTaskContainer(plannerRef.current, taskId) ?? null;
+    setActiveTaskId(taskId);
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -1031,9 +1304,17 @@ export function PlannerApp() {
       return;
     }
 
-    setPlanner((current) =>
-      moveTaskBetweenDays(current, String(event.active.id), String(overId)),
-    );
+    setPlanner((current) => {
+      const next = moveTaskBetweenDays(
+        current,
+        String(event.active.id),
+        String(overId),
+      );
+
+      plannerRef.current = next;
+
+      return next;
+    });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -1041,6 +1322,7 @@ export function PlannerApp() {
     const overId = event.over?.id ? String(event.over.id) : null;
 
     if (!overId) {
+      dragStartDayRef.current = null;
       setActiveTaskId(null);
       return;
     }
@@ -1050,6 +1332,7 @@ export function PlannerApp() {
       const overDay = getOverContainer(current, overId);
 
       if (!activeDay || !overDay || activeDay !== overDay) {
+        plannerRef.current = current;
         return current;
       }
 
@@ -1061,13 +1344,47 @@ export function PlannerApp() {
       );
 
       if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) {
+        plannerRef.current = current;
         return current;
       }
 
-      return {
+      const next = {
         ...current,
         [activeDay]: arrayMove(current[activeDay], oldIndex, newIndex),
       };
+
+      plannerRef.current = next;
+
+      return next;
+    });
+
+    window.requestAnimationFrame(() => {
+      const startDay = dragStartDayRef.current;
+      const finalDay = findTaskContainer(plannerRef.current, activeId);
+      const finalTask = finalDay ? findTask(plannerRef.current, activeId) : null;
+
+      if (finalDay && finalTask && !isTemporaryTaskId(activeId)) {
+        void updatePlannerTaskRequest(activeId, {
+          date: finalDay,
+          sortOrder: plannerRef.current[finalDay]?.findIndex(
+            (task) => task.id === activeId,
+          ),
+        }).catch(() => {
+          // A later refresh keeps the local board aligned if this write fails.
+        });
+      }
+
+      if (startDay) {
+        persistTaskOrder(startDay);
+      }
+
+      if (finalDay && finalDay !== startDay) {
+        persistTaskOrder(finalDay);
+      } else if (finalDay) {
+        persistTaskOrder(finalDay);
+      }
+
+      dragStartDayRef.current = null;
     });
     setActiveTaskId(null);
   }
@@ -1084,30 +1401,30 @@ export function PlannerApp() {
   }
 
   function reorderTaskToCompletionPosition(dayId: string, taskId: string) {
-    setPlanner((current) => {
-      const targetDay =
-        current[dayId]?.some((task) => task.id === taskId) === true
-          ? dayId
-          : findTaskContainer(current, taskId);
+    const current = plannerRef.current;
+    const targetDay =
+      current[dayId]?.some((task) => task.id === taskId) === true
+        ? dayId
+        : findTaskContainer(current, taskId);
 
-      if (!targetDay) {
-        return current;
-      }
+    if (!targetDay) {
+      return;
+    }
 
-      const nextTasks = moveTaskToCompletionPosition(
-        current[targetDay] ?? [],
-        taskId,
-      );
+    const nextTasks = moveTaskToCompletionPosition(
+      current[targetDay] ?? [],
+      taskId,
+    );
 
-      if (nextTasks === current[targetDay]) {
-        return current;
-      }
+    if (nextTasks === current[targetDay]) {
+      return;
+    }
 
-      return {
-        ...current,
-        [targetDay]: nextTasks,
-      };
+    commitPlanner({
+      ...current,
+      [targetDay]: nextTasks,
     });
+    persistTaskOrder(targetDay, nextTasks);
   }
 
   function scheduleCompletionReorder(dayId: string, taskId: string) {
@@ -1124,23 +1441,71 @@ export function PlannerApp() {
     }, COMPLETION_REORDER_DELAY);
   }
 
-  function addTask(dayId: string) {
-    const task = createTask(dayId);
+  async function addTask(dayId: string) {
+    const task = createOptimisticTask(dayId);
+    const current = plannerRef.current;
 
-    setPlanner((current) => ({
+    commitPlanner({
       ...current,
       [dayId]: insertTaskBeforeCompleted(current[dayId] ?? [], task),
-    }));
+    });
     setEditingTaskId(task.id);
+
+    try {
+      const createdTask = await createPlannerTaskRequest(dayId);
+      const latestTask = findTask(plannerRef.current, task.id);
+
+      if (!latestTask) {
+        await deletePlannerTaskRequest(createdTask.id);
+        return;
+      }
+
+      const reconciledTask = {
+        ...createdTask,
+        completed: latestTask.completed,
+        title: latestTask.title,
+      };
+      const latestDay =
+        findTaskContainer(plannerRef.current, task.id) ?? createdTask.date;
+
+      commitPlanner({
+        ...plannerRef.current,
+        [latestDay]: (plannerRef.current[latestDay] ?? []).map((item) =>
+          item.id === task.id ? reconciledTask : item,
+        ),
+      });
+      setEditingTaskId((currentEditingTaskId) =>
+        currentEditingTaskId === task.id ? createdTask.id : currentEditingTaskId,
+      );
+
+      if (
+        reconciledTask.title !== createdTask.title ||
+        reconciledTask.completed !== createdTask.completed ||
+        latestDay !== createdTask.date
+      ) {
+        void updatePlannerTaskRequest(createdTask.id, {
+          completed: reconciledTask.completed,
+          date: latestDay,
+          title: reconciledTask.title,
+        }).catch(() => {});
+      }
+
+      persistTaskOrder(latestDay);
+    } catch {
+      deleteTask(dayId, task.id);
+    }
   }
 
   function deleteTask(dayId: string, taskId: string) {
     clearCompletionReorder(taskId);
+    clearTitleSave(taskId);
+    const current = plannerRef.current;
 
-    setPlanner((current) => ({
+    commitPlanner({
       ...current,
       [dayId]: (current[dayId] ?? []).filter((task) => task.id !== taskId),
-    }));
+    });
+    void deletePlannerTaskRequest(taskId).catch(() => {});
 
     if (editingTaskId === taskId) {
       setEditingTaskId(null);
@@ -1148,19 +1513,42 @@ export function PlannerApp() {
   }
 
   function updateTaskTitle(dayId: string, taskId: string, title: string) {
-    setPlanner((current) => ({
+    const current = plannerRef.current;
+
+    commitPlanner({
       ...current,
       [dayId]: (current[dayId] ?? []).map((task) =>
         task.id === taskId ? { ...task, title } : task,
       ),
-    }));
+    });
+
+    if (isTemporaryTaskId(taskId)) {
+      return;
+    }
+
+    clearTitleSave(taskId);
+    titleSaveTimeoutsRef.current[taskId] = window.setTimeout(() => {
+      delete titleSaveTimeoutsRef.current[taskId];
+      void updatePlannerTaskRequest(taskId, { title }).catch(() => {});
+    }, TITLE_SAVE_DELAY);
   }
 
   function toggleTask(dayId: string, taskId: string) {
-    setPlanner((current) => ({
+    const current = plannerRef.current;
+    const nextTasks = toggleTaskCompletionState(current[dayId] ?? [], taskId);
+    const nextTask = nextTasks.find((task) => task.id === taskId);
+
+    commitPlanner({
       ...current,
-      [dayId]: toggleTaskCompletionState(current[dayId] ?? [], taskId),
-    }));
+      [dayId]: nextTasks,
+    });
+
+    if (nextTask && !isTemporaryTaskId(taskId)) {
+      void updatePlannerTaskRequest(taskId, {
+        completed: nextTask.completed,
+      }).catch(() => {});
+    }
+
     scheduleCompletionReorder(dayId, taskId);
   }
 
@@ -1178,7 +1566,10 @@ export function PlannerApp() {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        onDragCancel={() => setActiveTaskId(null)}
+        onDragCancel={() => {
+          dragStartDayRef.current = null;
+          setActiveTaskId(null);
+        }}
       >
         <div
           ref={timelineRef}

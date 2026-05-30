@@ -1,10 +1,14 @@
 import type { TelegramChat } from "./types";
 
-function getBotToken() {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+type TelegramBotKind = "planner" | "thoughts";
+
+function getBotToken(kind: TelegramBotKind = "thoughts") {
+  const envName =
+    kind === "planner" ? "PLANNER_TELEGRAM_BOT_TOKEN" : "TELEGRAM_BOT_TOKEN";
+  const token = process.env[envName];
 
   if (!token) {
-    throw new Error("TELEGRAM_BOT_TOKEN is not configured");
+    throw new Error(`${envName} is not configured`);
   }
 
   return token;
@@ -13,9 +17,10 @@ function getBotToken() {
 async function callTelegramApi<T>(
   method: string,
   payload: Record<string, unknown>,
+  bot: TelegramBotKind = "thoughts",
 ) {
   const response = await fetch(
-    `https://api.telegram.org/bot${getBotToken()}/${method}`,
+    `https://api.telegram.org/bot${getBotToken(bot)}/${method}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -70,12 +75,77 @@ export function isTelegramWebhookSecretValid(request: Request) {
   return request.headers.get("x-telegram-bot-api-secret-token") === expected;
 }
 
-export async function sendTelegramMessage(chatId: number, text: string) {
+export function isPlannerTelegramWebhookSecretValid(request: Request) {
+  const expected = process.env.PLANNER_TELEGRAM_WEBHOOK_SECRET;
+
+  if (!expected) {
+    return false;
+  }
+
+  return request.headers.get("x-telegram-bot-api-secret-token") === expected;
+}
+
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+  options: Record<string, unknown> = {},
+) {
   return callTelegramApi("sendMessage", {
     chat_id: chatId,
     text,
     disable_web_page_preview: true,
+    ...options,
   });
+}
+
+export async function sendPlannerTelegramMessage(
+  chatId: number,
+  text: string,
+  options: Record<string, unknown> = {},
+) {
+  return callTelegramApi(
+    "sendMessage",
+    {
+      chat_id: chatId,
+      text,
+      disable_web_page_preview: true,
+      ...options,
+    },
+    "planner",
+  );
+}
+
+export async function editPlannerTelegramMessageText(
+  chatId: number,
+  messageId: number,
+  text: string,
+  options: Record<string, unknown> = {},
+) {
+  return callTelegramApi(
+    "editMessageText",
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      disable_web_page_preview: true,
+      ...options,
+    },
+    "planner",
+  );
+}
+
+export async function answerPlannerTelegramCallbackQuery(
+  callbackQueryId: string,
+  options: Record<string, unknown> = {},
+) {
+  return callTelegramApi(
+    "answerCallbackQuery",
+    {
+      callback_query_id: callbackQueryId,
+      ...options,
+    },
+    "planner",
+  );
 }
 
 export async function getTelegramFile(fileId: string) {
@@ -127,4 +197,22 @@ export async function setTelegramWebhook(webhookUrl: string) {
     secret_token: secretToken,
     allowed_updates: ["message", "edited_message", "channel_post"],
   });
+}
+
+export async function setPlannerTelegramWebhook(webhookUrl: string) {
+  const secretToken = process.env.PLANNER_TELEGRAM_WEBHOOK_SECRET;
+
+  if (!secretToken) {
+    throw new Error("PLANNER_TELEGRAM_WEBHOOK_SECRET is not configured");
+  }
+
+  return callTelegramApi(
+    "setWebhook",
+    {
+      url: webhookUrl,
+      secret_token: secretToken,
+      allowed_updates: ["message", "callback_query"],
+    },
+    "planner",
+  );
 }

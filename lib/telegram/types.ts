@@ -95,8 +95,16 @@ export type TelegramMessage = {
   reply_markup?: TelegramReplyMarkup;
 };
 
+export type TelegramCallbackQuery = {
+  id: string;
+  from: TelegramUser;
+  message?: TelegramMessage;
+  data?: string;
+};
+
 export type TelegramUpdate = {
   update_id: number;
+  callback_query?: TelegramCallbackQuery;
   message?: TelegramMessage;
   edited_message?: TelegramMessage;
   channel_post?: TelegramMessage;
