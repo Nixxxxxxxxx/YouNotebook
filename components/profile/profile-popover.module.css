@@ -92,10 +92,10 @@
   left: calc(var(--app-nav-width) + 18px);
   width: min(360px, calc(100vw - var(--app-nav-width) - 36px));
   overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
   color: #ffffff;
-  background: #141414;
+  background: #000000;
   padding: 18px;
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.44),
@@ -317,7 +317,7 @@
 
 .linkList button {
   display: flex;
-  min-height: 26px;
+  min-height: 22px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -325,6 +325,8 @@
   color: rgba(255, 255, 255, 0.38);
   background: transparent;
   padding: 0;
+  font-size: 11px;
+  line-height: 14px;
   text-align: left;
 }
 
@@ -335,7 +337,7 @@
 
 .linkList b {
   color: rgba(255, 255, 255, 0.38);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
 }
 
