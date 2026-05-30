@@ -92,14 +92,14 @@
   left: calc(var(--app-nav-width) + 18px);
   width: min(360px, calc(100vw - var(--app-nav-width) - 36px));
   overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 26px 12px 26px 26px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
   color: #ffffff;
-  background: rgba(13, 13, 13, 0.98);
+  background: #141414;
   padding: 18px;
   box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.46),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 24px 80px rgba(0, 0, 0, 0.44),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(18px);
   font-family: var(--font-ui);
 }
@@ -120,12 +120,9 @@
   height: 48px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(169, 214, 253, 0.36);
-  border-radius: 18px 8px 18px 18px;
-  background:
-    radial-gradient(circle at 26% 22%, #a9d6fd, transparent 29%),
-    radial-gradient(circle at 72% 78%, #5382fe, transparent 45%),
-    linear-gradient(145deg, #7eacfe, #111827);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: #0d1217;
   color: #080808;
   box-shadow: none;
 }
@@ -138,79 +135,66 @@
   position: relative;
   z-index: 1;
   font-size: 20px;
+  color: #a9d6fd;
   font-weight: 620;
 }
 
 .header p,
 .header h2,
-.cardTop span,
+.sectionHeader h3,
 .field span,
 .feedback {
   margin: 0;
 }
 
 .header p {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-  line-height: 15px;
-}
-
-.header h2 {
   overflow: hidden;
   margin-top: 4px;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 560;
-  line-height: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.statusCard,
-.card {
+.header h2 {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 560;
+  line-height: 24px;
+}
+
+.section {
   position: relative;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 16px 0 0;
-}
-
-.statusCard {
-  gap: 7px;
-  padding-bottom: 2px;
-}
-
-.card {
   margin-top: 16px;
+  padding-top: 16px;
 }
 
-.statusCard > div,
-.cardTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.statusCard span,
-.cardTop span {
-  display: block;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 11px;
-  letter-spacing: 0.01em;
-  line-height: 14px;
-}
-
-.statusCard strong,
-.cardTop strong {
+.sectionHeader {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 3px;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionHeader h3 {
   color: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 520;
-  line-height: 18px;
+  line-height: 20px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 12px;
+  line-height: 15px;
+  white-space: nowrap;
 }
 
 .statusDot {

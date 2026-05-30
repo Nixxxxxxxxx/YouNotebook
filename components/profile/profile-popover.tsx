@@ -1,7 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AnimatedGradientButton } from "@/components/ui/animated-gradient-button";
 import type { AuthUser } from "@/lib/auth/types";
@@ -49,6 +56,21 @@ function StatusDot({ connected }: { connected: boolean }) {
       data-connected={connected ? "true" : "false"}
       aria-hidden="true"
     />
+  );
+}
+
+function SectionHeader({
+  children,
+  meta,
+}: {
+  children: string;
+  meta?: ReactNode;
+}) {
+  return (
+    <div className={styles.sectionHeader}>
+      <h3>{children}</h3>
+      {meta}
+    </div>
   );
 }
 
@@ -310,27 +332,22 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
                 <span>{initial}</span>
               </div>
               <div>
-                <p>Профиль</p>
-                <h2>{email}</h2>
+                <h2>Профиль</h2>
+                <p>{email}</p>
               </div>
             </header>
 
-            <section className={styles.statusCard}>
-              <div>
-                <strong>
-                  <StatusDot connected={connected} />
-                  {telegramStatusLabel}
-                </strong>
-              </div>
-            </section>
-
-            <form className={styles.card} onSubmit={submitTelegram}>
-              <div className={styles.cardTop}>
-                <div>
-                  <span>Склад мыслей</span>
-                  <strong>Telegram-бот</strong>
-                </div>
-              </div>
+            <form className={styles.section} onSubmit={submitTelegram}>
+              <SectionHeader
+                meta={
+                  <span className={styles.status}>
+                    <StatusDot connected={connected} />
+                    {telegramStatusLabel}
+                  </span>
+                }
+              >
+                Telegram-бот
+              </SectionHeader>
               <label className={styles.field} htmlFor={telegramId}>
                 <span>Telegram user id</span>
                 <input
@@ -351,7 +368,7 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
                       disabled={isTelegramSaving}
                       onClick={() => void removeTelegram(link.telegramUserId)}
                     >
-                      <span>{link.telegramUserId}</span>
+                      <span>Подключен: {link.telegramUserId}</span>
                       <b>Отключить</b>
                     </button>
                   ))}
@@ -367,13 +384,8 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
               </AnimatedGradientButton>
             </form>
 
-            <form className={styles.card} onSubmit={submitPassword}>
-              <div className={styles.cardTop}>
-                <div>
-                  <span>Безопасность</span>
-                  <strong>Пароль</strong>
-                </div>
-              </div>
+            <form className={styles.section} onSubmit={submitPassword}>
+              <SectionHeader>Пароль</SectionHeader>
               <label className={styles.field} htmlFor={currentPasswordId}>
                 <span>Текущий пароль</span>
                 <input
