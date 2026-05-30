@@ -74,6 +74,11 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const connected = telegramLinks.length > 0;
+  const telegramStatusLabel = isLoading
+    ? "Проверяем Telegram"
+    : connected
+      ? "Telegram подключен"
+      : "Telegram не подключен";
   const email = profileUser?.email ?? initialUser?.email ?? "Тихое пространство";
   const initial = getInitial(email);
 
@@ -316,7 +321,7 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
                 <span>Склад мыслей</span>
                 <strong>
                   <StatusDot connected={connected} />
-                  {connected ? "Telegram подключен" : "Telegram не подключен"}
+                  {telegramStatusLabel}
                 </strong>
               </div>
               <p>
