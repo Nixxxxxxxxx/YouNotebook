@@ -34,7 +34,7 @@
   inset: -1px;
   z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(169, 214, 253, 0.82), transparent 54%);
+  background: rgba(169, 214, 253, 0.72);
   opacity: 0;
   content: "";
   transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -42,9 +42,7 @@
 
 .profileButton:hover,
 .profileButton[aria-expanded="true"] {
-  box-shadow:
-    0 12px 34px rgba(83, 130, 254, 0.22),
-    0 0 0 4px rgba(169, 214, 253, 0.08);
+  box-shadow: 0 0 0 4px rgba(169, 214, 253, 0.07);
   filter: brightness(1.06);
   transform: translateY(-1px);
 }
@@ -92,83 +90,59 @@
   z-index: 55;
   bottom: 24px;
   left: calc(var(--app-nav-width) + 18px);
-  width: min(390px, calc(100vw - var(--app-nav-width) - 36px));
+  width: min(360px, calc(100vw - var(--app-nav-width) - 36px));
   overflow: visible;
-  border: 1px solid rgba(169, 214, 253, 0.16);
-  border-radius: 28px 14px 28px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 26px 12px 26px 26px;
   color: #ffffff;
-  background:
-    radial-gradient(circle at 88% 0%, rgba(126, 172, 254, 0.13), transparent 36%),
-    linear-gradient(145deg, rgba(16, 18, 22, 0.98), rgba(7, 7, 7, 0.98)),
-    #090909;
-  padding: 16px;
+  background: rgba(13, 13, 13, 0.98);
+  padding: 18px;
   box-shadow:
-    0 28px 90px rgba(0, 0, 0, 0.58),
+    0 24px 70px rgba(0, 0, 0, 0.46),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(24px);
+  backdrop-filter: blur(18px);
   font-family: var(--font-ui);
-}
-
-.glow {
-  position: absolute;
-  top: -84px;
-  right: -72px;
-  width: 190px;
-  height: 190px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(126, 172, 254, 0.18), transparent 64%),
-    radial-gradient(circle at 72% 72%, rgba(212, 99, 0, 0.1), transparent 58%);
-  opacity: 0.9;
-  pointer-events: none;
 }
 
 .header {
   position: relative;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
-  padding: 2px 2px 14px;
+  padding: 0 0 16px;
 }
 
 .avatar {
   position: relative;
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 48px;
+  height: 48px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(169, 214, 253, 0.5);
-  border-radius: 22px 9px 22px 22px;
+  border: 1px solid rgba(169, 214, 253, 0.36);
+  border-radius: 18px 8px 18px 18px;
   background:
     radial-gradient(circle at 26% 22%, #a9d6fd, transparent 29%),
     radial-gradient(circle at 72% 78%, #5382fe, transparent 45%),
     linear-gradient(145deg, #7eacfe, #111827);
   color: #080808;
-  box-shadow: 0 16px 42px rgba(83, 130, 254, 0.2);
+  box-shadow: none;
 }
 
 .avatar::after {
-  position: absolute;
-  inset: 8px auto auto 9px;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.62);
-  content: "";
+  content: none;
 }
 
 .avatar span {
   position: relative;
   z-index: 1;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 620;
 }
 
 .header p,
 .header h2,
-.statusCard p,
 .cardTop span,
 .field span,
 .feedback {
@@ -176,7 +150,7 @@
 }
 
 .header p {
-  color: rgba(255, 255, 255, 0.46);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
   line-height: 15px;
 }
@@ -185,9 +159,9 @@
   overflow: hidden;
   margin-top: 4px;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 560;
-  line-height: 22px;
+  line-height: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -197,8 +171,8 @@
   position: relative;
   display: grid;
   gap: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 14px 2px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 16px 0 0;
 }
 
 .statusCard {
@@ -207,7 +181,7 @@
 }
 
 .card {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .statusCard > div,
@@ -239,78 +213,61 @@
   line-height: 18px;
 }
 
-.statusCard p {
-  max-width: 318px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
-  line-height: 17px;
-}
-
 .statusDot {
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
   border-radius: 999px;
   background: #ff6b3d;
-  box-shadow: 0 0 18px rgba(255, 107, 61, 0.46);
+  box-shadow: none;
 }
 
 .statusDot[data-connected="true"] {
   background: #a9d6fd;
-  box-shadow: 0 0 18px rgba(169, 214, 253, 0.58);
-}
-
-.cardTop i {
-  display: grid;
-  min-width: 28px;
-  height: 26px;
-  place-items: center;
-  border: 1px solid rgba(169, 214, 253, 0.2);
-  border-radius: 999px;
-  color: #a9d6fd;
-  background: rgba(169, 214, 253, 0.08);
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 620;
 }
 
 .field {
+  position: relative;
   display: grid;
-  gap: 6px;
 }
 
 .field span {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 11px;
-  line-height: 14px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .field input {
   width: 100%;
   min-width: 0;
-  height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 15px;
+  height: 42px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 0;
   outline: none;
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.045);
-  padding: 0 12px;
+  background: transparent;
+  padding: 0 12px 10px;
   font: inherit;
   font-size: 13px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   transition:
     border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .field input:focus {
-  border-color: rgba(169, 214, 253, 0.58);
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 0 0 4px rgba(169, 214, 253, 0.08);
+  border-color: #a9d6fd;
+  box-shadow: none;
 }
 
 .field input::placeholder {
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.48);
 }
 
 .linkList {
@@ -332,19 +289,20 @@
 
 .linkList button {
   display: flex;
-  min-height: 34px;
+  min-height: 32px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.78);
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.66);
   background: transparent;
-  padding: 0 8px;
+  padding: 0 12px;
   text-align: left;
 }
 
 .linkList button:hover {
-  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  background: transparent;
 }
 
 .linkList b {
@@ -366,9 +324,9 @@
 .secondaryButton,
 .logoutButton {
   min-height: 40px;
-  border-radius: 22px 8px 22px 22px;
+  border-radius: 20px 8px 20px 20px;
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.06);
   padding: 0 16px;
   font-size: 13px;
 }

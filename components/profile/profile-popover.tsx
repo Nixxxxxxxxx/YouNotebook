@@ -305,44 +305,38 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
             }
             transition={popoverTransition}
           >
-            <div className={styles.glow} aria-hidden="true" />
             <header className={styles.header}>
               <div className={styles.avatar} aria-hidden="true">
                 <span>{initial}</span>
               </div>
               <div>
-                <p>Тихий профиль</p>
+                <p>Профиль</p>
                 <h2>{email}</h2>
               </div>
             </header>
 
             <section className={styles.statusCard}>
               <div>
-                <span>Склад мыслей</span>
                 <strong>
                   <StatusDot connected={connected} />
                   {telegramStatusLabel}
                 </strong>
               </div>
-              <p>
-                Перешлите пост боту, и он сложит материал в ваш личный склад.
-              </p>
             </section>
 
             <form className={styles.card} onSubmit={submitTelegram}>
               <div className={styles.cardTop}>
                 <div>
-                  <span>Telegram</span>
-                  <strong>Привязка бота</strong>
+                  <span>Склад мыслей</span>
+                  <strong>Telegram-бот</strong>
                 </div>
-                {isLoading ? <i>...</i> : <i>{telegramLinks.length}</i>}
               </div>
               <label className={styles.field} htmlFor={telegramId}>
-                <span>User ID</span>
+                <span>Telegram user id</span>
                 <input
                   id={telegramId}
                   inputMode="numeric"
-                  placeholder="Например, 680827925"
+                  placeholder="Telegram user ID"
                   value={telegramValue}
                   disabled={isTelegramSaving}
                   onChange={(event) => setTelegramValue(event.target.value)}
@@ -377,9 +371,8 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
               <div className={styles.cardTop}>
                 <div>
                   <span>Безопасность</span>
-                  <strong>Email + пароль</strong>
+                  <strong>Пароль</strong>
                 </div>
-                <i>•••</i>
               </div>
               <label className={styles.field} htmlFor={currentPasswordId}>
                 <span>Текущий пароль</span>
@@ -387,6 +380,7 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
                   id={currentPasswordId}
                   autoComplete="current-password"
                   type="password"
+                  placeholder="Текущий пароль"
                   value={currentPassword}
                   disabled={isPasswordSaving}
                   onChange={(event) => setCurrentPassword(event.target.value)}
@@ -398,7 +392,7 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
                   id={nextPasswordId}
                   autoComplete="new-password"
                   type="password"
-                  placeholder="Минимум 8 символов"
+                  placeholder="Новый пароль"
                   value={nextPassword}
                   disabled={isPasswordSaving}
                   onChange={(event) => setNextPassword(event.target.value)}
