@@ -17,8 +17,11 @@ export type AuthErrorCode =
   | "email_invalid"
   | "email_taken"
   | "login_failed"
+  | "password_current_wrong"
   | "password_empty"
   | "password_short"
+  | "telegram_id_invalid"
+  | "telegram_link_taken"
   | "unknown";
 
 export class AuthError extends Error {

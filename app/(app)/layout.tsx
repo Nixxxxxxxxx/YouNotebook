@@ -19,7 +19,7 @@ export default async function ProtectedAppLayout({
 
   return (
     <>
-      <AppNavigation />
+      <AppNavigation user={user} />
       {children}
     </>
   );

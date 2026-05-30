@@ -21,6 +21,17 @@ type SessionUserRow = UserRow & {
   expires_at: Date | string;
 };
 
+export type TelegramLink = {
+  telegramUserId: string;
+  createdAt: string;
+};
+
+type TelegramLinkRow = {
+  telegram_user_id: string | number;
+  created_at: Date | string;
+  user_id?: string;
+};
+
 let authSchemaPromise: Promise<void> | null = null;
 
 function toIso(value: Date | string) {
@@ -235,6 +246,41 @@ export async function verifyUserCredentials(email: string, password: string) {
   return toUser(row);
 }
 
+export async function updateUserPassword(
+  userId: string,
+  currentPassword: string,
+  nextPassword: string,
+) {
+  await ensureAuthSchema();
+  const sql = getSql();
+  const [row] = await sql<UserRow[]>`
+    select id, email, password_hash, created_at, updated_at, last_active_at
+    from quietly_users
+    where id = ${userId}
+    limit 1
+  `;
+
+  if (!row || !(await verifyPassword(currentPassword, row.password_hash))) {
+    throw new AuthError(
+      "password_current_wrong",
+      "Текущий пароль не подошел",
+      401,
+    );
+  }
+
+  const passwordHash = await hashPassword(nextPassword);
+  const [updatedRow] = await sql<UserRow[]>`
+    update quietly_users
+    set password_hash = ${passwordHash},
+      updated_at = now(),
+      last_active_at = now()
+    where id = ${userId}
+    returning id, email, password_hash, created_at, updated_at, last_active_at
+  `;
+
+  return toUser(updatedRow);
+}
+
 export async function createSessionForUser(userId: string): Promise<AuthSession> {
   await ensureAuthSchema();
   const sql = getSql();
@@ -336,4 +382,63 @@ export async function getUserByTelegramUserId(telegramUserId: number) {
   `;
 
   return row ? toUser(row) : null;
+}
+
+export async function listTelegramLinks(userId: string): Promise<TelegramLink[]> {
+  await ensureAuthSchema();
+  const sql = getSql();
+  const rows = await sql<TelegramLinkRow[]>`
+    select telegram_user_id::text as telegram_user_id,
+      created_at
+    from user_telegram_links
+    where user_id = ${userId}
+    order by created_at asc
+  `;
+
+  return rows.map((row) => ({
+    telegramUserId: String(row.telegram_user_id),
+    createdAt: toIso(row.created_at),
+  }));
+}
+
+export async function addTelegramLink(userId: string, telegramUserId: string) {
+  await ensureAuthSchema();
+  const sql = getSql();
+
+  try {
+    const [row] = await sql<TelegramLinkRow[]>`
+      insert into user_telegram_links (user_id, telegram_user_id)
+      values (${userId}, ${telegramUserId})
+      on conflict (user_id, telegram_user_id) do update
+        set user_id = excluded.user_id
+      returning telegram_user_id::text as telegram_user_id,
+        created_at
+    `;
+
+    return {
+      telegramUserId: String(row.telegram_user_id),
+      createdAt: toIso(row.created_at),
+    };
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw new AuthError(
+        "telegram_link_taken",
+        "Этот Telegram уже подключен к другому пространству",
+        409,
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function removeTelegramLink(userId: string, telegramUserId: string) {
+  await ensureAuthSchema();
+  const sql = getSql();
+
+  await sql`
+    delete from user_telegram_links
+    where user_id = ${userId}
+      and telegram_user_id = ${telegramUserId}
+  `;
 }

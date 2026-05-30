@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ProfilePopover } from "@/components/profile/profile-popover";
+import type { AuthUser } from "@/lib/auth/types";
+
 import styles from "./app-tabs.module.css";
 
 type AppSection = "diary" | "planner" | "thoughts";
@@ -47,7 +50,13 @@ function getActiveSection(pathname: string): AppSection {
   return "diary";
 }
 
-function NavigationRail({ active }: { active: AppSection }) {
+function NavigationRail({
+  active,
+  user,
+}: {
+  active: AppSection;
+  user?: Pick<AuthUser, "email" | "id" | "lastActiveAt">;
+}) {
   return (
     <div className={styles.menuDock}>
       <nav className={styles.tabs} aria-label="Разделы YouNotebook">
@@ -73,23 +82,20 @@ function NavigationRail({ active }: { active: AppSection }) {
           </Link>
         ))}
         <span className={styles.separator} aria-hidden="true" />
-        <button
-          className={styles.profileButton}
-          type="button"
-          aria-label="Профиль в разработке"
-        >
-          <span aria-hidden="true">N</span>
-          <span className={styles.tooltip}>Профиль скоро</span>
-        </button>
+        <ProfilePopover user={user} />
       </nav>
     </div>
   );
 }
 
-export function AppNavigation() {
+export function AppNavigation({
+  user,
+}: {
+  user?: Pick<AuthUser, "email" | "id" | "lastActiveAt">;
+}) {
   const pathname = usePathname();
 
-  return <NavigationRail active={getActiveSection(pathname)} />;
+  return <NavigationRail active={getActiveSection(pathname)} user={user} />;
 }
 
 export function AppActionDock({ children }: { children?: ReactNode }) {
