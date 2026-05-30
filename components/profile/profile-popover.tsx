@@ -36,6 +36,9 @@ const popoverTransition = {
   ease: [0.22, 1, 0.36, 1],
 } as const;
 
+const telegramBotName = "@YouTodayWithBot";
+const telegramBotUrl = "https://t.me/YouTodayWithBot";
+
 function getInitial(email?: string) {
   return (email?.trim()[0] || "N").toUpperCase();
 }
@@ -97,10 +100,10 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const connected = telegramLinks.length > 0;
   const telegramStatusLabel = isLoading
-    ? "Проверяем Telegram"
+    ? "Проверяем"
     : connected
-      ? "Telegram подключен"
-      : "Telegram не подключен";
+      ? "Подключен"
+      : "Не подключен";
   const email = profileUser?.email ?? initialUser?.email ?? "Тихое пространство";
   const initial = getInitial(email);
 
@@ -348,40 +351,62 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
               >
                 Telegram-бот
               </SectionHeader>
-              <label className={styles.field} htmlFor={telegramId}>
-                <span>Telegram user id</span>
-                <input
-                  id={telegramId}
-                  inputMode="numeric"
-                  placeholder="Telegram user ID"
-                  value={telegramValue}
-                  disabled={isTelegramSaving}
-                  onChange={(event) => setTelegramValue(event.target.value)}
-                />
-              </label>
-              {telegramLinks.length > 0 ? (
-                <div className={styles.linkList}>
-                  {telegramLinks.map((link) => (
-                    <button
-                      key={link.telegramUserId}
-                      type="button"
-                      disabled={isTelegramSaving}
-                      onClick={() => void removeTelegram(link.telegramUserId)}
-                    >
-                      <span>Подключен: {link.telegramUserId}</span>
-                      <b>Отключить</b>
-                    </button>
-                  ))}
+
+              {connected ? (
+                <div className={styles.telegramConnected}>
+                  <p>
+                    Откройте бота и пересылайте ему посты, ссылки или сообщения.
+                    Они появятся в «Складе мыслей».
+                  </p>
+                  <a
+                    className={styles.telegramBotLink}
+                    href={telegramBotUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Открыть {telegramBotName}
+                  </a>
+                  <div className={styles.linkList}>
+                    {telegramLinks.map((link) => (
+                      <button
+                        key={link.telegramUserId}
+                        type="button"
+                        disabled={isTelegramSaving}
+                        onClick={() => void removeTelegram(link.telegramUserId)}
+                      >
+                        <span>ID {link.telegramUserId}</span>
+                        <b>Отключить</b>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ) : null}
-              <AnimatedGradientButton
-                className={styles.primaryButton}
-                type="submit"
-                fullWidth
-                disabled={isTelegramSaving}
-              >
-                {isTelegramSaving ? "Подключаем..." : "Подключить Telegram"}
-              </AnimatedGradientButton>
+              ) : (
+                <>
+                  <p className={styles.telegramHint}>
+                    Вставьте свой Telegram user ID, чтобы бот сохранял материалы
+                    именно в ваше пространство.
+                  </p>
+                  <label className={styles.field} htmlFor={telegramId}>
+                    <span>Telegram user id</span>
+                    <input
+                      id={telegramId}
+                      inputMode="numeric"
+                      placeholder="Telegram user ID"
+                      value={telegramValue}
+                      disabled={isTelegramSaving}
+                      onChange={(event) => setTelegramValue(event.target.value)}
+                    />
+                  </label>
+                  <AnimatedGradientButton
+                    className={styles.primaryButton}
+                    type="submit"
+                    fullWidth
+                    disabled={isTelegramSaving}
+                  >
+                    {isTelegramSaving ? "Подключаем..." : "Подключить Telegram"}
+                  </AnimatedGradientButton>
+                </>
+              )}
             </form>
 
             <form className={styles.section} onSubmit={submitPassword}>

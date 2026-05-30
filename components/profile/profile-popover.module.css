@@ -254,6 +254,50 @@
   color: rgba(255, 255, 255, 0.48);
 }
 
+.telegramConnected {
+  display: grid;
+  gap: 10px;
+}
+
+.telegramConnected p,
+.telegramHint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  letter-spacing: -0.02em;
+  line-height: 18px;
+}
+
+.telegramBotLink {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #a9d6fd;
+  border-radius: 20px 8px 20px 20px;
+  color: #0e0e0e;
+  background: #7eacfe;
+  padding: 10px 18px;
+  font-size: 13px;
+  line-height: 1.2;
+  text-decoration: none;
+  transition:
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.telegramBotLink:hover {
+  border-color: rgba(202, 229, 255, 0.96);
+  filter: brightness(1.035);
+  transform: translateY(-1px);
+}
+
+.telegramBotLink:focus-visible {
+  outline: 2px solid rgba(169, 214, 253, 0.78);
+  outline-offset: 3px;
+}
+
 .linkList {
   display: grid;
   gap: 6px;
@@ -273,14 +317,14 @@
 
 .linkList button {
   display: flex;
-  min-height: 32px;
+  min-height: 26px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-radius: 0;
-  color: rgba(255, 255, 255, 0.66);
+  color: rgba(255, 255, 255, 0.38);
   background: transparent;
-  padding: 0 12px;
+  padding: 0;
   text-align: left;
 }
 
@@ -388,6 +432,7 @@
   .profileButton::before,
   .tooltip,
   .field input,
+  .telegramBotLink,
   .linkList button,
   .secondaryButton,
   .logoutButton,
