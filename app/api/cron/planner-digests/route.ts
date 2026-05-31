@@ -3,13 +3,19 @@ import { NextResponse } from "next/server";
 import {
   listPlannerTasksByDate,
   listPlannerTelegramDigestTargets,
+  savePlannerChecklistTaskMappings,
 } from "@/lib/planner/repository";
 import {
   getMoscowDateKey,
+  getPlannerTelegramChecklist,
+  getPlannerTelegramChecklistTaskIds,
   getPlannerTelegramReplyMarkup,
   renderPlannerTelegramList,
 } from "@/lib/planner/telegram";
-import { sendPlannerTelegramMessage } from "@/lib/telegram/client";
+import {
+  sendPlannerTelegramChecklist,
+  sendPlannerTelegramMessage,
+} from "@/lib/telegram/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +48,32 @@ export async function GET(request: Request) {
     }
 
     try {
+      const checklist =
+        target.businessEnabled && target.businessConnectionId
+          ? getPlannerTelegramChecklist(dateKey, tasks)
+          : null;
+
+      if (target.businessConnectionId && checklist) {
+        const result = await sendPlannerTelegramChecklist(
+          target.businessConnectionId,
+          target.businessUserChatId ?? target.chatId,
+          checklist,
+        );
+        const messageId = result.result?.message_id;
+
+        if (messageId) {
+          await savePlannerChecklistTaskMappings({
+            businessConnectionId: target.businessConnectionId,
+            chatId: target.businessUserChatId ?? target.chatId,
+            messageId,
+            taskIds: getPlannerTelegramChecklistTaskIds(tasks),
+          });
+        }
+
+        sent += 1;
+        continue;
+      }
+
       await sendPlannerTelegramMessage(
         target.chatId,
         renderPlannerTelegramList(dateKey, tasks),

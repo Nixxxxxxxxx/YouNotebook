@@ -91,8 +91,11 @@ export function getPlannerDateLabel(dateKey: string) {
   return HUMAN_DATE_FORMATTER.format(getDateFromKey(dateKey));
 }
 
-export function parsePlannerTaskMessage(text: string): PlannerTaskInput[] {
-  const todayKey = getMoscowDateKey();
+export function parsePlannerTaskMessage(
+  text: string,
+  options: { defaultDate?: string } = {},
+): PlannerTaskInput[] {
+  const todayKey = options.defaultDate ?? getMoscowDateKey();
   const tomorrowKey = addDaysToDateKey(todayKey, 1);
   let activeDate = todayKey;
   const tasks: PlannerTaskInput[] = [];
@@ -183,4 +186,29 @@ export function getPlannerTelegramReplyMarkup(
   }
 
   return buttons.length > 0 ? { inline_keyboard: buttons } : undefined;
+}
+
+export function getPlannerTelegramChecklist(dateKey: string, tasks: PlannerTask[]) {
+  const meaningfulTasks = tasks
+    .filter((task) => task.title.trim().length > 0)
+    .slice(0, 30);
+
+  if (meaningfulTasks.length === 0) {
+    return null;
+  }
+
+  return {
+    title: `План на ${getPlannerDateLabel(dateKey)}`,
+    tasks: meaningfulTasks.map((task, index) => ({
+      id: index + 1,
+      text: task.title.slice(0, 100),
+    })),
+  };
+}
+
+export function getPlannerTelegramChecklistTaskIds(tasks: PlannerTask[]) {
+  return tasks
+    .filter((task) => task.title.trim().length > 0)
+    .slice(0, 30)
+    .map((task) => task.id);
 }

@@ -405,6 +405,29 @@ async function reorderPlannerTasksRequest(dayId: string, tasks: PlannerTask[]) {
   }
 }
 
+async function uploadPlannerVoiceRequest(dayId: string, audio: Blob) {
+  const formData = new FormData();
+
+  formData.set("date", dayId);
+  formData.set("audio", audio, "planner-voice.webm");
+
+  const response = await fetch("/api/planner/voice", {
+    body: formData,
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to process planner voice");
+  }
+
+  const data = (await response.json()) as {
+    tasks?: PlannerTask[];
+    transcript?: string;
+  };
+
+  return data.tasks ?? [];
+}
+
 function getCompletionMessage(completed: number, total: number) {
   if (total === 0) {
     return "Пока нечего считать. Добавь задачу, если день просит формы.";
@@ -836,20 +859,24 @@ function DayColumn({
   day,
   index,
   editingTaskId,
+  isRecording,
   tasks,
   onAddTask,
   onDeleteTask,
   onTitleChange,
   onToggleTask,
+  onVoiceTask,
 }: {
   day: PlannerDay;
   index: number;
   editingTaskId: string | null;
+  isRecording: boolean;
   tasks: PlannerTask[];
   onAddTask: () => void;
   onDeleteTask: (taskId: string) => void;
   onTitleChange: (taskId: string, title: string) => void;
   onToggleTask: (taskId: string) => void;
+  onVoiceTask: () => void;
 }) {
   const shouldReduceMotion = useReducedMotion();
   const { isOver, setNodeRef } = useDroppable({ id: day.id });
@@ -953,6 +980,18 @@ function DayColumn({
             </span>
             <span className={styles.addTaskLabel}>Добавить задачу</span>
           </button>
+          <button
+            className={styles.voiceTask}
+            data-recording={isRecording ? "true" : "false"}
+            type="button"
+            aria-label={
+              isRecording ? "Остановить надиктовку" : "Надиктовать задачи"
+            }
+            onClick={onVoiceTask}
+          >
+            <span aria-hidden="true" />
+            <span>{isRecording ? "Слушаю" : "Голосом"}</span>
+          </button>
         </motion.div>
       </SortableContext>
     </motion.section>
@@ -983,7 +1022,9 @@ export function PlannerApp() {
   const [planner, setPlanner] = useState<PlannerState>({});
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [recordingDayId, setRecordingDayId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const dragStartDayRef = useRef<string | null>(null);
   const loadedDayIdsRef = useRef<Set<string>>(new Set());
   const plannerRef = useRef<PlannerState>({});
@@ -994,6 +1035,8 @@ export function PlannerApp() {
   const isAppendingTimelineRef = useRef(false);
   const reorderTimeoutsRef = useRef<Record<string, number>>({});
   const titleSaveTimeoutsRef = useRef<Record<string, number>>({});
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceChunksRef = useRef<Blob[]>([]);
   const shouldReduceMotion = useReducedMotion();
   const days = useMemo(
     () => buildTimelineDays(timelineStartDate, timelineDayCount, today),
@@ -1045,6 +1088,96 @@ export function PlannerApp() {
 
     window.clearTimeout(timeoutId);
     delete titleSaveTimeoutsRef.current[taskId];
+  }
+
+  function mergeVoiceTasks(tasks: PlannerTask[]) {
+    if (tasks.length === 0) {
+      return;
+    }
+
+    const current = plannerRef.current;
+    const next = clonePlanner(current);
+
+    tasks.forEach((task) => {
+      next[task.date] = insertTaskBeforeCompleted(next[task.date] ?? [], task);
+    });
+
+    commitPlanner(next);
+  }
+
+  function stopVoiceRecording() {
+    const recorder = mediaRecorderRef.current;
+
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }
+
+  async function startVoiceRecording(dayId: string) {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setVoiceStatus("Микрофон не поддерживается");
+      window.setTimeout(() => setVoiceStatus(null), 2800);
+      return;
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+
+    voiceChunksRef.current = [];
+    mediaRecorderRef.current = recorder;
+    setRecordingDayId(dayId);
+    setVoiceStatus("Слушаю...");
+
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) {
+        voiceChunksRef.current.push(event.data);
+      }
+    });
+    recorder.addEventListener("stop", () => {
+      const audio = new Blob(voiceChunksRef.current, {
+        type: recorder.mimeType || "audio/webm",
+      });
+
+      stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
+      voiceChunksRef.current = [];
+      setRecordingDayId(null);
+      setVoiceStatus("Разбираю голос...");
+
+      if (audio.size === 0) {
+        setVoiceStatus(null);
+        return;
+      }
+
+      void uploadPlannerVoiceRequest(dayId, audio)
+        .then((tasks) => {
+          mergeVoiceTasks(tasks);
+          setVoiceStatus(
+            tasks.length > 0
+              ? `Добавил задач: ${tasks.length}`
+              : "Не нашел задач в голосе",
+          );
+          window.setTimeout(() => setVoiceStatus(null), 2600);
+        })
+        .catch(() => {
+          setVoiceStatus("Не смог разобрать голос");
+          window.setTimeout(() => setVoiceStatus(null), 3200);
+        });
+    });
+    recorder.start();
+  }
+
+  function toggleVoiceTask(dayId: string) {
+    if (recordingDayId) {
+      stopVoiceRecording();
+      return;
+    }
+
+    void startVoiceRecording(dayId).catch(() => {
+      setRecordingDayId(null);
+      setVoiceStatus("Микрофон недоступен");
+      window.setTimeout(() => setVoiceStatus(null), 2800);
+    });
   }
 
   useEffect(() => {
@@ -1146,6 +1279,11 @@ export function PlannerApp() {
     const titleSaveTimeouts = titleSaveTimeoutsRef.current;
 
     return () => {
+      const recorder = mediaRecorderRef.current;
+
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop();
+      }
       Object.values(reorderTimeouts).forEach((timeoutId) => {
         window.clearTimeout(timeoutId);
       });
@@ -1558,6 +1696,11 @@ export function PlannerApp() {
 
       <div className={styles.leftRail} data-planner-rail>
         <PlannerDayStatus isLoading={!storageReady} summary={dayStatus} />
+        {voiceStatus ? (
+          <p className={styles.voiceStatus} aria-live="polite">
+            {voiceStatus}
+          </p>
+        ) : null}
       </div>
 
       <DndContext
@@ -1583,6 +1726,7 @@ export function PlannerApp() {
                 day={day}
                 index={index}
                 editingTaskId={editingTaskId}
+                isRecording={recordingDayId === day.id}
                 tasks={planner[day.id] ?? []}
                 onAddTask={() => addTask(day.id)}
                 onDeleteTask={(taskId) => deleteTask(day.id, taskId)}
@@ -1590,6 +1734,7 @@ export function PlannerApp() {
                   updateTaskTitle(day.id, taskId, title)
                 }
                 onToggleTask={(taskId) => toggleTask(day.id, taskId)}
+                onVoiceTask={() => toggleVoiceTask(day.id)}
               />
             ))}
           </div>

@@ -37,6 +37,14 @@ export type TelegramDocument = {
   file_size?: number;
 };
 
+export type TelegramVoice = {
+  file_id: string;
+  file_unique_id?: string;
+  duration: number;
+  mime_type?: string;
+  file_size?: number;
+};
+
 export type TelegramAnimation = {
   file_id: string;
   file_unique_id?: string;
@@ -48,6 +56,32 @@ export type TelegramAnimation = {
   file_size?: number;
   thumbnail?: TelegramPhotoSize;
   thumb?: TelegramPhotoSize;
+};
+
+export type TelegramBusinessConnection = {
+  id: string;
+  user: TelegramUser;
+  user_chat_id: number;
+  date: number;
+  is_enabled: boolean;
+};
+
+export type TelegramChecklistTask = {
+  id: number;
+  text: string;
+  completed_by_user?: TelegramUser;
+  completion_date?: number;
+};
+
+export type TelegramChecklist = {
+  title: string;
+  tasks: TelegramChecklistTask[];
+};
+
+export type TelegramChecklistTasksDone = {
+  checklist_message?: TelegramMessage;
+  marked_as_done_task_ids?: number[];
+  marked_as_not_done_task_ids?: number[];
 };
 
 export type TelegramMessageEntity = {
@@ -75,6 +109,7 @@ export type TelegramReplyMarkup = {
 
 export type TelegramMessage = {
   message_id: number;
+  business_connection_id?: string;
   media_group_id?: string;
   from?: TelegramUser;
   sender_chat?: TelegramChat;
@@ -92,6 +127,9 @@ export type TelegramMessage = {
   photo?: TelegramPhotoSize[];
   animation?: TelegramAnimation;
   document?: TelegramDocument;
+  voice?: TelegramVoice;
+  checklist?: TelegramChecklist;
+  checklist_tasks_done?: TelegramChecklistTasksDone;
   reply_markup?: TelegramReplyMarkup;
 };
 
@@ -104,7 +142,10 @@ export type TelegramCallbackQuery = {
 
 export type TelegramUpdate = {
   update_id: number;
+  business_connection?: TelegramBusinessConnection;
+  business_message?: TelegramMessage;
   callback_query?: TelegramCallbackQuery;
+  edited_business_message?: TelegramMessage;
   message?: TelegramMessage;
   edited_message?: TelegramMessage;
   channel_post?: TelegramMessage;

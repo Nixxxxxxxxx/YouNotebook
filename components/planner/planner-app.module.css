@@ -92,6 +92,15 @@
   line-height: 120%;
 }
 
+.voiceStatus {
+  width: 204px;
+  margin: 28px 0 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  line-height: 16px;
+}
+
 .weekScroller {
   position: fixed;
   top: 32px;
@@ -525,6 +534,49 @@
   -webkit-background-clip: text;
 }
 
+.voiceTask {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  min-height: 18px;
+  padding: 0;
+  border: 0;
+  color: rgba(255, 255, 255, 0.42);
+  background: transparent;
+  font-size: 11px;
+  line-height: 14px;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.taskList:hover .voiceTask,
+.voiceTask[data-recording="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.voiceTask span:first-child {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 rgba(83, 130, 254, 0);
+}
+
+.voiceTask:hover,
+.voiceTask[data-recording="true"] {
+  color: #79a8ff;
+}
+
+.voiceTask[data-recording="true"] span:first-child {
+  animation: voicePulse 1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
 @keyframes liftTask {
   from {
     opacity: 0.72;
@@ -562,6 +614,21 @@
   100% {
     opacity: 0;
     transform: scale(1.6);
+  }
+}
+
+@keyframes voicePulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    box-shadow: 0 0 0 0 rgba(83, 130, 254, 0.28);
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 8px rgba(83, 130, 254, 0);
+    transform: scale(1.16);
   }
 }
 
@@ -614,7 +681,8 @@
   .taskRow,
   .taskOverlay,
   .deleteTask,
-  .addTask {
+  .addTask,
+  .voiceTask {
     animation: none;
     transition: none;
   }

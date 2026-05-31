@@ -20,15 +20,29 @@ type PlannerTelegramLinkRow = {
   user_id: string;
   telegram_user_id: string | number;
   chat_id: string | number;
+  business_connection_id: string | null;
+  business_user_chat_id: string | number | null;
+  business_enabled: boolean;
   created_at: Date | string;
   updated_at: Date | string;
   last_seen_at: Date | string | null;
+};
+
+type PlannerChecklistTaskRow = {
+  business_connection_id: string;
+  chat_id: string | number;
+  checklist_message_id: number;
+  checklist_task_id: number;
+  task_id: string;
 };
 
 export type PlannerTelegramLink = {
   userId: string;
   telegramUserId: number;
   chatId: number;
+  businessConnectionId: string | null;
+  businessEnabled: boolean;
+  businessUserChatId: number | null;
   createdAt: string;
   updatedAt: string;
   lastSeenAt: string | null;
@@ -69,6 +83,10 @@ function toPlannerTelegramLink(row: PlannerTelegramLinkRow): PlannerTelegramLink
     userId: row.user_id,
     telegramUserId: Number(row.telegram_user_id),
     chatId: Number(row.chat_id),
+    businessConnectionId: row.business_connection_id,
+    businessEnabled: row.business_enabled,
+    businessUserChatId:
+      row.business_user_chat_id === null ? null : Number(row.business_user_chat_id),
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     lastSeenAt: toNullableIso(row.last_seen_at),
@@ -121,9 +139,40 @@ export async function ensurePlannerSchema() {
         user_id uuid primary key references quietly_users(id) on delete cascade,
         telegram_user_id bigint not null unique,
         chat_id bigint not null,
+        business_connection_id text,
+        business_user_chat_id bigint,
+        business_enabled boolean not null default false,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now(),
         last_seen_at timestamptz
+      )
+    `;
+    await sql`
+      alter table planner_telegram_links
+      add column if not exists business_connection_id text
+    `;
+    await sql`
+      alter table planner_telegram_links
+      add column if not exists business_user_chat_id bigint
+    `;
+    await sql`
+      alter table planner_telegram_links
+      add column if not exists business_enabled boolean not null default false
+    `;
+    await sql`
+      create table if not exists planner_telegram_checklist_tasks (
+        business_connection_id text not null,
+        chat_id bigint not null,
+        checklist_message_id integer not null,
+        checklist_task_id integer not null,
+        task_id uuid not null references planner_tasks(id) on delete cascade,
+        created_at timestamptz not null default now(),
+        primary key (
+          business_connection_id,
+          chat_id,
+          checklist_message_id,
+          checklist_task_id
+        )
       )
     `;
     await sql`
@@ -147,6 +196,10 @@ export async function ensurePlannerSchema() {
     await sql`
       create index if not exists planner_telegram_links_chat_id_idx
       on planner_telegram_links(chat_id)
+    `;
+    await sql`
+      create index if not exists planner_telegram_links_business_connection_idx
+      on planner_telegram_links(business_connection_id)
     `;
   })();
 
@@ -404,6 +457,9 @@ export async function upsertPlannerTelegramLink(
     returning user_id,
       telegram_user_id::text as telegram_user_id,
       chat_id::text as chat_id,
+      business_connection_id,
+      business_user_chat_id::text as business_user_chat_id,
+      business_enabled,
       created_at,
       updated_at,
       last_seen_at
@@ -421,6 +477,9 @@ export async function getPlannerTelegramLinkByTelegramUserId(
     select user_id,
       telegram_user_id::text as telegram_user_id,
       chat_id::text as chat_id,
+      business_connection_id,
+      business_user_chat_id::text as business_user_chat_id,
+      business_enabled,
       created_at,
       updated_at,
       last_seen_at
@@ -440,11 +499,58 @@ export async function getPlannerTelegramLinkByTelegramUserId(
         userId: linkedUser.id,
         telegramUserId,
         chatId: telegramUserId,
+        businessConnectionId: null,
+        businessEnabled: false,
+        businessUserChatId: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastSeenAt: null,
       }
     : null;
+}
+
+export async function getPlannerTelegramLinkByUserId(userId: string) {
+  await ensurePlannerSchema();
+  const sql = getSql();
+  const [row] = await sql<PlannerTelegramLinkRow[]>`
+    select user_id,
+      telegram_user_id::text as telegram_user_id,
+      chat_id::text as chat_id,
+      business_connection_id,
+      business_user_chat_id::text as business_user_chat_id,
+      business_enabled,
+      created_at,
+      updated_at,
+      last_seen_at
+    from planner_telegram_links
+    where user_id = ${userId}
+    limit 1
+  `;
+
+  return row ? toPlannerTelegramLink(row) : null;
+}
+
+export async function getPlannerTelegramLinkByBusinessConnectionId(
+  businessConnectionId: string,
+) {
+  await ensurePlannerSchema();
+  const sql = getSql();
+  const [row] = await sql<PlannerTelegramLinkRow[]>`
+    select user_id,
+      telegram_user_id::text as telegram_user_id,
+      chat_id::text as chat_id,
+      business_connection_id,
+      business_user_chat_id::text as business_user_chat_id,
+      business_enabled,
+      created_at,
+      updated_at,
+      last_seen_at
+    from planner_telegram_links
+    where business_connection_id = ${businessConnectionId}
+    limit 1
+  `;
+
+  return row ? toPlannerTelegramLink(row) : null;
 }
 
 export async function touchPlannerTelegramLink(
@@ -470,6 +576,9 @@ export async function listPlannerTelegramDigestTargets() {
     select user_id,
       telegram_user_id::text as telegram_user_id,
       chat_id::text as chat_id,
+      business_connection_id,
+      business_user_chat_id::text as business_user_chat_id,
+      business_enabled,
       created_at,
       updated_at,
       last_seen_at
@@ -478,4 +587,134 @@ export async function listPlannerTelegramDigestTargets() {
   `;
 
   return rows.map(toPlannerTelegramLink);
+}
+
+export async function upsertPlannerBusinessConnection({
+  businessConnectionId,
+  businessEnabled,
+  businessUserChatId,
+  telegramUserId,
+  userId,
+}: {
+  businessConnectionId: string;
+  businessEnabled: boolean;
+  businessUserChatId: number;
+  telegramUserId: number;
+  userId: string;
+}) {
+  await ensurePlannerSchema();
+  const sql = getSql();
+  const [row] = await sql<PlannerTelegramLinkRow[]>`
+    insert into planner_telegram_links (
+      user_id,
+      telegram_user_id,
+      chat_id,
+      business_connection_id,
+      business_user_chat_id,
+      business_enabled,
+      last_seen_at
+    )
+    values (
+      ${userId},
+      ${String(telegramUserId)},
+      ${String(businessUserChatId)},
+      ${businessConnectionId},
+      ${String(businessUserChatId)},
+      ${businessEnabled},
+      now()
+    )
+    on conflict (user_id) do update
+      set telegram_user_id = excluded.telegram_user_id,
+        business_connection_id = excluded.business_connection_id,
+        business_user_chat_id = excluded.business_user_chat_id,
+        business_enabled = excluded.business_enabled,
+        updated_at = now(),
+        last_seen_at = now()
+    returning user_id,
+      telegram_user_id::text as telegram_user_id,
+      chat_id::text as chat_id,
+      business_connection_id,
+      business_user_chat_id::text as business_user_chat_id,
+      business_enabled,
+      created_at,
+      updated_at,
+      last_seen_at
+  `;
+
+  return toPlannerTelegramLink(row);
+}
+
+export async function savePlannerChecklistTaskMappings({
+  businessConnectionId,
+  chatId,
+  messageId,
+  taskIds,
+}: {
+  businessConnectionId: string;
+  chatId: number;
+  messageId: number;
+  taskIds: string[];
+}) {
+  await ensurePlannerSchema();
+  const sql = getSql();
+
+  for (const [index, taskId] of taskIds.entries()) {
+    await sql`
+      insert into planner_telegram_checklist_tasks (
+        business_connection_id,
+        chat_id,
+        checklist_message_id,
+        checklist_task_id,
+        task_id
+      )
+      values (
+        ${businessConnectionId},
+        ${String(chatId)},
+        ${messageId},
+        ${index + 1},
+        ${taskId}
+      )
+      on conflict (
+        business_connection_id,
+        chat_id,
+        checklist_message_id,
+        checklist_task_id
+      ) do update
+        set task_id = excluded.task_id
+    `;
+  }
+}
+
+export async function listPlannerTaskIdsByChecklistIds({
+  businessConnectionId,
+  chatId,
+  checklistMessageId,
+  checklistTaskIds,
+}: {
+  businessConnectionId: string;
+  chatId: number;
+  checklistMessageId: number;
+  checklistTaskIds: number[];
+}) {
+  await ensurePlannerSchema();
+
+  if (checklistTaskIds.length === 0) {
+    return [];
+  }
+
+  const sql = getSql();
+  const rows = await sql<PlannerChecklistTaskRow[]>`
+    select business_connection_id,
+      chat_id::text as chat_id,
+      checklist_message_id,
+      checklist_task_id,
+      task_id
+    from planner_telegram_checklist_tasks
+    where business_connection_id = ${businessConnectionId}
+      and chat_id = ${String(chatId)}
+      and checklist_message_id = ${checklistMessageId}
+      and checklist_task_id in ${sql(checklistTaskIds)}
+  `;
+
+  return rows.map((row) => row.task_id);
 }
