@@ -1,9 +1,28 @@
+import type {
+  PlannerVoiceProvider,
+  PlannerVoiceUsageSummary,
+} from "@/lib/planner/types";
+
 const DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
 const DEFAULT_CLOUDFLARE_MODEL = "@cf/openai/whisper";
+const DEFAULT_CLOUDFLARE_FREE_NEURONS_PER_DAY = 10_000;
+const DEFAULT_CLOUDFLARE_WHISPER_NEURONS_PER_MINUTE = 41.14;
 const TRANSCRIPTION_PROMPT =
   "Пользователь надиктовывает короткий список задач для личного планировщика Quietly. Сохраняй русский язык, названия, даты и смысл. Не добавляй пояснения.";
 
-function getTranscriptionProvider() {
+type PlannerVoiceUsageStats = {
+  requestsToday: number;
+  totalSecondsToday: number;
+  userSecondsToday: number;
+};
+
+function getNumberEnv(name: string, fallback: number) {
+  const value = Number(process.env[name]);
+
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+export function getTranscriptionProvider(): PlannerVoiceProvider {
   const provider = process.env.TRANSCRIPTION_PROVIDER?.trim().toLowerCase();
 
   if (provider === "openai" || provider === "cloudflare") {
@@ -27,6 +46,69 @@ function getOpenAiApiKey() {
 
 function getTranscriptionModel() {
   return process.env.OPENAI_TRANSCRIPTION_MODEL || DEFAULT_TRANSCRIPTION_MODEL;
+}
+
+export function getPlannerVoiceProviderInfo() {
+  const provider = getTranscriptionProvider();
+
+  if (provider === "cloudflare") {
+    const freeNeuronsPerDay = getNumberEnv(
+      "CLOUDFLARE_FREE_NEURONS_PER_DAY",
+      DEFAULT_CLOUDFLARE_FREE_NEURONS_PER_DAY,
+    );
+    const neuronsPerMinute = getNumberEnv(
+      "CLOUDFLARE_WHISPER_NEURONS_PER_MINUTE",
+      DEFAULT_CLOUDFLARE_WHISPER_NEURONS_PER_MINUTE,
+    );
+
+    return {
+      dailyLimitSeconds: Math.floor((freeNeuronsPerDay / neuronsPerMinute) * 60),
+      isConfigured: Boolean(
+        process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN,
+      ),
+      model: process.env.CLOUDFLARE_TRANSCRIPTION_MODEL || DEFAULT_CLOUDFLARE_MODEL,
+      provider,
+      providerLabel: "Cloudflare Whisper",
+    };
+  }
+
+  return {
+    dailyLimitSeconds: getNumberEnv("OPENAI_TRANSCRIPTION_FREE_SECONDS_DAY", 0),
+    isConfigured: Boolean(process.env.OPENAI_API_KEY),
+    model: getTranscriptionModel(),
+    provider,
+    providerLabel: "OpenAI",
+  };
+}
+
+export function getPlannerVoiceNextResetAt() {
+  const resetAt = new Date();
+
+  resetAt.setUTCHours(24, 0, 0, 0);
+
+  return resetAt.toISOString();
+}
+
+export function getPlannerVoiceUsageSummary(
+  stats: PlannerVoiceUsageStats,
+): PlannerVoiceUsageSummary {
+  const providerInfo = getPlannerVoiceProviderInfo();
+  const progress =
+    providerInfo.dailyLimitSeconds > 0
+      ? Math.min(1, stats.totalSecondsToday / providerInfo.dailyLimitSeconds)
+      : 0;
+
+  return {
+    dailyLimitSeconds: providerInfo.dailyLimitSeconds,
+    model: providerInfo.model,
+    nextResetAt: getPlannerVoiceNextResetAt(),
+    progress,
+    provider: providerInfo.provider,
+    providerLabel: providerInfo.providerLabel,
+    requestsToday: stats.requestsToday,
+    totalSecondsToday: stats.totalSecondsToday,
+    userSecondsToday: stats.userSecondsToday,
+  };
 }
 
 function getCloudflareConfig() {

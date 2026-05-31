@@ -24,6 +24,7 @@
   width: 272px;
   padding-top: 0;
   align-content: start;
+  row-gap: 34px;
   background: #000000;
   border-right: 1px solid rgba(255, 255, 255, 0.14);
 }
@@ -92,13 +93,110 @@
   line-height: 120%;
 }
 
-.voiceStatus {
-  width: 204px;
-  margin: 28px 0 0;
+.voicePanel {
+  display: grid;
+  gap: 13px;
+  width: var(--status-width);
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  color: #ffffff;
+  background: #000000;
+}
+
+.voicePanelHeader,
+.voiceLimit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voicePanelHeader span:first-child {
+  font-size: 15px;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+  line-height: 18px;
+}
+
+.voicePanelHeader span:last-child,
+.voiceLimit span,
+.voiceHint {
   color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 15px;
+}
+
+.voicePanelHeader span:last-child {
+  text-align: right;
+}
+
+.voiceLive {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  color: rgba(255, 255, 255, 0.62);
   font-size: 12px;
   letter-spacing: -0.01em;
   line-height: 16px;
+}
+
+.voiceLive[data-active="true"] {
+  color: #ffffff;
+}
+
+.voiceLiveDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.voiceLive[data-active="true"] .voiceLiveDot {
+  background: var(--blue);
+  box-shadow: 0 0 16px rgba(83, 130, 254, 0.58);
+  animation: voicePulse 1.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.voiceLimit {
+  margin-top: 2px;
+}
+
+.voiceLimit strong {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 520;
+  letter-spacing: -0.01em;
+  line-height: 16px;
+  text-align: right;
+}
+
+.voiceLimitTrack {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.voiceLimitTrack span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--blue);
+  box-shadow: 0 0 14px rgba(83, 130, 254, 0.36);
+  transform-origin: left center;
+}
+
+.voiceHint {
+  margin: 0;
 }
 
 .weekScroller {
@@ -660,6 +758,10 @@
     border-left: 0;
   }
 
+  .voicePanel {
+    width: min(100%, var(--status-width));
+  }
+
   .dayColumn {
     min-height: 58vh;
     padding: 18px 18px 0;
@@ -682,6 +784,8 @@
   .taskOverlay,
   .deleteTask,
   .addTask,
+  .voiceLiveDot,
+  .voiceLimitTrack span,
   .voiceTask {
     animation: none;
     transition: none;

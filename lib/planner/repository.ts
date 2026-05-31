@@ -1,7 +1,13 @@
 import { ensureAuthSchema, getUserByTelegramUserId } from "@/lib/auth/repository";
 import { getSql } from "@/lib/db/client";
 
-import type { PlannerTask, PlannerTaskInput, PlannerTaskSource } from "./types";
+import type {
+  PlannerTask,
+  PlannerTaskInput,
+  PlannerTaskSource,
+  PlannerVoiceProvider,
+  PlannerVoiceSource,
+} from "./types";
 
 type PlannerTaskRow = {
   id: string;
@@ -34,6 +40,11 @@ type PlannerChecklistTaskRow = {
   checklist_message_id: number;
   checklist_task_id: number;
   task_id: string;
+};
+
+type PlannerVoiceUsageStatsRow = {
+  requests_today: number | string;
+  total_seconds_today: number | string;
 };
 
 export type PlannerTelegramLink = {
@@ -186,6 +197,17 @@ export async function ensurePlannerSchema() {
       )
     `;
     await sql`
+      create table if not exists planner_voice_usage (
+        id uuid primary key default gen_random_uuid(),
+        user_id uuid not null references quietly_users(id) on delete cascade,
+        source text not null check (source in ('web', 'telegram')),
+        provider text not null check (provider in ('cloudflare', 'openai')),
+        duration_seconds integer not null
+          check (duration_seconds > 0 and duration_seconds <= 7200),
+        created_at timestamptz not null default now()
+      )
+    `;
+    await sql`
       create index if not exists planner_tasks_user_date_sort_idx
       on planner_tasks(user_id, task_date, sort_order)
     `;
@@ -200,6 +222,14 @@ export async function ensurePlannerSchema() {
     await sql`
       create index if not exists planner_telegram_links_business_connection_idx
       on planner_telegram_links(business_connection_id)
+    `;
+    await sql`
+      create index if not exists planner_voice_usage_user_created_idx
+      on planner_voice_usage(user_id, created_at)
+    `;
+    await sql`
+      create index if not exists planner_voice_usage_created_idx
+      on planner_voice_usage(created_at)
     `;
   })();
 
@@ -401,6 +431,65 @@ export async function reorderPlannerTasks(
         and id = ${id}
     `;
   }
+}
+
+export async function recordPlannerVoiceUsage(
+  userId: string,
+  {
+    durationSeconds,
+    provider,
+    source,
+  }: {
+    durationSeconds: number;
+    provider: PlannerVoiceProvider;
+    source: PlannerVoiceSource;
+  },
+) {
+  await ensurePlannerSchema();
+  const sql = getSql();
+  const safeDurationSeconds = Math.max(
+    1,
+    Math.min(7200, Math.ceil(durationSeconds)),
+  );
+
+  await sql`
+    insert into planner_voice_usage (
+      user_id,
+      source,
+      provider,
+      duration_seconds
+    )
+    values (
+      ${userId},
+      ${source},
+      ${provider},
+      ${safeDurationSeconds}
+    )
+  `;
+}
+
+export async function getPlannerVoiceUsageStats(userId: string) {
+  await ensurePlannerSchema();
+  const sql = getSql();
+  const [userRow] = await sql<PlannerVoiceUsageStatsRow[]>`
+    select coalesce(sum(duration_seconds), 0)::int as total_seconds_today,
+      count(*)::int as requests_today
+    from planner_voice_usage
+    where user_id = ${userId}
+      and created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+  `;
+  const [totalRow] = await sql<PlannerVoiceUsageStatsRow[]>`
+    select coalesce(sum(duration_seconds), 0)::int as total_seconds_today,
+      count(*)::int as requests_today
+    from planner_voice_usage
+    where created_at >= date_trunc('day', now() at time zone 'UTC') at time zone 'UTC'
+  `;
+
+  return {
+    requestsToday: Number(userRow?.requests_today ?? 0),
+    totalSecondsToday: Number(totalRow?.total_seconds_today ?? 0),
+    userSecondsToday: Number(userRow?.total_seconds_today ?? 0),
+  };
 }
 
 export async function beginPlannerTelegramUpdate(

@@ -10,6 +10,7 @@ import {
   getPlannerTelegramLinkByUserId,
   listPlannerTaskIdsByChecklistIds,
   listPlannerTasksByDate,
+  recordPlannerVoiceUsage,
   savePlannerChecklistTaskMappings,
   updatePlannerTask,
   upsertPlannerBusinessConnection,
@@ -23,7 +24,10 @@ import {
   parsePlannerTaskMessage,
   renderPlannerTelegramList,
 } from "@/lib/planner/telegram";
-import { transcribePlannerAudio } from "@/lib/planner/voice";
+import {
+  getPlannerVoiceProviderInfo,
+  transcribePlannerAudio,
+} from "@/lib/planner/voice";
 import {
   answerPlannerTelegramCallbackQuery,
   editPlannerTelegramMessageText,
@@ -287,6 +291,11 @@ async function handleMessage(message: TelegramMessage) {
 
     text = await transcribePlannerAudio(audioBlob, {
       fileName: "telegram-voice.ogg",
+    });
+    await recordPlannerVoiceUsage(userId, {
+      durationSeconds: message.voice.duration ?? 1,
+      provider: getPlannerVoiceProviderInfo().provider,
+      source: "telegram",
     });
   }
 

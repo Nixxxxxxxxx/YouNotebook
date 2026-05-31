@@ -39,10 +39,14 @@ import {
   TaskCheckIcon,
   TrashIcon,
 } from "@/components/icons/app-icons";
-import type { PlannerTask as ServerPlannerTask } from "@/lib/planner/types";
+import type {
+  PlannerTask as ServerPlannerTask,
+  PlannerVoiceUsageSummary,
+} from "@/lib/planner/types";
 import styles from "./planner-app.module.css";
 
 type PlannerTask = ServerPlannerTask;
+type PlannerVoiceUsage = PlannerVoiceUsageSummary;
 
 type PlannerState = Record<string, PlannerTask[]>;
 
@@ -136,6 +140,27 @@ function getTimelineTodayStartInset(timeline: HTMLElement) {
 
 function isSameDay(first: Date, second: Date) {
   return toDateKey(first) === toDateKey(second);
+}
+
+function formatVoiceMinutes(seconds: number) {
+  const minutes = seconds / 60;
+
+  if (minutes < 1 && seconds > 0) {
+    return "<1 мин";
+  }
+
+  return `${Math.round(minutes)} мин`;
+}
+
+function getCurrentTimestamp() {
+  return Date.now();
+}
+
+function getRecordingDurationSeconds(startedAt: number | null) {
+  return Math.max(
+    1,
+    Math.ceil((getCurrentTimestamp() - (startedAt ?? getCurrentTimestamp())) / 1000),
+  );
 }
 
 function isDayId(value: string) {
@@ -405,11 +430,30 @@ async function reorderPlannerTasksRequest(dayId: string, tasks: PlannerTask[]) {
   }
 }
 
-async function uploadPlannerVoiceRequest(dayId: string, audio: Blob) {
+async function fetchPlannerVoiceUsageRequest() {
+  const response = await fetch("/api/planner/voice", {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to load planner voice usage");
+  }
+
+  const data = (await response.json()) as { usage?: PlannerVoiceUsage };
+
+  return data.usage ?? null;
+}
+
+async function uploadPlannerVoiceRequest(
+  dayId: string,
+  audio: Blob,
+  durationSeconds: number,
+) {
   const formData = new FormData();
 
   formData.set("date", dayId);
   formData.set("audio", audio, "planner-voice.webm");
+  formData.set("durationSeconds", String(durationSeconds));
 
   const response = await fetch("/api/planner/voice", {
     body: formData,
@@ -423,9 +467,13 @@ async function uploadPlannerVoiceRequest(dayId: string, audio: Blob) {
   const data = (await response.json()) as {
     tasks?: PlannerTask[];
     transcript?: string;
+    usage?: PlannerVoiceUsage;
   };
 
-  return data.tasks ?? [];
+  return {
+    tasks: data.tasks ?? [],
+    usage: data.usage ?? null,
+  };
 }
 
 function getCompletionMessage(completed: number, total: number) {
@@ -648,6 +696,79 @@ function PlannerDayStatus({
           {summary.message}
         </motion.p>
       </AnimatePresence>
+    </motion.section>
+  );
+}
+
+function PlannerVoicePanel({
+  isLoading,
+  recordingDayTitle,
+  status,
+  usage,
+}: {
+  isLoading: boolean;
+  recordingDayTitle: string | null;
+  status: string | null;
+  usage: PlannerVoiceUsage | null;
+}) {
+  const shouldReduceMotion = useReducedMotion();
+  const usedSeconds = usage?.totalSecondsToday ?? 0;
+  const dailyLimitSeconds = usage?.dailyLimitSeconds ?? 0;
+  const remainingSeconds = Math.max(dailyLimitSeconds - usedSeconds, 0);
+  const progress = usage?.progress ?? 0;
+  const providerLabel = usage?.providerLabel ?? "Cloudflare Whisper";
+  const usedLabel = formatVoiceMinutes(usedSeconds);
+  const limitLabel = dailyLimitSeconds
+    ? formatVoiceMinutes(dailyLimitSeconds)
+    : "без лимита";
+  const remainingLabel = dailyLimitSeconds
+    ? `${formatVoiceMinutes(remainingSeconds)} осталось сегодня`
+    : "лимит не задан";
+  const liveStatus = recordingDayTitle
+    ? `Записываю: ${recordingDayTitle}`
+    : status;
+
+  return (
+    <motion.section
+      className={styles.voicePanel}
+      aria-label="Голосовой ввод и лимит расшифровки"
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ delay: 0.08, duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <div className={styles.voicePanelHeader}>
+        <span>Голосовой ввод</span>
+        <span>{providerLabel}</span>
+      </div>
+      <div
+        className={styles.voiceLive}
+        data-active={recordingDayTitle ? "true" : "false"}
+      >
+        <span className={styles.voiceLiveDot} aria-hidden="true" />
+        <span aria-live="polite">
+          {liveStatus ?? "Нажми «Голосом» под нужным днем"}
+        </span>
+      </div>
+      <div className={styles.voiceLimit}>
+        <span>Лимит</span>
+        <strong>{isLoading ? "..." : `${usedLabel} / ${limitLabel}`}</strong>
+      </div>
+      <div className={styles.voiceLimitTrack} aria-hidden="true">
+        <motion.span
+          initial={false}
+          animate={{ scaleX: isLoading ? 0 : progress }}
+          transition={
+            shouldReduceMotion
+              ? { duration: 0 }
+              : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+          }
+        />
+      </div>
+      <p className={styles.voiceHint}>
+        {isLoading
+          ? "Сверяю лимит..."
+          : `${remainingLabel}. Просто говори задачами, можно без тире.`}
+      </p>
     </motion.section>
   );
 }
@@ -1025,6 +1146,8 @@ export function PlannerApp() {
   const [recordingDayId, setRecordingDayId] = useState<string | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
+  const [voiceUsage, setVoiceUsage] = useState<PlannerVoiceUsage | null>(null);
+  const [voiceUsageReady, setVoiceUsageReady] = useState(false);
   const dragStartDayRef = useRef<string | null>(null);
   const loadedDayIdsRef = useRef<Set<string>>(new Set());
   const plannerRef = useRef<PlannerState>({});
@@ -1037,6 +1160,7 @@ export function PlannerApp() {
   const titleSaveTimeoutsRef = useRef<Record<string, number>>({});
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
+  const voiceStartedAtRef = useRef<number | null>(null);
   const shouldReduceMotion = useReducedMotion();
   const days = useMemo(
     () => buildTimelineDays(timelineStartDate, timelineDayCount, today),
@@ -1052,6 +1176,9 @@ export function PlannerApp() {
       }),
     [planner, todayDayId],
   );
+  const recordingDayTitle = recordingDayId
+    ? (days.find((day) => day.id === recordingDayId)?.title ?? null)
+    : null;
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -1124,6 +1251,7 @@ export function PlannerApp() {
     const recorder = new MediaRecorder(stream);
 
     voiceChunksRef.current = [];
+    voiceStartedAtRef.current = getCurrentTimestamp();
     mediaRecorderRef.current = recorder;
     setRecordingDayId(dayId);
     setVoiceStatus("Слушаю...");
@@ -1134,6 +1262,9 @@ export function PlannerApp() {
       }
     });
     recorder.addEventListener("stop", () => {
+      const durationSeconds = getRecordingDurationSeconds(
+        voiceStartedAtRef.current,
+      );
       const audio = new Blob(voiceChunksRef.current, {
         type: recorder.mimeType || "audio/webm",
       });
@@ -1141,6 +1272,7 @@ export function PlannerApp() {
       stream.getTracks().forEach((track) => track.stop());
       mediaRecorderRef.current = null;
       voiceChunksRef.current = [];
+      voiceStartedAtRef.current = null;
       setRecordingDayId(null);
       setVoiceStatus("Разбираю голос...");
 
@@ -1149,9 +1281,13 @@ export function PlannerApp() {
         return;
       }
 
-      void uploadPlannerVoiceRequest(dayId, audio)
-        .then((tasks) => {
+      void uploadPlannerVoiceRequest(dayId, audio, durationSeconds)
+        .then(({ tasks, usage }) => {
           mergeVoiceTasks(tasks);
+          if (usage) {
+            setVoiceUsage(usage);
+            setVoiceUsageReady(true);
+          }
           setVoiceStatus(
             tasks.length > 0
               ? `Добавил задач: ${tasks.length}`
@@ -1175,6 +1311,7 @@ export function PlannerApp() {
 
     void startVoiceRecording(dayId).catch(() => {
       setRecordingDayId(null);
+      voiceStartedAtRef.current = null;
       setVoiceStatus("Микрофон недоступен");
       window.setTimeout(() => setVoiceStatus(null), 2800);
     });
@@ -1193,6 +1330,27 @@ export function PlannerApp() {
   useEffect(() => {
     plannerRef.current = planner;
   }, [planner]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    fetchPlannerVoiceUsageRequest()
+      .then((usage) => {
+        if (!isCancelled) {
+          setVoiceUsage(usage);
+          setVoiceUsageReady(true);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setVoiceUsageReady(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -1284,6 +1442,7 @@ export function PlannerApp() {
       if (recorder && recorder.state !== "inactive") {
         recorder.stop();
       }
+      voiceStartedAtRef.current = null;
       Object.values(reorderTimeouts).forEach((timeoutId) => {
         window.clearTimeout(timeoutId);
       });
@@ -1696,11 +1855,12 @@ export function PlannerApp() {
 
       <div className={styles.leftRail} data-planner-rail>
         <PlannerDayStatus isLoading={!storageReady} summary={dayStatus} />
-        {voiceStatus ? (
-          <p className={styles.voiceStatus} aria-live="polite">
-            {voiceStatus}
-          </p>
-        ) : null}
+        <PlannerVoicePanel
+          isLoading={!voiceUsageReady}
+          recordingDayTitle={recordingDayTitle}
+          status={voiceStatus}
+          usage={voiceUsage}
+        />
       </div>
 
       <DndContext
