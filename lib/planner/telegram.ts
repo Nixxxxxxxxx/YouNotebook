@@ -41,7 +41,100 @@ function normalizeTelegramLine(line: string) {
     .trim()
     .replace(/^(?:[-—–•*+]|\d+[.)]|☐|✅|✔|\[[ xX]\])\s+/u, "")
     .replace(/\s+/g, " ")
+    .replace(/[.;:!?]+$/u, "")
     .trim();
+}
+
+const TASK_SEPARATOR_REGEXP =
+  /\s*(?:[;]+|[.!?]\s+|,\s+|\s+(?:а\s+потом|потом|затем|после\s+этого|далее)\s+|\s+и\s+)\s*/giu;
+const IMPERATIVE_ACTION_WORDS = new Set([
+  "добавь",
+  "забери",
+  "зайди",
+  "закажи",
+  "закрой",
+  "запиши",
+  "заполни",
+  "запусти",
+  "купи",
+  "найди",
+  "напиши",
+  "настрой",
+  "обнови",
+  "оплати",
+  "открой",
+  "отправь",
+  "перенеси",
+  "позвони",
+  "помой",
+  "поставь",
+  "почини",
+  "прочитай",
+  "проведи",
+  "проверь",
+  "разбери",
+  "сделай",
+  "скинь",
+  "собери",
+  "создай",
+  "сходи",
+  "убери",
+]);
+
+function getFirstWord(value: string) {
+  return value.toLowerCase().match(/[a-zа-яё]+/iu)?.[0] ?? "";
+}
+
+function looksLikeActionPhrase(value: string) {
+  const firstWord = getFirstWord(value).replace(/ё/g, "е");
+
+  if (!firstWord) {
+    return false;
+  }
+
+  return (
+    IMPERATIVE_ACTION_WORDS.has(firstWord) ||
+    /(?:ть|ти|чь|ться|тись)$/iu.test(firstWord)
+  );
+}
+
+function removePlannerLeadIn(title: string) {
+  return title
+    .replace(
+      /^(?:мне\s+)?(?:нужно|надо|хочу|давай|можешь|можно)\s+/iu,
+      "",
+    )
+    .replace(
+      /^(?:добавь|добавить|запиши|записать|запланируй|запланировать|поставь|поставить|создай|создать)\s+(?:задач[иу]?\s+|дел[ао]\s+|план\s+)?/iu,
+      "",
+    )
+    .trim();
+}
+
+function normalizeTaskSegment(segment: string) {
+  const title = normalizeTelegramLine(segment);
+  const withoutFillerDo = title.replace(/^сделать\s+(.+)$/iu, (_, rest) =>
+    looksLikeActionPhrase(rest) ? rest : title,
+  );
+
+  return withoutFillerDo.trim();
+}
+
+function splitCompoundTaskTitle(title: string) {
+  const normalizedTitle = removePlannerLeadIn(title);
+  const segments = normalizedTitle
+    .split(TASK_SEPARATOR_REGEXP)
+    .map(normalizeTaskSegment)
+    .filter(Boolean);
+
+  if (
+    segments.length > 1 &&
+    segments.every((segment) => looksLikeActionPhrase(segment))
+  ) {
+    return segments;
+  }
+
+  return [normalizeTaskSegment(normalizedTitle)].filter(Boolean);
 }
 
 function isTodayDirective(line: string) {
@@ -93,10 +186,11 @@ export function getPlannerDateLabel(dateKey: string) {
 
 export function parsePlannerTaskMessage(
   text: string,
-  options: { defaultDate?: string } = {},
+  options: { defaultDate?: string; source?: PlannerTaskInput["source"] } = {},
 ): PlannerTaskInput[] {
   const todayKey = options.defaultDate ?? getMoscowDateKey();
   const tomorrowKey = addDaysToDateKey(todayKey, 1);
+  const source = options.source ?? "telegram";
   let activeDate = todayKey;
   const tasks: PlannerTaskInput[] = [];
 
@@ -131,10 +225,12 @@ export function parsePlannerTaskMessage(
       return;
     }
 
-    tasks.push({
-      date: activeDate,
-      source: "telegram",
-      title,
+    splitCompoundTaskTitle(title).forEach((taskTitle) => {
+      tasks.push({
+        date: activeDate,
+        source,
+        title: taskTitle,
+      });
     });
   });
 

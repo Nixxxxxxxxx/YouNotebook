@@ -72,6 +72,7 @@ export async function POST(request: Request) {
     });
     const inputs = parsePlannerTaskMessage(transcript, {
       defaultDate: isDateKey(date) ? date : undefined,
+      source: "web",
     });
     const providerInfo = getPlannerVoiceProviderInfo();
 
