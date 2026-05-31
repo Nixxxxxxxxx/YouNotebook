@@ -94,34 +94,44 @@
 }
 
 .voicePanel {
+  position: relative;
   display: grid;
-  gap: 18px;
+  gap: 16px;
   width: var(--status-width);
   box-sizing: border-box;
-  padding: 0;
+  padding: 0 0 0 24px;
   border: 0;
   border-radius: 0;
   color: #ffffff;
   background: transparent;
 }
 
+.voicePanel::before {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  content: "";
+}
+
 .voicePanelHeader,
 .voiceLimit {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 0;
 }
 
 .voicePanelHeader span:first-child {
-  max-width: 130px;
-  font-size: 21px;
+  max-width: 112px;
+  font-size: 17px;
   font-weight: 560;
-  letter-spacing: -0.03em;
-  line-height: 24px;
+  letter-spacing: -0.025em;
+  line-height: 20px;
 }
 
-.voicePanelHeader span:last-child,
 .voiceLimit span,
 .voiceHint {
   color: rgba(255, 255, 255, 0.5);
@@ -129,10 +139,6 @@
   font-weight: 400;
   letter-spacing: -0.01em;
   line-height: 18px;
-}
-
-.voicePanelHeader span:last-child {
-  text-align: right;
 }
 
 .voiceLive {

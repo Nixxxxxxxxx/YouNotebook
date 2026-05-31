@@ -716,7 +716,6 @@ function PlannerVoicePanel({
   const dailyLimitSeconds = usage?.dailyLimitSeconds ?? 0;
   const remainingSeconds = Math.max(dailyLimitSeconds - usedSeconds, 0);
   const progress = usage?.progress ?? 0;
-  const providerLabel = usage?.providerLabel ?? "Cloudflare Whisper";
   const usedLabel = formatVoiceMinutes(usedSeconds);
   const limitLabel = dailyLimitSeconds
     ? formatVoiceMinutes(dailyLimitSeconds)
@@ -738,7 +737,6 @@ function PlannerVoicePanel({
     >
       <div className={styles.voicePanelHeader}>
         <span>Голосовой ввод</span>
-        <span>{providerLabel}</span>
       </div>
       <div
         className={styles.voiceLive}
