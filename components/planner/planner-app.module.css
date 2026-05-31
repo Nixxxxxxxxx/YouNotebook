@@ -53,9 +53,12 @@
   text-wrap: nowrap;
 }
 
-.dayStatus[data-loading="true"] .dayStatusCount,
+.dayStatus[data-loading="true"] .dayStatusCount {
+  opacity: 0.42;
+}
+
 .dayStatus[data-loading="true"] .dayStatusMessage {
-  visibility: hidden;
+  opacity: 0.56;
 }
 
 .dayStatusTrack {
