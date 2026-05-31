@@ -47,6 +47,8 @@ function normalizeTelegramLine(line: string) {
 
 const TASK_SEPARATOR_REGEXP =
   /\s*(?:[;]+|[.!?]\s+|,\s+|\s+(?:а\s+потом|потом|затем|после\s+этого|далее)\s+|\s+и\s+)\s*/giu;
+const NATURAL_DATE_MARKER_REGEXP =
+  /(^|[\s,.;!?])((?:на\s+)?сегодня|(?:на\s+)?завтра)(?=[:\s,.;!?]|$)/giu;
 const IMPERATIVE_ACTION_WORDS = new Set([
   "добавь",
   "забери",
@@ -78,6 +80,7 @@ const IMPERATIVE_ACTION_WORDS = new Set([
   "собери",
   "создай",
   "сходи",
+  "схожу",
   "убери",
 ]);
 
@@ -94,14 +97,15 @@ function looksLikeActionPhrase(value: string) {
 
   return (
     IMPERATIVE_ACTION_WORDS.has(firstWord) ||
-    /(?:ть|ти|чь|ться|тись)$/iu.test(firstWord)
+    /(?:ть|ти|чь|ться|тись)$/iu.test(firstWord) ||
+    (firstWord.length > 3 && /(?:ю|у)$/iu.test(firstWord))
   );
 }
 
 function removePlannerLeadIn(title: string) {
   return title
     .replace(
-      /^(?:мне\s+)?(?:нужно|надо|хочу|давай|можешь|можно)\s+/iu,
+      /^(?:мне\s+)?(?:нужно|надо|хочу|давай|можешь|можно)(?:\s+|$)/iu,
       "",
     )
     .replace(
@@ -112,7 +116,12 @@ function removePlannerLeadIn(title: string) {
 }
 
 function normalizeTaskSegment(segment: string) {
-  const title = normalizeTelegramLine(segment).replace(/\s+и$/iu, "").trim();
+  const title = removePlannerLeadIn(normalizeTelegramLine(segment))
+    .replace(/^(?:я|мы)\s+(?:буду|будем)\s+/iu, "")
+    .replace(/^(?:я|мы)\s+/iu, "")
+    .replace(/^(?:буду|будем)\s+/iu, "")
+    .replace(/\s+и$/iu, "")
+    .trim();
   const withoutFillerDo = title.replace(/^сделать\s+(.+)$/iu, (_, rest) =>
     looksLikeActionPhrase(rest) ? rest : title,
   );
@@ -145,14 +154,6 @@ function isTomorrowDirective(line: string) {
   return /^(?:на\s+)?завтра:?$/iu.test(line) || /^tomorrow:?$/iu.test(line);
 }
 
-function isTodayInlineDirective(line: string) {
-  return /^(?:на\s+)?сегодня:\s+/iu.test(line) || /^today:\s+/iu.test(line);
-}
-
-function isTomorrowInlineDirective(line: string) {
-  return /^(?:на\s+)?завтра:\s+/iu.test(line) || /^tomorrow:\s+/iu.test(line);
-}
-
 function removeInlineDirective(line: string) {
   return line
     .replace(/^(?:на\s+)?сегодня:\s*/iu, "")
@@ -169,31 +170,60 @@ function removeNaturalDateLeadIn(line: string) {
     .trim();
 }
 
-function getNaturalDatePrefix(line: string) {
-  if (/^(?:на\s+)?сегодня(?:\s+|$)/iu.test(line)) {
-    return "today" as const;
-  }
-
-  if (/^(?:на\s+)?завтра(?:\s+|$)/iu.test(line)) {
-    return "tomorrow" as const;
-  }
-
-  return null;
+function getDateKeyFromNaturalMarker(
+  marker: string,
+  todayKey: string,
+  tomorrowKey: string,
+) {
+  return /завтра/iu.test(marker) ? tomorrowKey : todayKey;
 }
 
-function splitNaturalDateClauses(line: string) {
-  const protectedLine = line.replace(
-    /(^|\s)на\s+(сегодня|завтра)(?=\s|:|$)/giu,
-    "$1на_$2",
+function stripTaskBoundary(value: string) {
+  return value.replace(/^[\s,.;:!?]+|[\s,.;:!?]+$/gu, "").trim();
+}
+
+function isOnlyPlannerLeadIn(value: string) {
+  const normalized = normalizeTaskSegment(
+    removeNaturalDateLeadIn(removeInlineDirective(value)),
   );
 
-  return protectedLine
-    .replace(/\s+(?=(?:на_)?(?:сегодня|завтра)(?:\s+|:))/giu, "\n")
-    .split(/\n+/)
-    .map((clause) =>
-      clause.replace(/(^|\s)на_(сегодня|завтра)(?=\s|:|$)/giu, "$1на $2").trim(),
-    )
-    .filter(Boolean);
+  return !normalized || /^(?:и|а)$/iu.test(normalized);
+}
+
+function splitNaturalDateClauses(
+  line: string,
+  activeDate: string,
+  todayKey: string,
+  tomorrowKey: string,
+) {
+  const matches = Array.from(line.matchAll(NATURAL_DATE_MARKER_REGEXP));
+
+  if (matches.length === 0) {
+    return [{ date: activeDate, text: line }];
+  }
+
+  const clauses: Array<{ date: string; text: string }> = [];
+  const firstMatch = matches[0];
+  const leadingText = stripTaskBoundary(line.slice(0, firstMatch.index));
+
+  if (leadingText && !isOnlyPlannerLeadIn(leadingText)) {
+    clauses.push({ date: activeDate, text: leadingText });
+  }
+
+  matches.forEach((match, index) => {
+    const marker = match[2] ?? "";
+    const nextMatch = matches[index + 1];
+    const date = getDateKeyFromNaturalMarker(marker, todayKey, tomorrowKey);
+    const text = stripTaskBoundary(
+      line.slice((match.index ?? 0) + match[0].length, nextMatch?.index),
+    );
+
+    if (text) {
+      clauses.push({ date, text });
+    }
+  });
+
+  return clauses;
 }
 
 export function getMoscowDateKey(offsetDays = 0) {
@@ -245,43 +275,27 @@ export function parsePlannerTaskMessage(
       return;
     }
 
-    splitNaturalDateClauses(line).forEach((clause) => {
-      let clauseDate = activeDate;
-
-      if (isTodayInlineDirective(clause)) {
-        clauseDate = todayKey;
-      } else if (isTomorrowInlineDirective(clause)) {
-        clauseDate = tomorrowKey;
-      } else {
-        const naturalDatePrefix = getNaturalDatePrefix(clause);
-
-        if (naturalDatePrefix === "today") {
-          clauseDate = todayKey;
-        }
-
-        if (naturalDatePrefix === "tomorrow") {
-          clauseDate = tomorrowKey;
-        }
-      }
-
+    splitNaturalDateClauses(line, activeDate, todayKey, tomorrowKey).forEach(
+      (clause) => {
       const title = normalizeTelegramLine(
-        removeNaturalDateLeadIn(removeInlineDirective(clause)),
+        removeNaturalDateLeadIn(removeInlineDirective(clause.text)),
       );
 
       if (!title) {
-        activeDate = clauseDate;
+        activeDate = clause.date;
         return;
       }
 
       splitCompoundTaskTitle(title).forEach((taskTitle) => {
         tasks.push({
-          date: clauseDate,
+          date: clause.date,
           source,
           title: taskTitle,
         });
       });
-      activeDate = clauseDate;
-    });
+      activeDate = clause.date;
+    },
+    );
   });
 
   return tasks;
