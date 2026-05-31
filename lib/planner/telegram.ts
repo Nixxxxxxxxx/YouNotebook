@@ -41,7 +41,7 @@ function normalizeTelegramLine(line: string) {
     .trim()
     .replace(/^(?:[-—–•*+]|\d+[.)]|☐|✅|✔|\[[ xX]\])\s+/u, "")
     .replace(/\s+/g, " ")
-    .replace(/[.;:!?]+$/u, "")
+    .replace(/[.,;:!?]+$/u, "")
     .trim();
 }
 
@@ -112,7 +112,7 @@ function removePlannerLeadIn(title: string) {
 }
 
 function normalizeTaskSegment(segment: string) {
-  const title = normalizeTelegramLine(segment);
+  const title = normalizeTelegramLine(segment).replace(/\s+и$/iu, "").trim();
   const withoutFillerDo = title.replace(/^сделать\s+(.+)$/iu, (_, rest) =>
     looksLikeActionPhrase(rest) ? rest : title,
   );
@@ -160,6 +160,40 @@ function removeInlineDirective(line: string) {
     .replace(/^today:\s*/iu, "")
     .replace(/^tomorrow:\s*/iu, "")
     .trim();
+}
+
+function removeNaturalDateLeadIn(line: string) {
+  return line
+    .replace(/^(?:на\s+)?сегодня(?:\s+|$)/iu, "")
+    .replace(/^(?:на\s+)?завтра(?:\s+|$)/iu, "")
+    .trim();
+}
+
+function getNaturalDatePrefix(line: string) {
+  if (/^(?:на\s+)?сегодня(?:\s+|$)/iu.test(line)) {
+    return "today" as const;
+  }
+
+  if (/^(?:на\s+)?завтра(?:\s+|$)/iu.test(line)) {
+    return "tomorrow" as const;
+  }
+
+  return null;
+}
+
+function splitNaturalDateClauses(line: string) {
+  const protectedLine = line.replace(
+    /(^|\s)на\s+(сегодня|завтра)(?=\s|:|$)/giu,
+    "$1на_$2",
+  );
+
+  return protectedLine
+    .replace(/\s+(?=(?:на_)?(?:сегодня|завтра)(?:\s+|:))/giu, "\n")
+    .split(/\n+/)
+    .map((clause) =>
+      clause.replace(/(^|\s)на_(сегодня|завтра)(?=\s|:|$)/giu, "$1на $2").trim(),
+    )
+    .filter(Boolean);
 }
 
 export function getMoscowDateKey(offsetDays = 0) {
@@ -211,26 +245,42 @@ export function parsePlannerTaskMessage(
       return;
     }
 
-    if (isTodayInlineDirective(line)) {
-      activeDate = todayKey;
-    }
+    splitNaturalDateClauses(line).forEach((clause) => {
+      let clauseDate = activeDate;
 
-    if (isTomorrowInlineDirective(line)) {
-      activeDate = tomorrowKey;
-    }
+      if (isTodayInlineDirective(clause)) {
+        clauseDate = todayKey;
+      } else if (isTomorrowInlineDirective(clause)) {
+        clauseDate = tomorrowKey;
+      } else {
+        const naturalDatePrefix = getNaturalDatePrefix(clause);
 
-    const title = normalizeTelegramLine(removeInlineDirective(line));
+        if (naturalDatePrefix === "today") {
+          clauseDate = todayKey;
+        }
 
-    if (!title) {
-      return;
-    }
+        if (naturalDatePrefix === "tomorrow") {
+          clauseDate = tomorrowKey;
+        }
+      }
 
-    splitCompoundTaskTitle(title).forEach((taskTitle) => {
-      tasks.push({
-        date: activeDate,
-        source,
-        title: taskTitle,
+      const title = normalizeTelegramLine(
+        removeNaturalDateLeadIn(removeInlineDirective(clause)),
+      );
+
+      if (!title) {
+        activeDate = clauseDate;
+        return;
+      }
+
+      splitCompoundTaskTitle(title).forEach((taskTitle) => {
+        tasks.push({
+          date: clauseDate,
+          source,
+          title: taskTitle,
+        });
       });
+      activeDate = clauseDate;
     });
   });
 

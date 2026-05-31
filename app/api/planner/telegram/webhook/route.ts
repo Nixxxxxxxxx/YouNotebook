@@ -105,6 +105,26 @@ async function sendTaskList(userId: string, chatId: number, dateKey: string) {
   );
 }
 
+function getPlannerBusinessStatusMessage(
+  link: Awaited<ReturnType<typeof getPlannerTelegramLinkByUserId>>,
+) {
+  if (link?.businessEnabled && link.businessConnectionId) {
+    return "Нативный Telegram «Список» подключен. Буду отправлять задачи checklist-сообщением, а не кнопками.";
+  }
+
+  return [
+    "Сейчас нативный Telegram «Список» не подключен, поэтому я отправляю задачи кнопками.",
+    "",
+    "Важно: Premium сам по себе не дает боту право отправлять checklist. Telegram требует подключить бота как Business-бота.",
+    "",
+    "Что сделать:",
+    "1. Открой Telegram → Настройки → Telegram Business.",
+    "2. Найди раздел с чат-ботами / Chatbots.",
+    "3. Подключи этого planner-бота и включи доступ.",
+    "4. Напиши сюда /business еще раз.",
+  ].join("\n");
+}
+
 async function handleBusinessConnection(connection: TelegramBusinessConnection) {
   const linkedUser = await getPlannerTelegramLinkByTelegramUserId(
     connection.user.id,
@@ -266,9 +286,19 @@ async function handleMessage(message: TelegramMessage) {
   if (command === "/start") {
     await sendPlannerTelegramMessage(
       message.chat.id,
-      "Подключил планировщик. Присылай задачи обычным списком, каждую с новой строки. Без тире, без ритуалов.",
+      "Подключил планировщик. Присылай задачи обычным списком или голосом. Для нативного Telegram «Списка» проверь /business.",
     );
     await sendTaskList(userId, message.chat.id, getMoscowDateKey());
+    return;
+  }
+
+  if (command === "/business" || command === "/list") {
+    const link = await getPlannerTelegramLinkByUserId(userId);
+
+    await sendPlannerTelegramMessage(
+      message.chat.id,
+      getPlannerBusinessStatusMessage(link),
+    );
     return;
   }
 
