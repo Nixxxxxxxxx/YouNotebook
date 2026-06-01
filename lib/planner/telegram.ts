@@ -307,20 +307,44 @@ export function renderPlannerTelegramList(dateKey: string, tasks: PlannerTask[])
   const title = `План на ${getPlannerDateLabel(dateKey)}`;
 
   if (meaningfulTasks.length === 0) {
-    return `${title}\n\nПока задач нет. Просто пришли список строками, и я аккуратно сложу его сюда.`;
+    return `<b>🗓 ${escapeTelegramHtml(title)}</b>\n\nПока задач нет. Просто пришли список строками, и я аккуратно сложу его сюда.`;
   }
 
-  const lines = meaningfulTasks.map((task) => {
-    const marker = task.completed ? "✓" : "☐";
+  const lines = meaningfulTasks.map((task, index) => {
+    const number = index + 1;
+    const title = escapeTelegramHtml(task.title);
 
-    return `${marker} ${task.title}`;
+    if (task.completed) {
+      return `✅ <s>${number}. ${title}</s>`;
+    }
+
+    return `☐ <b>${number}.</b> ${title}`;
   });
 
-  return `${title}\n${completed}/${meaningfulTasks.length} закрыто\n\n${lines.join("\n")}`;
+  return [
+    `<b>🗓 ${escapeTelegramHtml(title)}</b>`,
+    `✅ ${completed}/${meaningfulTasks.length} закрыто`,
+    "",
+    lines.join("\n"),
+    "",
+    "👇 Нажимай номер снизу, чтобы закрыть задачу. Закрытую можно вернуть тем же номером.",
+  ].join("\n");
 }
 
-function truncateButtonTitle(title: string) {
-  return title.length > 34 ? `${title.slice(0, 31)}...` : title;
+export function getPlannerTelegramListOptions(
+  replyMarkup?: TelegramReplyMarkup,
+) {
+  return {
+    parse_mode: "HTML",
+    ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+  };
+}
+
+function escapeTelegramHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 export function getPlannerTelegramReplyMarkup(
@@ -328,18 +352,27 @@ export function getPlannerTelegramReplyMarkup(
 ): TelegramReplyMarkup | undefined {
   const meaningfulTasks = tasks.filter((task) => task.title.trim().length > 0);
   const buttons: NonNullable<TelegramReplyMarkup["inline_keyboard"]> =
-    meaningfulTasks.slice(0, 20).map((task) => [
-    {
-      text: `${task.completed ? "↩" : "✓"} ${truncateButtonTitle(task.title)}`,
+    [];
+
+  meaningfulTasks.slice(0, 20).forEach((task, index) => {
+    const rowIndex = Math.floor(index / 5);
+
+    if (!buttons[rowIndex]) {
+      buttons[rowIndex] = [];
+    }
+
+    buttons[rowIndex].push({
+      text: `${task.completed ? "↩" : "✓"} ${index + 1}`,
       callback_data: `pt:${task.id}`,
-    },
-  ]);
+    });
+  });
+
   const appBaseUrl = process.env.APP_BASE_URL?.trim();
 
   if (appBaseUrl) {
     buttons.push([
       {
-        text: "Открыть планировщик",
+        text: "Открыть в Quietly",
         url: `${appBaseUrl.replace(/\/$/, "")}/planner`,
       },
     ]);

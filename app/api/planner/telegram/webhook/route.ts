@@ -20,6 +20,7 @@ import {
   getMoscowDateKey,
   getPlannerTelegramChecklist,
   getPlannerTelegramChecklistTaskIds,
+  getPlannerTelegramListOptions,
   getPlannerTelegramReplyMarkup,
   parsePlannerTaskMessage,
   renderPlannerTelegramList,
@@ -99,9 +100,7 @@ async function sendTaskList(userId: string, chatId: number, dateKey: string) {
   await sendPlannerTelegramMessage(
     chatId,
     renderPlannerTelegramList(dateKey, tasks),
-    {
-      reply_markup: getPlannerTelegramReplyMarkup(tasks),
-    },
+    getPlannerTelegramListOptions(getPlannerTelegramReplyMarkup(tasks)),
   );
 }
 
@@ -248,12 +247,14 @@ async function handleCallback(update: TelegramUpdate) {
         callback.message.chat.id,
         callback.message.message_id,
         text,
-        { reply_markup: replyMarkup },
+        getPlannerTelegramListOptions(replyMarkup),
       );
     } catch {
-      await sendPlannerTelegramMessage(callback.message.chat.id, text, {
-        reply_markup: replyMarkup,
-      });
+      await sendPlannerTelegramMessage(
+        callback.message.chat.id,
+        text,
+        getPlannerTelegramListOptions(replyMarkup),
+      );
     }
   }
 

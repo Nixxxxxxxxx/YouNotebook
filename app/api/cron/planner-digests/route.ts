@@ -9,6 +9,7 @@ import {
   getMoscowDateKey,
   getPlannerTelegramChecklist,
   getPlannerTelegramChecklistTaskIds,
+  getPlannerTelegramListOptions,
   getPlannerTelegramReplyMarkup,
   renderPlannerTelegramList,
 } from "@/lib/planner/telegram";
@@ -77,9 +78,7 @@ export async function GET(request: Request) {
       await sendPlannerTelegramMessage(
         target.chatId,
         renderPlannerTelegramList(dateKey, tasks),
-        {
-          reply_markup: getPlannerTelegramReplyMarkup(tasks),
-        },
+        getPlannerTelegramListOptions(getPlannerTelegramReplyMarkup(tasks)),
       );
       sent += 1;
     } catch (error) {
