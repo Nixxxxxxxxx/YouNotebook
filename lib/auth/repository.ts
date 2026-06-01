@@ -32,6 +32,13 @@ type TelegramLinkRow = {
   user_id?: string;
 };
 
+type TelegramLinkTokenRow = {
+  token_hash: string;
+  user_id: string;
+  expires_at: Date | string;
+  used_at: Date | string | null;
+};
+
 let authSchemaPromise: Promise<void> | null = null;
 
 function toIso(value: Date | string) {
@@ -178,12 +185,29 @@ export async function ensureAuthSchema() {
       )
     `;
     await sql`
+      create table if not exists telegram_link_tokens (
+        token_hash text primary key,
+        user_id uuid not null references quietly_users(id) on delete cascade,
+        created_at timestamptz not null default now(),
+        expires_at timestamptz not null,
+        used_at timestamptz
+      )
+    `;
+    await sql`
       create index if not exists quietly_sessions_user_id_idx
       on quietly_sessions(user_id)
     `;
     await sql`
       create index if not exists quietly_sessions_expires_at_idx
       on quietly_sessions(expires_at)
+    `;
+    await sql`
+      create index if not exists telegram_link_tokens_user_id_idx
+      on telegram_link_tokens(user_id)
+    `;
+    await sql`
+      create index if not exists telegram_link_tokens_expires_at_idx
+      on telegram_link_tokens(expires_at)
     `;
   })();
 
@@ -419,6 +443,84 @@ export async function addTelegramLink(userId: string, telegramUserId: string) {
       telegramUserId: String(row.telegram_user_id),
       createdAt: toIso(row.created_at),
     };
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw new AuthError(
+        "telegram_link_taken",
+        "Этот Telegram уже подключен к другому пространству",
+        409,
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function createTelegramLinkToken(userId: string) {
+  await ensureAuthSchema();
+  const sql = getSql();
+  const token = createSessionToken();
+  const tokenHash = hashSessionToken(token);
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 15);
+
+  await sql`
+    delete from telegram_link_tokens
+    where user_id = ${userId}
+      and (used_at is not null or expires_at <= now())
+  `;
+  await sql`
+    insert into telegram_link_tokens (token_hash, user_id, expires_at)
+    values (${tokenHash}, ${userId}, ${expiresAt})
+  `;
+
+  return {
+    expiresAt,
+    token,
+  };
+}
+
+export async function consumeTelegramLinkToken(
+  token: string,
+  telegramUserId: string,
+) {
+  await ensureAuthSchema();
+  const tokenHash = hashSessionToken(token);
+  const sql = getSql();
+
+  try {
+    return await sql.begin(async (transaction) => {
+      const [tokenRow] = await transaction<TelegramLinkTokenRow[]>`
+        update telegram_link_tokens
+        set used_at = now()
+        where token_hash = ${tokenHash}
+          and used_at is null
+          and expires_at > now()
+        returning token_hash, user_id, expires_at, used_at
+      `;
+
+      if (!tokenRow) {
+        throw new AuthError(
+          "telegram_link_token_invalid",
+          "Ссылка подключения устарела. Откройте профиль Quietly и нажмите «Подключить Telegram» еще раз.",
+          400,
+        );
+      }
+
+      const [linkRow] = await transaction<TelegramLinkRow[]>`
+        insert into user_telegram_links (user_id, telegram_user_id)
+        values (${tokenRow.user_id}, ${telegramUserId})
+        on conflict (telegram_user_id) do update
+          set user_id = excluded.user_id
+        returning telegram_user_id::text as telegram_user_id,
+          created_at
+      `;
+
+      return {
+        telegramUserId: String(linkRow.telegram_user_id),
+        createdAt: toIso(linkRow.created_at),
+        userId: tokenRow.user_id,
+      };
+    });
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw new AuthError(

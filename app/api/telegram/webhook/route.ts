@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getUserByTelegramUserId } from "@/lib/auth/repository";
+import {
+  consumeTelegramLinkToken,
+  getUserByTelegramUserId,
+} from "@/lib/auth/repository";
 import { revalidateThoughtsCache } from "@/lib/thoughts/cache";
 import {
   beginTelegramUpdate,
@@ -30,6 +33,16 @@ function getMessage(update: TelegramUpdate): TelegramMessage | null {
     update.edited_channel_post ??
     null
   );
+}
+
+function getCommand(message: TelegramMessage) {
+  const text = message.text?.trim() ?? "";
+  const [command, ...args] = text.split(/\s+/);
+
+  return {
+    args,
+    command: command?.split("@")[0].toLowerCase() ?? "",
+  };
 }
 
 function getTelegramFileUrl(fileId: string, mediaType?: "animation") {
@@ -130,15 +143,57 @@ export async function POST(request: Request) {
   }
 
   const userId = message.from?.id;
+  const { args, command } = getCommand(message);
+
+  if (userId && command === "/start") {
+    const token = args[0]?.trim();
+
+    if (token) {
+      try {
+        await consumeTelegramLinkToken(token, String(userId));
+        await finishTelegramUpdate(update.update_id, "processed");
+        await sendTelegramMessage(
+          message.chat.id,
+          "Готово. Telegram подключен к «Складу мыслей». Теперь просто пересылай сюда посты, ссылки, тексты или картинки — я сохраню их во Входящие.",
+        );
+
+        return NextResponse.json({ ok: true, linked: true });
+      } catch (error) {
+        await finishTelegramUpdate(
+          update.update_id,
+          "error",
+          error instanceof Error ? error.message : "Telegram link failed",
+        );
+        await sendTelegramMessage(
+          message.chat.id,
+          error instanceof Error
+            ? error.message
+            : "Не получилось подключить Telegram. Открой профиль Quietly и нажми «Подключить Telegram» еще раз.",
+        );
+
+        return NextResponse.json({ ok: false }, { status: 400 });
+      }
+    }
+  }
+
   const linkedUser = userId ? await getUserByTelegramUserId(userId) : null;
 
   if (!userId || !linkedUser) {
     await finishTelegramUpdate(update.update_id, "ignored");
     await sendTelegramMessage(
       message.chat.id,
-      "Я пока принимаю мысли только от привязанного владельца склада.",
+      "Я пока принимаю мысли только после подключения. Открой профиль Quietly и нажми «Подключить Telegram» — после /start всё привяжется само.",
     );
     return NextResponse.json({ ok: true, ignored: true });
+  }
+
+  if (command === "/start") {
+    await finishTelegramUpdate(update.update_id, "processed");
+    await sendTelegramMessage(
+      message.chat.id,
+      "Telegram уже подключен к «Складу мыслей». Пересылай сюда материалы — я сложу их во Входящие.",
+    );
+    return NextResponse.json({ ok: true });
   }
 
   const telegramMedia = getTelegramMedia(message);

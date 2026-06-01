@@ -298,6 +298,35 @@
   outline-offset: 3px;
 }
 
+.manualTelegram {
+  display: grid;
+  gap: 10px;
+}
+
+.manualTelegram summary {
+  width: fit-content;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 12px;
+  line-height: 16px;
+  list-style: none;
+  transition: color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.manualTelegram summary::-webkit-details-marker {
+  display: none;
+}
+
+.manualTelegram summary:hover {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.manualTelegram form {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+}
+
 .linkList {
   display: grid;
   gap: 6px;

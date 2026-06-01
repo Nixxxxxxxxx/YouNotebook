@@ -220,6 +220,39 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
     }
   }
 
+  async function connectTelegramWithStart() {
+    setIsTelegramSaving(true);
+    setError("");
+    setStatusMessage("");
+
+    try {
+      const response = await fetch("/api/profile/telegram-links/start-token", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error(await readError(response));
+      }
+
+      const data = (await response.json()) as { telegramUrl?: string };
+
+      if (!data.telegramUrl) {
+        throw new Error("Не получилось создать ссылку подключения");
+      }
+
+      window.open(data.telegramUrl, "_blank", "noopener,noreferrer");
+      setStatusMessage("Открыл Telegram. Нажмите /start в боте — и склад подключится сам.");
+    } catch (connectError) {
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : "Не получилось открыть Telegram",
+      );
+    } finally {
+      setIsTelegramSaving(false);
+    }
+  }
+
   async function removeTelegram(telegramUserId: string) {
     setIsTelegramSaving(true);
     setError("");
@@ -340,7 +373,7 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
               </div>
             </header>
 
-            <form className={styles.section} onSubmit={submitTelegram}>
+            <section className={styles.section}>
               <SectionHeader
                 meta={
                   <span className={styles.status}>
@@ -383,31 +416,46 @@ export function ProfilePopover({ user: initialUser }: ProfilePopoverProps) {
               ) : (
                 <>
                   <p className={styles.telegramHint}>
-                    Вставьте свой Telegram user ID, чтобы бот сохранял материалы
-                    именно в ваше пространство.
+                    Одна кнопка откроет бота. После /start он сам привяжет
+                    Telegram к вашему складу мыслей.
                   </p>
-                  <label className={styles.field} htmlFor={telegramId}>
-                    <span>Telegram user id</span>
-                    <input
-                      id={telegramId}
-                      inputMode="numeric"
-                      placeholder="Telegram user ID"
-                      value={telegramValue}
-                      disabled={isTelegramSaving}
-                      onChange={(event) => setTelegramValue(event.target.value)}
-                    />
-                  </label>
                   <AnimatedGradientButton
                     className={styles.primaryButton}
-                    type="submit"
+                    type="button"
                     fullWidth
                     disabled={isTelegramSaving}
+                    onClick={() => void connectTelegramWithStart()}
                   >
-                    {isTelegramSaving ? "Подключаем..." : "Подключить Telegram"}
+                    {isTelegramSaving ? "Открываем..." : "Подключить Telegram"}
                   </AnimatedGradientButton>
+                  <details className={styles.manualTelegram}>
+                    <summary>Если Telegram не открылся</summary>
+                    <form onSubmit={submitTelegram}>
+                      <label className={styles.field} htmlFor={telegramId}>
+                        <span>Telegram user id</span>
+                        <input
+                          id={telegramId}
+                          inputMode="numeric"
+                          placeholder="Telegram user ID"
+                          value={telegramValue}
+                          disabled={isTelegramSaving}
+                          onChange={(event) =>
+                            setTelegramValue(event.target.value)
+                          }
+                        />
+                      </label>
+                      <button
+                        className={styles.secondaryButton}
+                        type="submit"
+                        disabled={isTelegramSaving}
+                      >
+                        Подключить вручную
+                      </button>
+                    </form>
+                  </details>
                 </>
               )}
-            </form>
+            </section>
 
             <form className={styles.section} onSubmit={submitPassword}>
               <SectionHeader>Пароль</SectionHeader>

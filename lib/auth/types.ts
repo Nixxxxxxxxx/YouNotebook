@@ -21,6 +21,7 @@ export type AuthErrorCode =
   | "password_empty"
   | "password_short"
   | "telegram_id_invalid"
+  | "telegram_link_token_invalid"
   | "telegram_link_taken"
   | "unknown";
 
