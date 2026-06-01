@@ -4,11 +4,12 @@ import type {
 } from "@/lib/planner/types";
 
 const DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
-const DEFAULT_CLOUDFLARE_MODEL = "@cf/openai/whisper";
+const DEFAULT_CLOUDFLARE_MODEL = "@cf/openai/whisper-large-v3-turbo";
 const DEFAULT_CLOUDFLARE_FREE_NEURONS_PER_DAY = 10_000;
 const DEFAULT_CLOUDFLARE_WHISPER_NEURONS_PER_MINUTE = 41.14;
 const TRANSCRIPTION_PROMPT =
-  "Пользователь надиктовывает короткий список задач для личного планировщика Quietly. Сохраняй русский язык, названия, даты и смысл. Не добавляй пояснения.";
+  "Пользователь надиктовывает короткий список задач для личного планировщика Quietly. Обычно это русский язык, бытовые и рабочие задачи, даты вроде сегодня или завтра. Сохраняй все слова, названия, даты и смысл. Не исправляй задачу в другую формулировку и не добавляй пояснения.";
+const DEFAULT_TRANSCRIPTION_LANGUAGE = "ru";
 
 type PlannerVoiceUsageStats = {
   requestsToday: number;
@@ -122,6 +123,9 @@ function getCloudflareConfig() {
   return {
     accountId,
     apiToken,
+    language:
+      process.env.CLOUDFLARE_TRANSCRIPTION_LANGUAGE ||
+      DEFAULT_TRANSCRIPTION_LANGUAGE,
     model: process.env.CLOUDFLARE_TRANSCRIPTION_MODEL || DEFAULT_CLOUDFLARE_MODEL,
   };
 }
@@ -158,14 +162,31 @@ export async function transcribePlannerAudio(
 }
 
 async function transcribeWithCloudflare(audio: Blob) {
-  const { accountId, apiToken, model } = getCloudflareConfig();
+  const { accountId, apiToken, language, model } = getCloudflareConfig();
+  const audioBuffer = await audio.arrayBuffer();
+  const isAdvancedWhisperModel = model.includes("whisper-large-v3-turbo");
+  const requestBody = isAdvancedWhisperModel
+    ? JSON.stringify({
+        audio: Buffer.from(audioBuffer).toString("base64"),
+        beam_size: 8,
+        condition_on_previous_text: false,
+        initial_prompt:
+          process.env.CLOUDFLARE_TRANSCRIPTION_INITIAL_PROMPT ||
+          TRANSCRIPTION_PROMPT,
+        language,
+        task: "transcribe",
+        vad_filter: true,
+      })
+    : audioBuffer;
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
     {
-      body: await audio.arrayBuffer(),
+      body: requestBody,
       headers: {
         authorization: `Bearer ${apiToken}`,
-        "content-type": audio.type || "application/octet-stream",
+        "content-type": isAdvancedWhisperModel
+          ? "application/json"
+          : audio.type || "application/octet-stream",
       },
       method: "POST",
     },
