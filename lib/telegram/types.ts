@@ -58,6 +58,19 @@ export type TelegramAnimation = {
   thumb?: TelegramPhotoSize;
 };
 
+export type TelegramVideo = {
+  file_id: string;
+  file_unique_id?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+  thumbnail?: TelegramPhotoSize;
+  thumb?: TelegramPhotoSize;
+};
+
 export type TelegramBusinessConnection = {
   id: string;
   user: TelegramUser;
@@ -126,6 +139,7 @@ export type TelegramMessage = {
   caption_entities?: TelegramMessageEntity[];
   photo?: TelegramPhotoSize[];
   animation?: TelegramAnimation;
+  video?: TelegramVideo;
   document?: TelegramDocument;
   voice?: TelegramVoice;
   checklist?: TelegramChecklist;

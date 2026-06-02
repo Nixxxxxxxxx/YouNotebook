@@ -150,7 +150,36 @@ function getThoughtImages(thought: Thought) {
 }
 
 function isVideoLikeTelegramMedia(url: string) {
-  return url.includes("media=animation");
+  return url.includes("media=animation") || url.includes("media=video");
+}
+
+function isTelegramFileMedia(url: string) {
+  return url.includes("/api/telegram/file/");
+}
+
+type ThoughtMediaState = {
+  mode: "image" | "video";
+  src: string;
+  triedVideoFallback: boolean;
+};
+
+function getInitialThoughtMediaState(src: string): ThoughtMediaState {
+  return {
+    mode: isVideoLikeTelegramMedia(src) ? "video" : "image",
+    src,
+    triedVideoFallback: false,
+  };
+}
+
+function useThoughtMediaState(src: string) {
+  const [mediaState, setMediaState] = useState<ThoughtMediaState>(() =>
+    getInitialThoughtMediaState(src),
+  );
+
+  return [
+    mediaState.src === src ? mediaState : getInitialThoughtMediaState(src),
+    setMediaState,
+  ] as const;
 }
 
 function ThoughtMedia({
@@ -164,11 +193,9 @@ function ThoughtMedia({
   controls?: boolean;
   src: string;
 }) {
-  const [shouldRenderVideo, setShouldRenderVideo] = useState(
-    isVideoLikeTelegramMedia(src),
-  );
+  const [mediaState, setMediaState] = useThoughtMediaState(src);
 
-  if (shouldRenderVideo) {
+  if (mediaState.mode === "video") {
     return (
       <video
         className={className}
@@ -178,12 +205,33 @@ function ThoughtMedia({
         loop
         muted
         playsInline
-        onError={() => setShouldRenderVideo(false)}
+        onError={() => {
+          setMediaState({
+            mode: "image",
+            src,
+            triedVideoFallback: true,
+          });
+        }}
       />
     );
   }
 
-  return <img className={className} src={src} alt={alt} />;
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      onError={() => {
+        if (!mediaState.triedVideoFallback && isTelegramFileMedia(src)) {
+          setMediaState({
+            mode: "video",
+            src,
+            triedVideoFallback: true,
+          });
+        }
+      }}
+    />
+  );
 }
 
 function ThoughtLightboxMedia({
@@ -193,9 +241,7 @@ function ThoughtLightboxMedia({
   shouldReduceMotion: boolean | null;
   src: string;
 }) {
-  const [shouldRenderVideo, setShouldRenderVideo] = useState(
-    isVideoLikeTelegramMedia(src),
-  );
+  const [mediaState, setMediaState] = useThoughtMediaState(src);
   const motionInitial = shouldReduceMotion
     ? false
     : { opacity: 0, y: 18, scale: 0.97 };
@@ -206,7 +252,7 @@ function ThoughtLightboxMedia({
     ? undefined
     : { opacity: 0, y: 8, scale: 0.98 };
 
-  if (shouldRenderVideo) {
+  if (mediaState.mode === "video") {
     return (
       <motion.video
         src={src}
@@ -220,7 +266,13 @@ function ThoughtLightboxMedia({
         exit={motionExit}
         transition={viewTransition}
         onClick={(event) => event.stopPropagation()}
-        onError={() => setShouldRenderVideo(false)}
+        onError={() => {
+          setMediaState({
+            mode: "image",
+            src,
+            triedVideoFallback: true,
+          });
+        }}
       />
     );
   }
@@ -234,6 +286,15 @@ function ThoughtLightboxMedia({
       exit={motionExit}
       transition={viewTransition}
       onClick={(event) => event.stopPropagation()}
+      onError={() => {
+        if (!mediaState.triedVideoFallback && isTelegramFileMedia(src)) {
+          setMediaState({
+            mode: "video",
+            src,
+            triedVideoFallback: true,
+          });
+        }
+      }}
     />
   );
 }

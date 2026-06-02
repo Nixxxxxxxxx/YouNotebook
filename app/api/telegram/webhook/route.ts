@@ -45,7 +45,7 @@ function getCommand(message: TelegramMessage) {
   };
 }
 
-function getTelegramFileUrl(fileId: string, mediaType?: "animation") {
+function getTelegramFileUrl(fileId: string, mediaType?: "animation" | "video") {
   const url = `/api/telegram/file/${encodeURIComponent(fileId)}`;
 
   return mediaType ? `${url}?media=${mediaType}` : url;
@@ -73,13 +73,30 @@ function getTelegramMedia(message: TelegramMessage) {
     };
   }
 
+  if (message.video?.file_id) {
+    return {
+      fallbackText: "Видео из Telegram",
+      url: getTelegramFileUrl(message.video.file_id, "video"),
+    };
+  }
+
   if (message.document?.mime_type?.startsWith("image/")) {
     return {
       fallbackText:
         message.document.mime_type === "image/gif"
           ? "GIF из Telegram"
           : "Изображение из Telegram",
-      url: getTelegramFileUrl(message.document.file_id),
+      url: getTelegramFileUrl(
+        message.document.file_id,
+        message.document.mime_type === "image/gif" ? "animation" : undefined,
+      ),
+    };
+  }
+
+  if (message.document?.mime_type?.startsWith("video/")) {
+    return {
+      fallbackText: "Видео из Telegram",
+      url: getTelegramFileUrl(message.document.file_id, "video"),
     };
   }
 

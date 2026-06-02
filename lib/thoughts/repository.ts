@@ -148,6 +148,7 @@ async function hasSchemaBaseline() {
     has_animation_migration: boolean;
     has_gallery_migration: boolean;
     has_image_migration: boolean;
+    has_video_migration: boolean;
   }[]>`
     select
       exists(
@@ -164,13 +165,19 @@ async function hasSchemaBaseline() {
         select 1
         from thought_schema_migrations
         where id = 'telegram-animation-backfill-v1'
-      ) as has_animation_migration
+      ) as has_animation_migration,
+      exists(
+        select 1
+        from thought_schema_migrations
+        where id = 'telegram-video-backfill-v1'
+      ) as has_video_migration
   `;
 
   return Boolean(
     migration?.has_image_migration &&
       migration.has_gallery_migration &&
-      migration.has_animation_migration,
+      migration.has_animation_migration &&
+      migration.has_video_migration,
   );
 }
 
@@ -831,6 +838,141 @@ export async function ensureThoughtsSchema() {
       await sql`
         insert into thought_schema_migrations (id)
         values ('telegram-animation-backfill-v1')
+        on conflict (id) do nothing
+      `;
+    }
+    const [telegramVideoMigration] = await sql<{ exists: boolean }[]>`
+      select exists(
+        select 1
+        from thought_schema_migrations
+        where id = 'telegram-video-backfill-v1'
+      ) as exists
+    `;
+
+    if (!telegramVideoMigration?.exists) {
+      await sql`
+        update telegram_updates
+        set payload_json = (payload_json #>> '{}')::jsonb
+        where jsonb_typeof(payload_json) = 'string'
+          and (payload_json #>> '{}') like '{%'
+      `;
+      await sql`
+        with update_messages as (
+          select coalesce(
+            payload_json -> 'message',
+            payload_json -> 'edited_message',
+            payload_json -> 'channel_post',
+            payload_json -> 'edited_channel_post'
+          ) as message
+          from telegram_updates
+          where jsonb_typeof(payload_json) = 'object'
+        ),
+        message_media as (
+          select
+            message ->> 'message_id' as message_id,
+            message #>> '{chat,id}' as chat_id,
+            message ->> 'media_group_id' as media_group_id,
+            coalesce(nullif(message ->> 'date', '')::bigint, 0) as message_date,
+            case
+              when message #>> '{video,file_id}' is not null
+              then '/api/telegram/file/' || (message #>> '{video,file_id}') ||
+                '?media=video'
+              when message #>> '{document,mime_type}' like 'video/%'
+              then '/api/telegram/file/' || (message #>> '{document,file_id}') ||
+                '?media=video'
+              when message #>> '{document,mime_type}' = 'image/gif'
+              then '/api/telegram/file/' || (message #>> '{document,file_id}') ||
+                '?media=animation'
+            end as media_url
+          from update_messages
+          where message is not null
+        )
+        update thoughts
+        set image_url = coalesce(thoughts.image_url, message_media.media_url),
+          image_urls = case
+            when thoughts.image_urls ? message_media.media_url then thoughts.image_urls
+            else thoughts.image_urls || jsonb_build_array(message_media.media_url)
+          end,
+          updated_at = now()
+        from message_media
+        where thoughts.source_type = 'telegram'
+          and thoughts.telegram_message_id::text = message_media.message_id
+          and message_media.media_url is not null
+      `;
+      await sql`
+        with update_messages as (
+          select coalesce(
+            payload_json -> 'message',
+            payload_json -> 'edited_message',
+            payload_json -> 'channel_post',
+            payload_json -> 'edited_channel_post'
+          ) as message
+          from telegram_updates
+          where jsonb_typeof(payload_json) = 'object'
+        ),
+        message_media as (
+          select
+            message #>> '{chat,id}' as chat_id,
+            message ->> 'media_group_id' as media_group_id,
+            coalesce(nullif(message ->> 'date', '')::bigint, 0) as message_date,
+            case
+              when message #>> '{video,file_id}' is not null
+              then '/api/telegram/file/' || (message #>> '{video,file_id}') ||
+                '?media=video'
+              when message #>> '{document,mime_type}' like 'video/%'
+              then '/api/telegram/file/' || (message #>> '{document,file_id}') ||
+                '?media=video'
+              when message #>> '{document,mime_type}' = 'image/gif'
+              then '/api/telegram/file/' || (message #>> '{document,file_id}') ||
+                '?media=animation'
+            end as media_url
+          from update_messages
+          where message is not null
+            and message ->> 'media_group_id' is not null
+        ),
+        grouped_media as (
+          select
+            thoughts.id as thought_id,
+            coalesce(
+              jsonb_agg(distinct message_media.media_url),
+              '[]'::jsonb
+            ) as media_urls
+          from thoughts
+          join message_media
+            on thoughts.telegram_chat_id::text = message_media.chat_id
+            and thoughts.telegram_media_group_id = message_media.media_group_id
+          where thoughts.source_type = 'telegram'
+            and message_media.media_url is not null
+          group by thoughts.id
+        ),
+        merged_media as (
+          select
+            grouped_media.thought_id,
+            (
+              select coalesce(jsonb_agg(value), '[]'::jsonb)
+              from (
+                select value
+                from thoughts
+                cross join jsonb_array_elements_text(thoughts.image_urls) as existing(value)
+                where thoughts.id = grouped_media.thought_id
+                union
+                select value
+                from jsonb_array_elements_text(grouped_media.media_urls) as incoming(value)
+              ) merged_values
+            ) as image_urls,
+            grouped_media.media_urls ->> 0 as first_media_url
+          from grouped_media
+        )
+        update thoughts
+        set image_url = coalesce(thoughts.image_url, merged_media.first_media_url),
+          image_urls = merged_media.image_urls,
+          updated_at = now()
+        from merged_media
+        where thoughts.id = merged_media.thought_id
+      `;
+      await sql`
+        insert into thought_schema_migrations (id)
+        values ('telegram-video-backfill-v1')
         on conflict (id) do nothing
       `;
     }
