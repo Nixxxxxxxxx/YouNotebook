@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-import { getCurrentUser } from "@/lib/auth/server";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { fetchTelegramFile } from "@/lib/telegram/client";
 
 export const runtime = "nodejs";
@@ -11,9 +12,10 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const user = await getCurrentUser();
+  const cookieStore = await cookies();
+  const hasSessionCookie = Boolean(cookieStore.get(SESSION_COOKIE_NAME)?.value);
 
-  if (!user) {
+  if (!hasSessionCookie) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
