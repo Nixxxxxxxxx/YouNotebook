@@ -1,0 +1,143 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 360px;
+  margin: 0;
+  background: #0d0d0d;
+  color: #f7f7f7;
+}
+
+.popup {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.header,
+.row,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.eyebrow,
+.muted,
+.field span,
+.status {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+h1 {
+  margin: 2px 0 0;
+  font-size: 22px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.badge {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 7px 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.badge[data-state="ok"] {
+  border-color: rgba(125, 176, 255, 0.34);
+  color: #9fceff;
+}
+
+.panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 22px;
+  background: #141414;
+  padding: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: #0d0d0d;
+  color: white;
+  padding: 11px 12px;
+  font: inherit;
+}
+
+button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 17px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    border-color 160ms ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.primary {
+  flex: 1;
+  background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
+  color: #07101f;
+  font-weight: 760;
+}
+
+.ghost {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: white;
+}
+
+.status {
+  min-height: 18px;
+}
+
+.status[data-tone="success"] {
+  color: #9fceff;
+}
+
+.status[data-tone="error"] {
+  color: #ff9a9a;
+}
+
+.hidden {
+  display: none;
+}

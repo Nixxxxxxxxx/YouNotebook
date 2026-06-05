@@ -385,7 +385,8 @@ function groupThoughtsByBranch(
 ) {
   return branches.reduce((groups, branch) => {
     const branchThoughts = thoughts.filter(
-      (thought) => thought.branchId === branch.id,
+      (thought) =>
+        thought.branchId === branch.id || thought.collectionIds.includes(branch.id),
     );
 
     if (branchThoughts.length === 0) {

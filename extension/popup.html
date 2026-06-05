@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quietly</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Quietly</p>
+          <h1>Save references</h1>
+        </div>
+        <span id="siteBadge" class="badge">Checking</span>
+      </header>
+
+      <section id="authBox" class="panel">
+        <p id="authState" class="muted">Checking auth...</p>
+        <div class="row">
+          <button id="signInButton" class="ghost" type="button">Sign in</button>
+          <button id="refreshAuthButton" class="ghost" type="button">Refresh</button>
+        </div>
+      </section>
+
+      <section id="controls" class="panel">
+        <label class="field">
+          <span>Choose collection</span>
+          <select id="collectionSelect">
+            <option value="">No collection</option>
+          </select>
+        </label>
+
+        <div class="actions">
+          <button id="selectButton" class="primary" type="button">Select references</button>
+          <button id="saveButton" class="primary" type="button" disabled>Save selected</button>
+        </div>
+
+        <p id="selectionState" class="muted">Selection mode is inactive</p>
+      </section>
+
+      <section id="unsupportedBox" class="panel hidden">
+        <p class="muted">This site is not supported yet</p>
+        <button id="savePageButton" class="ghost" type="button">Save page to Inbox</button>
+      </section>
+
+      <p id="statusMessage" class="status" role="status" aria-live="polite"></p>
+    </main>
+
+    <script src="shared/config.js"></script>
+    <script src="shared/api-client.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

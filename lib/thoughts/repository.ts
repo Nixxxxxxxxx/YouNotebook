@@ -1,9 +1,18 @@
 import { getSql } from "@/lib/db/client";
 import { ensureAuthSchema } from "@/lib/auth/repository";
 
-import { createReaderSnapshot, createTextSnapshot } from "./reader";
+import {
+  createHtmlSnapshot,
+  createReaderSnapshot,
+  createTextSnapshot,
+  escapeHtml,
+} from "./reader";
 import type {
+  BulkReferenceSaveInput,
+  BulkReferenceSaveResult,
   CreateThoughtInput,
+  ReferenceMetadataInput,
+  ReferenceSource,
   Thought,
   ThoughtBranch,
   ThoughtListFilter,
@@ -31,6 +40,13 @@ type ThoughtRow = {
   raw_input: string | null;
   source_url: string | null;
   source_type: Thought["sourceType"];
+  reference_source: Thought["referenceSource"];
+  canonical_url: string | null;
+  source_domain: string | null;
+  source_item_id: string | null;
+  author_name: string | null;
+  author_url: string | null;
+  thumbnail_url: string | null;
   image_url: string | null;
   image_urls: unknown;
   favicon_url: string | null;
@@ -42,6 +58,11 @@ type ThoughtRow = {
   telegram_user_id: string | null;
   created_at: Date | string;
   updated_at: Date | string;
+};
+
+type ThoughtCollectionLinkRow = {
+  branch_id: string;
+  thought_id: string;
 };
 
 type TelegramUpdateStatus = "processing" | "processed" | "ignored" | "error";
@@ -61,6 +82,7 @@ async function hasSchemaBaseline() {
     has_media_group_index: boolean;
     has_source_index: boolean;
     has_status_index: boolean;
+    has_reference_columns: boolean;
     has_telegram_media_group: boolean;
     has_telegram_updates: boolean;
     has_thoughts: boolean;
@@ -69,6 +91,7 @@ async function hasSchemaBaseline() {
     has_branch_user_id: boolean;
     has_branch_user_name_constraint: boolean;
     has_branch_user_slug_constraint: boolean;
+    has_collection_links: boolean;
     has_user_media_group_index: boolean;
   }[]>`
     select
@@ -83,6 +106,14 @@ async function hasSchemaBaseline() {
       to_regclass('public.thoughts_telegram_media_group_idx') is not null as has_media_group_index,
       to_regclass('public.thoughts_user_id_idx') is not null as has_thought_user_index,
       to_regclass('public.thoughts_user_telegram_media_group_idx') is not null as has_user_media_group_index,
+      to_regclass('public.thought_collection_links') is not null as has_collection_links,
+      exists(
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'thoughts'
+          and column_name = 'reference_source'
+      ) as has_reference_columns,
       exists(
         select 1
         from pg_constraint
@@ -132,6 +163,7 @@ async function hasSchemaBaseline() {
     !row.has_status_index ||
     !row.has_created_index ||
     !row.has_source_index ||
+    !row.has_reference_columns ||
     !row.has_image_urls ||
     !row.has_telegram_media_group ||
     !row.has_thought_user_index ||
@@ -139,7 +171,8 @@ async function hasSchemaBaseline() {
     !row.has_thought_user_id ||
     !row.has_branch_user_id ||
     !row.has_branch_user_name_constraint ||
-    !row.has_branch_user_slug_constraint
+    !row.has_branch_user_slug_constraint ||
+    !row.has_collection_links
   ) {
     return false;
   }
@@ -236,12 +269,13 @@ function toBranch(row: BranchRow): ThoughtBranch {
   };
 }
 
-function toThought(row: ThoughtRow): Thought {
+function toThought(row: ThoughtRow, collectionIds: string[] = []): Thought {
   const imageUrls = normalizeImageUrlList(row.image_urls, row.image_url);
 
   return {
     id: row.id,
     branchId: row.branch_id,
+    collectionIds,
     title: row.title,
     summary: row.summary,
     contentHtml: row.content_html,
@@ -249,6 +283,13 @@ function toThought(row: ThoughtRow): Thought {
     rawInput: row.raw_input,
     sourceUrl: row.source_url,
     sourceType: row.source_type,
+    referenceSource: row.reference_source,
+    canonicalUrl: row.canonical_url,
+    sourceDomain: row.source_domain,
+    sourceItemId: row.source_item_id,
+    authorName: row.author_name,
+    authorUrl: row.author_url,
+    thumbnailUrl: row.thumbnail_url,
     imageUrl: imageUrls[0] ?? row.image_url,
     imageUrls,
     faviconUrl: row.favicon_url,
@@ -261,6 +302,46 @@ function toThought(row: ThoughtRow): Thought {
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
   };
+}
+
+async function getThoughtCollectionIdsByThoughtIds(
+  userId: string,
+  thoughtIds: string[],
+) {
+  const collectionIdsByThoughtId = new Map<string, string[]>();
+
+  if (thoughtIds.length === 0) {
+    return collectionIdsByThoughtId;
+  }
+
+  const sql = getSql();
+  const rows = await sql<ThoughtCollectionLinkRow[]>`
+    select thought_id, branch_id
+    from thought_collection_links
+    where user_id = ${userId}
+      and thought_id in ${sql(thoughtIds)}
+    order by created_at asc
+  `;
+
+  for (const row of rows) {
+    const current = collectionIdsByThoughtId.get(row.thought_id) ?? [];
+
+    current.push(row.branch_id);
+    collectionIdsByThoughtId.set(row.thought_id, current);
+  }
+
+  return collectionIdsByThoughtId;
+}
+
+async function toThoughtsWithCollectionIds(userId: string, rows: ThoughtRow[]) {
+  const collectionIdsByThoughtId = await getThoughtCollectionIdsByThoughtIds(
+    userId,
+    rows.map((row) => row.id),
+  );
+
+  return rows.map((row) =>
+    toThought(row, collectionIdsByThoughtId.get(row.id) ?? []),
+  );
 }
 
 function createSlug(name: string) {
@@ -286,6 +367,73 @@ function normalizeBigInt(value: string | number | null | undefined) {
   return String(value);
 }
 
+function normalizeOptionalText(value: string | null | undefined) {
+  const normalized = value?.replace(/\s+/g, " ").trim();
+
+  return normalized || null;
+}
+
+function normalizeUrl(value: string | null | undefined) {
+  const normalized = normalizeOptionalText(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  try {
+    return new URL(normalized).toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeReferenceSource(value: string): ReferenceSource {
+  return value === "arena" ||
+    value === "pinterest" ||
+    value === "dribbble" ||
+    value === "web"
+    ? value
+    : "web";
+}
+
+function normalizeReferenceMetadata(
+  reference: ReferenceMetadataInput | null | undefined,
+) {
+  if (!reference) {
+    return null;
+  }
+
+  const sourceUrl = normalizeUrl(reference.sourceUrl);
+
+  if (!sourceUrl) {
+    return null;
+  }
+
+  let sourceDomain = normalizeOptionalText(reference.sourceDomain);
+
+  if (!sourceDomain) {
+    try {
+      sourceDomain = new URL(sourceUrl).hostname.replace(/^www\./, "");
+    } catch {
+      sourceDomain = "web";
+    }
+  }
+
+  return {
+    authorName: normalizeOptionalText(reference.authorName),
+    authorUrl: normalizeUrl(reference.authorUrl),
+    canonicalUrl: normalizeUrl(reference.canonicalUrl) ?? sourceUrl,
+    description: normalizeOptionalText(reference.description),
+    imageUrl: normalizeUrl(reference.imageUrl),
+    source: normalizeReferenceSource(reference.source),
+    sourceDomain,
+    sourceItemId: normalizeOptionalText(reference.sourceItemId),
+    sourceUrl,
+    thumbnailUrl: normalizeUrl(reference.thumbnailUrl),
+    title: normalizeOptionalText(reference.title),
+  };
+}
+
 function getThoughtImageUrls(input: CreateThoughtInput, imageUrl: string | null) {
   return normalizeImageUrlList(input.imageUrls ?? [], imageUrl);
 }
@@ -305,6 +453,7 @@ async function resolveThoughtInput(input: CreateThoughtInput) {
   const imageUrls = getThoughtImageUrls(input, imageUrl);
   const faviconUrl =
     input.faviconUrl === undefined ? snapshot.faviconUrl : input.faviconUrl;
+  const reference = normalizeReferenceMetadata(input.reference);
 
   return {
     branchId: input.branchId ?? null,
@@ -314,6 +463,7 @@ async function resolveThoughtInput(input: CreateThoughtInput) {
     imageUrl: imageUrls[0] ?? imageUrl ?? null,
     imageUrls,
     isUseful: input.isUseful ?? false,
+    reference,
     rawInput: snapshot.rawInput,
     sourceType: snapshot.sourceType,
     sourceUrl: snapshot.sourceUrl,
@@ -342,6 +492,13 @@ async function insertResolvedThought(
       raw_input,
       source_url,
       source_type,
+      reference_source,
+      canonical_url,
+      source_domain,
+      source_item_id,
+      author_name,
+      author_url,
+      thumbnail_url,
       image_url,
       image_urls,
       favicon_url,
@@ -359,8 +516,15 @@ async function insertResolvedThought(
       ${resolved.contentHtml},
       ${resolved.contentText},
       ${resolved.rawInput},
-      ${resolved.sourceUrl},
+      ${resolved.reference?.sourceUrl ?? resolved.sourceUrl},
       ${resolved.sourceType},
+      ${resolved.reference?.source ?? null},
+      ${resolved.reference?.canonicalUrl ?? null},
+      ${resolved.reference?.sourceDomain ?? null},
+      ${resolved.reference?.sourceItemId ?? null},
+      ${resolved.reference?.authorName ?? null},
+      ${resolved.reference?.authorUrl ?? null},
+      ${resolved.reference?.thumbnailUrl ?? null},
       ${resolved.imageUrl},
       ${sql.json(resolved.imageUrls)},
       ${resolved.faviconUrl},
@@ -485,6 +649,17 @@ export async function ensureThoughtsSchema() {
         source_url text,
         source_type text not null default 'manual'
           check (source_type in ('manual', 'url', 'telegram')),
+        reference_source text
+          check (
+            reference_source is null
+            or reference_source in ('arena', 'pinterest', 'dribbble', 'web')
+          ),
+        canonical_url text,
+        source_domain text,
+        source_item_id text,
+        author_name text,
+        author_url text,
+        thumbnail_url text,
         image_url text,
         image_urls jsonb not null default '[]'::jsonb,
         favicon_url text,
@@ -497,6 +672,15 @@ export async function ensureThoughtsSchema() {
         telegram_user_id bigint,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
+      )
+    `;
+    await sql`
+      create table if not exists thought_collection_links (
+        user_id uuid not null references quietly_users(id) on delete cascade,
+        thought_id uuid not null references thoughts(id) on delete cascade,
+        branch_id uuid not null references thought_branches(id) on delete cascade,
+        created_at timestamptz not null default now(),
+        primary key (user_id, thought_id, branch_id)
       )
     `;
     await sql`
@@ -540,6 +724,34 @@ export async function ensureThoughtsSchema() {
     await sql`
       alter table thoughts
       add column if not exists telegram_media_group_id text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists reference_source text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists canonical_url text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists source_domain text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists source_item_id text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists author_name text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists author_url text
+    `;
+    await sql`
+      alter table thoughts
+      add column if not exists thumbnail_url text
     `;
     await sql`
       create table if not exists telegram_updates (
@@ -982,6 +1194,26 @@ export async function ensureThoughtsSchema() {
     await sql`create index if not exists thoughts_status_idx on thoughts(status)`;
     await sql`create index if not exists thoughts_created_at_idx on thoughts(created_at desc)`;
     await sql`create index if not exists thoughts_source_url_idx on thoughts(source_url)`;
+    await sql`
+      create index if not exists thoughts_user_canonical_url_idx
+      on thoughts(user_id, canonical_url)
+      where user_id is not null and canonical_url is not null
+    `;
+    await sql`
+      create index if not exists thoughts_user_reference_source_item_idx
+      on thoughts(user_id, reference_source, source_item_id)
+      where user_id is not null
+        and reference_source is not null
+        and source_item_id is not null
+    `;
+    await sql`
+      create index if not exists thought_collection_links_branch_idx
+      on thought_collection_links(user_id, branch_id, created_at desc)
+    `;
+    await sql`
+      create index if not exists thought_collection_links_thought_idx
+      on thought_collection_links(user_id, thought_id)
+    `;
     await sql`drop index if exists thoughts_telegram_media_group_idx`;
     await sql`
       create unique index if not exists thoughts_user_telegram_media_group_idx
@@ -1011,6 +1243,29 @@ async function assertBranchBelongsToUser(userId: string, branchId: string | null
   if (!row) {
     throw new Error("Branch not found");
   }
+}
+
+async function attachThoughtToBranch(
+  userId: string,
+  thoughtId: string,
+  branchId: string | null,
+) {
+  if (!branchId) {
+    return;
+  }
+
+  const sql = getSql();
+
+  await sql`
+    insert into thought_collection_links (user_id, thought_id, branch_id)
+    select ${userId}, thoughts.id, ${branchId}
+    from thoughts
+    join thought_branches on thought_branches.id = ${branchId}
+    where thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${userId}
+      and thought_branches.user_id = ${userId}
+    on conflict do nothing
+  `;
 }
 
 export async function listThoughtBranches(userId: string) {
@@ -1123,20 +1378,35 @@ export async function listThoughts(
       select *
       from thoughts
       where user_id = ${userId}
-        and branch_id = ${filter.branchId}
+        and (
+          branch_id = ${filter.branchId}
+          or exists (
+            select 1
+            from thought_collection_links
+            where thought_collection_links.user_id = ${userId}
+              and thought_collection_links.thought_id = thoughts.id
+              and thought_collection_links.branch_id = ${filter.branchId}
+          )
+        )
         and status = 'inbox'
       order by created_at desc
     `;
   } else if (filter.view === "collections") {
     rowsPromise = sql<ThoughtRow[]>`
-      select thoughts.*
+      select distinct thoughts.*
       from thoughts
-      join thought_branches on thought_branches.id = thoughts.branch_id
       where thoughts.user_id = ${userId}
-        and thought_branches.user_id = ${userId}
-        and thoughts.branch_id is not null
         and thoughts.status = 'inbox'
-      order by thought_branches.created_at asc, thoughts.created_at desc
+        and (
+          thoughts.branch_id is not null
+          or exists (
+            select 1
+            from thought_collection_links
+            where thought_collection_links.user_id = ${userId}
+              and thought_collection_links.thought_id = thoughts.id
+          )
+        )
+      order by thoughts.created_at desc
     `;
   } else if (filter.view === "useful") {
     rowsPromise = sql<ThoughtRow[]>`
@@ -1167,7 +1437,7 @@ export async function listThoughts(
 
   return {
     branches: branchRows.map(toBranch),
-    thoughts: rows.map(toThought),
+    thoughts: await toThoughtsWithCollectionIds(userId, rows),
     unassignedCount: Number(unassignedRows[0]?.count ?? 0),
   };
 }
@@ -1182,7 +1452,16 @@ export async function getThought(userId: string, id: string) {
     limit 1
   `;
 
-  return row ? toThought(row) : null;
+  if (!row) {
+    return null;
+  }
+
+  const collectionIdsByThoughtId = await getThoughtCollectionIdsByThoughtIds(
+    userId,
+    [row.id],
+  );
+
+  return toThought(row, collectionIdsByThoughtId.get(row.id) ?? []);
 }
 
 export async function createThought(userId: string, input: CreateThoughtInput) {
@@ -1191,6 +1470,178 @@ export async function createThought(userId: string, input: CreateThoughtInput) {
   const resolved = await resolveThoughtInput(input);
 
   return insertResolvedThought(userId, resolved);
+}
+
+function buildReferenceSnapshot(reference: NonNullable<ReturnType<typeof normalizeReferenceMetadata>>) {
+  const sourceLabel =
+    reference.source === "arena"
+      ? "Are.na"
+      : reference.source === "pinterest"
+        ? "Pinterest"
+        : reference.source === "dribbble"
+          ? "Dribbble"
+          : reference.sourceDomain;
+  const title = reference.title ?? reference.sourceUrl;
+  const imageUrl = reference.thumbnailUrl ?? reference.imageUrl;
+  const description = reference.description;
+  const authorLine = reference.authorName
+    ? `Автор: ${reference.authorName}`
+    : null;
+  const contentText = [
+    title,
+    description,
+    authorLine,
+    `Источник: ${sourceLabel}`,
+    reference.canonicalUrl,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const imageHtml = imageUrl
+    ? `<figure><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" /></figure>`
+    : "";
+  const authorHtml =
+    reference.authorName && reference.authorUrl
+      ? `<p>Автор: <a href="${escapeHtml(reference.authorUrl)}">${escapeHtml(
+          reference.authorName,
+        )}</a></p>`
+      : reference.authorName
+        ? `<p>Автор: ${escapeHtml(reference.authorName)}</p>`
+        : "";
+  const contentHtml = [
+    imageHtml,
+    `<p><strong>${escapeHtml(title)}</strong></p>`,
+    description ? `<p>${escapeHtml(description)}</p>` : "",
+    authorHtml,
+    `<p>Источник: <a href="${escapeHtml(reference.canonicalUrl)}">${escapeHtml(
+      sourceLabel,
+    )}</a></p>`,
+  ].join("");
+
+  return createHtmlSnapshot({
+    contentHtml,
+    contentText,
+    imageUrl,
+    input: reference.canonicalUrl,
+    sourceType: "url",
+    sourceUrl: reference.canonicalUrl,
+    summary: description,
+    title,
+  });
+}
+
+async function findDuplicateReferenceThought(
+  userId: string,
+  reference: NonNullable<ReturnType<typeof normalizeReferenceMetadata>>,
+) {
+  const sql = getSql();
+
+  if (reference.sourceItemId) {
+    const [row] = await sql<ThoughtRow[]>`
+      select *
+      from thoughts
+      where user_id = ${userId}
+        and reference_source = ${reference.source}
+        and source_item_id = ${reference.sourceItemId}
+      limit 1
+    `;
+
+    if (row) {
+      return toThought(row);
+    }
+  }
+
+  const [row] = await sql<ThoughtRow[]>`
+    select *
+    from thoughts
+    where user_id = ${userId}
+      and (
+        canonical_url = ${reference.canonicalUrl}
+        or source_url = ${reference.canonicalUrl}
+        or canonical_url = ${reference.sourceUrl}
+        or source_url = ${reference.sourceUrl}
+      )
+    limit 1
+  `;
+
+  return row ? toThought(row) : null;
+}
+
+export async function createReferenceThoughtsBulk(
+  userId: string,
+  input: BulkReferenceSaveInput,
+): Promise<BulkReferenceSaveResult> {
+  await ensureThoughtsSchema();
+  await assertBranchBelongsToUser(userId, input.branchId ?? null);
+
+  const results: BulkReferenceSaveResult["items"] = [];
+  let saved = 0;
+  let duplicates = 0;
+  let failed = 0;
+
+  for (const item of input.items.slice(0, 100)) {
+    const clientId = item.clientId ?? null;
+
+    try {
+      const reference = normalizeReferenceMetadata(item);
+
+      if (!reference) {
+        failed += 1;
+        results.push({
+          clientId,
+          reason: "invalid_reference",
+          status: "failed",
+        });
+        continue;
+      }
+
+      const duplicate = await findDuplicateReferenceThought(userId, reference);
+
+      if (duplicate) {
+        await attachThoughtToBranch(userId, duplicate.id, input.branchId ?? null);
+        duplicates += 1;
+        results.push({
+          clientId,
+          inboxItemId: duplicate.id,
+          status: "duplicate",
+        });
+        continue;
+      }
+
+      const thought = await createThought(userId, {
+        branchId: null,
+        imageUrl: reference.thumbnailUrl ?? reference.imageUrl,
+        imageUrls: [reference.thumbnailUrl, reference.imageUrl].filter(
+          (url): url is string => Boolean(url),
+        ),
+        input: reference.canonicalUrl,
+        reference,
+        snapshot: buildReferenceSnapshot(reference),
+        sourceType: "url",
+      });
+
+      await attachThoughtToBranch(userId, thought.id, input.branchId ?? null);
+      saved += 1;
+      results.push({
+        clientId,
+        inboxItemId: thought.id,
+        status: "saved",
+      });
+    } catch (error) {
+      failed += 1;
+      results.push({
+        clientId,
+        reason: error instanceof Error ? error.message : "unknown_error",
+        status: "failed",
+      });
+    }
+  }
+
+  return {
+    duplicates,
+    failed,
+    items: results,
+    saved,
+  };
 }
 
 export async function createOrAppendTelegramThought(
@@ -1303,7 +1754,7 @@ export async function moveThoughtsToBranch(
     returning *
   `;
 
-  return rows.map(toThought);
+  return rows.map((row) => toThought(row));
 }
 
 export async function markThoughtsAsUseful(userId: string, ids: string[]) {
@@ -1323,7 +1774,7 @@ export async function markThoughtsAsUseful(userId: string, ids: string[]) {
     returning *
   `;
 
-  return rows.map(toThought);
+  return rows.map((row) => toThought(row));
 }
 
 export async function deleteThought(userId: string, id: string) {

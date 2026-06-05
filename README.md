@@ -61,3 +61,35 @@ Telegram webhook setup after deploy:
 curl -X POST "$APP_BASE_URL/api/telegram/set-webhook" \
   -H "Authorization: Bearer $TELEGRAM_WEBHOOK_SECRET"
 ```
+
+## Browser Extension MVP
+
+The Chrome extension lives in `extension/` and uses Manifest V3. It lets a
+signed-in user select visible references on Are.na, Pinterest, and Dribbble,
+then save them to the Thought Store Inbox with an optional collection relation.
+
+Local test flow:
+
+```bash
+pnpm build
+```
+
+Then open Chrome:
+
+1. Go to `chrome://extensions`.
+2. Enable Developer mode.
+3. Click `Load unpacked`.
+4. Select the `extension/` folder.
+5. Open the extension popup and click `Sign in`.
+6. If the app asks for login, sign in, then click `Sign in` in the popup again.
+7. Wait for `/extension-connect` to show that the extension is connected.
+8. Open a supported page and click the extension icon.
+9. Choose `No collection` or an existing collection.
+10. Click `Select references`, select visible cards, then `Save selected`.
+
+Notes:
+
+- The extension does not auto-scroll or collect hidden/background items.
+- Selected items are saved to Inbox even when a collection is chosen.
+- Duplicates are skipped by source item id or canonical/source URL.
+- Unsupported pages can be saved as a simple page link from the popup.

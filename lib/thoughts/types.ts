@@ -1,5 +1,7 @@
 export type ThoughtSourceType = "manual" | "url" | "telegram";
 
+export type ReferenceSource = "arena" | "pinterest" | "dribbble" | "web";
+
 export type ThoughtStatus = "inbox" | "archived";
 
 export type ThoughtBranch = {
@@ -13,6 +15,7 @@ export type ThoughtBranch = {
 export type Thought = {
   id: string;
   branchId: string | null;
+  collectionIds: string[];
   title: string;
   summary: string | null;
   contentHtml: string;
@@ -20,6 +23,13 @@ export type Thought = {
   rawInput: string | null;
   sourceUrl: string | null;
   sourceType: ThoughtSourceType;
+  referenceSource: ReferenceSource | null;
+  canonicalUrl: string | null;
+  sourceDomain: string | null;
+  sourceItemId: string | null;
+  authorName: string | null;
+  authorUrl: string | null;
+  thumbnailUrl: string | null;
   imageUrl: string | null;
   imageUrls: string[];
   faviconUrl: string | null;
@@ -40,6 +50,7 @@ export type CreateThoughtInput = {
   imageUrl?: string | null;
   imageUrls?: string[];
   isUseful?: boolean;
+  reference?: ReferenceMetadataInput | null;
   sourceType?: ThoughtSourceType;
   snapshot?: {
     title: string;
@@ -56,6 +67,40 @@ export type CreateThoughtInput = {
   telegramMediaGroupId?: string | null;
   telegramMessageId?: string | number | null;
   telegramUserId?: string | number | null;
+};
+
+export type ReferenceMetadataInput = {
+  source: ReferenceSource;
+  sourceUrl: string;
+  canonicalUrl?: string | null;
+  title?: string | null;
+  description?: string | null;
+  authorName?: string | null;
+  authorUrl?: string | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  sourceItemId?: string | null;
+  sourceDomain: string;
+  capturedAt?: string | null;
+};
+
+export type BulkReferenceSaveInput = {
+  branchId?: string | null;
+  items: Array<ReferenceMetadataInput & { clientId?: string | null }>;
+};
+
+export type BulkReferenceSaveItemResult = {
+  clientId: string | null;
+  inboxItemId?: string;
+  reason?: string;
+  status: "saved" | "duplicate" | "failed";
+};
+
+export type BulkReferenceSaveResult = {
+  duplicates: number;
+  failed: number;
+  items: BulkReferenceSaveItemResult[];
+  saved: number;
 };
 
 export type UpdateThoughtInput = {
