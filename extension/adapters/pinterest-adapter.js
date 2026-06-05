@@ -1,5 +1,6 @@
 (function () {
   const helpers = globalThis.QuietlyAdapterHelpers;
+  const elementById = new Map();
 
   function getPinId(url) {
     return url.match(/\/pin\/([^/?#]+)/i)?.[1] || null;
@@ -11,6 +12,8 @@
       return /(^|\.)pinterest\./i.test(window.location.hostname);
     },
     scanVisibleCandidates() {
+      elementById.clear();
+
       const anchors = Array.from(document.querySelectorAll("a[href*='/pin/']"));
       const candidates = anchors
         .map((anchor) => {
@@ -30,7 +33,7 @@
 
           // Pinterest fallback intentionally uses only visible pin card data.
           // We do not read hidden application state or auto-scroll boards.
-          return helpers.makeCandidate({
+          const candidate = helpers.makeCandidate({
             canonicalUrl: sourceUrl,
             imageUrl,
             source: "pinterest",
@@ -39,23 +42,19 @@
             thumbnailUrl: imageUrl,
             title
           });
+
+          if (candidate) {
+            elementById.set(candidate.id, card);
+          }
+
+          return candidate;
         })
         .filter(Boolean);
 
       return helpers.uniqueBySourceUrl(candidates);
     },
     getCandidateElement(candidateId) {
-      const candidate = this.scanVisibleCandidates().find(
-        (item) => item.id === candidateId
-      );
-
-      if (!candidate) return null;
-
-      const anchor = Array.from(document.querySelectorAll("a[href*='/pin/']")).find(
-        (element) => helpers.absoluteUrl(element.href) === candidate.sourceUrl
-      );
-
-      return anchor ? helpers.closestCard(anchor) : null;
+      return elementById.get(candidateId) || null;
     }
   };
 

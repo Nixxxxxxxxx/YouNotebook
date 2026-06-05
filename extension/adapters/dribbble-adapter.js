@@ -1,5 +1,6 @@
 (function () {
   const helpers = globalThis.QuietlyAdapterHelpers;
+  const elementById = new Map();
 
   function getShotId(url) {
     return url.match(/\/shots\/([^/?#]+)/i)?.[1] || null;
@@ -11,6 +12,8 @@
       return window.location.hostname === "dribbble.com";
     },
     scanVisibleCandidates() {
+      elementById.clear();
+
       const anchors = Array.from(document.querySelectorAll("a[href*='/shots/']"));
       const candidates = anchors
         .map((anchor) => {
@@ -30,7 +33,7 @@
 
           // Official Dribbble API enrichment is not configured in this product.
           // MVP fallback saves only visible shot metadata and the canonical shot URL.
-          return helpers.makeCandidate({
+          const candidate = helpers.makeCandidate({
             authorName,
             authorUrl: authorLink ? helpers.absoluteUrl(authorLink.href) : null,
             canonicalUrl: sourceUrl,
@@ -41,23 +44,19 @@
             thumbnailUrl: imageUrl,
             title
           });
+
+          if (candidate) {
+            elementById.set(candidate.id, card);
+          }
+
+          return candidate;
         })
         .filter(Boolean);
 
       return helpers.uniqueBySourceUrl(candidates);
     },
     getCandidateElement(candidateId) {
-      const candidate = this.scanVisibleCandidates().find(
-        (item) => item.id === candidateId
-      );
-
-      if (!candidate) return null;
-
-      const anchor = Array.from(
-        document.querySelectorAll("a[href*='/shots/']")
-      ).find((element) => helpers.absoluteUrl(element.href) === candidate.sourceUrl);
-
-      return anchor ? helpers.closestCard(anchor) : null;
+      return elementById.get(candidateId) || null;
     }
   };
 

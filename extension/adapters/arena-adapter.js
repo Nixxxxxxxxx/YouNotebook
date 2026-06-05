@@ -1,5 +1,6 @@
 (function () {
   const helpers = globalThis.QuietlyAdapterHelpers;
+  const elementById = new Map();
 
   function getBlockId(url) {
     return (
@@ -15,6 +16,8 @@
       return /(^|\.)are\.na$/i.test(window.location.hostname);
     },
     scanVisibleCandidates() {
+      elementById.clear();
+
       const anchors = Array.from(
         document.querySelectorAll("a[href*='/block'], a[href*='/channels/']")
       );
@@ -35,7 +38,7 @@
 
           // Are.na cards vary between block cards and channel block links.
           // We only use visible anchor/card metadata, no background API scraping.
-          return helpers.makeCandidate({
+          const candidate = helpers.makeCandidate({
             canonicalUrl: sourceUrl,
             imageUrl,
             source: "arena",
@@ -44,23 +47,19 @@
             thumbnailUrl: imageUrl,
             title
           });
+
+          if (candidate) {
+            elementById.set(candidate.id, card);
+          }
+
+          return candidate;
         })
         .filter(Boolean);
 
       return helpers.uniqueBySourceUrl(candidates);
     },
     getCandidateElement(candidateId) {
-      const candidate = this.scanVisibleCandidates().find(
-        (item) => item.id === candidateId
-      );
-
-      if (!candidate) return null;
-
-      const anchor = Array.from(
-        document.querySelectorAll("a[href*='/block'], a[href*='/channels/']")
-      ).find((element) => helpers.absoluteUrl(element.href) === candidate.sourceUrl);
-
-      return anchor ? helpers.closestCard(anchor) : null;
+      return elementById.get(candidateId) || null;
     }
   };
 

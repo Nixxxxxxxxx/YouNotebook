@@ -27,6 +27,7 @@
   let supported = false;
   let currentSource = null;
   let authenticated = false;
+  let autoStartedSelection = false;
 
   function setStatus(message, tone = "") {
     elements.statusMessage.textContent = message || "";
@@ -68,11 +69,15 @@
       const selectedCount = state?.selectedCount || 0;
 
       elements.selectionState.textContent = state?.active
-        ? `Selection mode is active · ${selectedCount} selected`
-        : "Selection mode is inactive";
+        ? `Чекбоксы включены · ${selectedCount} выбрано`
+        : "Чекбоксы выключены";
+      elements.selectButton.textContent = state?.active
+        ? "Чекбоксы включены"
+        : "Показать чекбоксы";
       elements.saveButton.disabled = !authenticated || selectedCount === 0;
     } catch {
-      elements.selectionState.textContent = "Reload the page to activate selection";
+      elements.selectionState.textContent = "Обнови страницу и попробуй ещё раз";
+      elements.selectButton.textContent = "Показать чекбоксы";
       elements.saveButton.disabled = true;
     }
   }
@@ -83,8 +88,8 @@
 
       authenticated = Boolean(auth?.authenticated);
       elements.authState.textContent = authenticated
-        ? `Signed in as ${auth.user.email}`
-        : "Sign in to save references";
+        ? `Вход выполнен: ${auth.user.email}`
+        : "Войди, чтобы сохранять";
 
       if (authenticated) {
         try {
@@ -97,8 +102,8 @@
       authenticated = false;
       elements.authState.textContent =
         error.status === 401
-          ? "Sign in to save references"
-          : "Could not check auth";
+          ? "Войди, чтобы сохранять"
+          : "Не удалось проверить вход";
     }
 
     elements.selectButton.disabled = !supported || !authenticated;
@@ -106,7 +111,7 @@
   }
 
   async function loadCollections() {
-    elements.collectionSelect.innerHTML = `<option value="">No collection</option>`;
+    elements.collectionSelect.innerHTML = `<option value="">Без коллекции</option>`;
 
     if (!authenticated) return;
 
@@ -125,7 +130,7 @@
 
       elements.collectionSelect.value = selectedCollectionId || "";
     } catch {
-      setStatus("Collections failed to load. Saving to Inbox still works.", "error");
+      setStatus("Коллекции не загрузились. Во входящие всё равно можно сохранить.", "error");
     }
   }
 
@@ -133,7 +138,7 @@
     supported = Boolean(currentSource);
     elements.siteBadge.textContent = supported
       ? sourceLabels[currentSource]
-      : "Unsupported site";
+      : "Не поддерживается";
     elements.siteBadge.dataset.state = supported ? "ok" : "muted";
     elements.controls.classList.toggle("hidden", !supported);
     elements.unsupportedBox.classList.toggle("hidden", supported);
@@ -145,32 +150,39 @@
       await sendTabMessage({ type: "QUIETLY_START_SELECTION" });
       await refreshSelectionState();
     } catch {
-      setStatus("Reload the page and try again.", "error");
+      setStatus("Обнови страницу и попробуй ещё раз.", "error");
     }
+  }
+
+  async function autoStartSelection() {
+    if (!supported || !authenticated || autoStartedSelection) return;
+
+    autoStartedSelection = true;
+    await startSelection();
   }
 
   function getResultMessage(result) {
-    if (!result) return "Some references could not be saved";
+    if (!result) return "Не удалось сохранить";
 
     if (result.failed > 0) {
-      return `${result.saved} saved, ${result.failed} failed`;
+      return `${result.saved} сохранено, ${result.failed} с ошибкой`;
     }
 
-    if (result.saved === 1) return "Saved to Inbox";
+    if (result.saved === 1) return "Сохранено во входящие";
 
     if (result.duplicates > 0 && result.saved === 0) {
-      return "Already saved to Inbox";
+      return "Уже во входящих";
     }
 
     if (result.duplicates > 0) {
-      return `${result.saved} saved, ${result.duplicates} already saved`;
+      return `${result.saved} сохранено, ${result.duplicates} уже были`;
     }
 
-    return `${result.saved} references saved`;
+    return `${result.saved} сохранено`;
   }
 
   async function saveSelected() {
-    setStatus("Saving...");
+    setStatus("Сохраняю...");
 
     try {
       const response = await sendTabMessage({
@@ -179,7 +191,7 @@
       const candidates = response?.candidates || [];
 
       if (candidates.length === 0) {
-        setStatus("Select references first", "error");
+        setStatus("Сначала выбери референсы", "error");
         return;
       }
 
@@ -197,9 +209,9 @@
       await refreshSelectionState();
     } catch (error) {
       if (error.status === 401) {
-        setStatus("Sign in to save references", "error");
+        setStatus("Войди, чтобы сохранять", "error");
       } else {
-        setStatus("Some references could not be saved", "error");
+        setStatus("Не удалось сохранить", "error");
       }
     }
   }
@@ -207,7 +219,7 @@
   async function savePage() {
     if (!activeTab?.url) return;
 
-    setStatus("Saving...");
+    setStatus("Сохраняю...");
     try {
       const url = activeTab.url;
       const pageUrl = new URL(url);
@@ -230,8 +242,8 @@
     } catch (error) {
       setStatus(
         error.status === 401
-          ? "Sign in to save references"
-          : "Some references could not be saved",
+          ? "Войди, чтобы сохранять"
+          : "Не удалось сохранить",
         "error"
       );
     }
@@ -243,6 +255,7 @@
     updateSiteUi();
     await loadAuth();
     await loadCollections();
+    await autoStartSelection();
     await refreshSelectionState();
   }
 
