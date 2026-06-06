@@ -3,206 +3,24 @@
   const helpers = globalThis.QuietlyAdapterHelpers;
   const adapter = adapters.find((candidate) => candidate.isSupportedPage());
 
+  if (!adapter) {
+    return;
+  }
+
   let selectionMode = false;
   let scanTimer = null;
   let observer = null;
-  let positionFrame = null;
-  let rescanTimer = null;
-  let shadowHost = null;
-  let shadowRoot = null;
-  let lastCandidates = [];
+  let dockHost = null;
+  let dockRoot = null;
   let panelMessage = "";
   let panelTone = "";
-  const overlayElementsById = new Map();
+  let lastCandidates = [];
   const selectedCandidates = new Map();
+  const controlHostsById = new Map();
+  const originalPositionByElement = new WeakMap();
+  const positionedElements = new Set();
 
-  function ensureShadowRoot() {
-    if (shadowRoot) return shadowRoot;
-
-    shadowHost = document.createElement("div");
-    shadowHost.id = "quietly-reference-selection-root";
-    shadowHost.style.all = "initial";
-    document.documentElement.appendChild(shadowHost);
-    shadowRoot = shadowHost.attachShadow({ mode: "open" });
-    shadowRoot.innerHTML = `
-      <style>
-        :host {
-          color-scheme: dark;
-          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-
-        .layer {
-          position: fixed;
-          inset: 0;
-          z-index: 2147483647;
-          pointer-events: none;
-        }
-
-        .overlay {
-          position: absolute;
-          box-sizing: border-box;
-          border: 1px solid rgba(125, 176, 255, 0.34);
-          border-radius: 16px;
-          background: rgba(125, 176, 255, 0.055);
-          cursor: pointer;
-          pointer-events: auto;
-          transition: background 120ms ease, border-color 120ms ease;
-        }
-
-        .overlay:focus-visible {
-          outline: 2px solid rgba(159, 206, 255, 0.96);
-          outline-offset: 3px;
-        }
-
-        .overlay:hover,
-        .overlay[data-selected="true"] {
-          border-color: rgba(125, 176, 255, 0.92);
-          background: rgba(125, 176, 255, 0.12);
-        }
-
-        .check {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          display: grid;
-          width: 28px;
-          height: 28px;
-          place-items: center;
-          border-radius: 999px;
-          background: rgba(13, 13, 13, 0.78);
-          color: white;
-          font-size: 16px;
-          font-weight: 800;
-          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
-        }
-
-        .overlay[data-selected="false"] .check::before {
-          content: "";
-          width: 12px;
-          height: 12px;
-          border: 2px solid rgba(255, 255, 255, 0.82);
-          border-radius: 4px;
-        }
-
-        .overlay[data-selected="true"] .check {
-          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
-          color: #08101f;
-        }
-
-        .overlay[data-selected="true"] .check::before {
-          content: "✓";
-        }
-
-        .quickSave {
-          position: absolute;
-          right: 10px;
-          bottom: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          border-radius: 999px;
-          background: rgba(13, 13, 13, 0.82);
-          color: white;
-          cursor: pointer;
-          font: inherit;
-          font-size: 13px;
-          font-weight: 700;
-          opacity: 0;
-          padding: 9px 12px;
-          pointer-events: auto;
-          transform: translateY(4px) scale(0.98);
-          transition:
-            opacity 120ms ease,
-            transform 120ms ease,
-            border-color 120ms ease,
-            background 120ms ease;
-        }
-
-        .overlay:hover .quickSave,
-        .overlay:focus-visible .quickSave {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-
-        .quickSave:hover {
-          border-color: rgba(159, 206, 255, 0.72);
-          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
-          color: #07101f;
-        }
-
-        .panel {
-          position: fixed;
-          left: 50%;
-          bottom: 24px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          transform: translateX(-50%);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 22px;
-          background: rgba(13, 13, 13, 0.86);
-          padding: 10px 12px;
-          color: white;
-          pointer-events: auto;
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-          backdrop-filter: blur(18px);
-        }
-
-        .panel strong {
-          min-width: 86px;
-          font-size: 13px;
-        }
-
-        .panel em {
-          color: rgba(255, 255, 255, 0.72);
-          font-size: 13px;
-          font-style: normal;
-          white-space: nowrap;
-        }
-
-        .panel em[data-tone="success"] {
-          color: #9fceff;
-        }
-
-        .panel em[data-tone="error"] {
-          color: #ffb29f;
-        }
-
-        .panel button {
-          border: 0;
-          border-radius: 15px;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 9px 12px;
-          font: inherit;
-          font-size: 13px;
-          cursor: pointer;
-        }
-
-        .panel button.primary {
-          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
-          color: #07101f;
-          font-weight: 750;
-        }
-
-        .panel button:disabled {
-          cursor: not-allowed;
-          opacity: 0.5;
-        }
-      </style>
-      <div class="layer"></div>
-    `;
-
-    return shadowRoot;
-  }
-
-  function getLayer() {
-    return ensureShadowRoot().querySelector(".layer");
-  }
-
-  function getSelectedCount() {
-    return selectedCandidates.size;
-  }
-
-  function escapePanelText(value) {
+  function escapeText(value) {
     return String(value).replace(/[&<>"']/g, (character) => {
       const replacements = {
         "&": "&amp;",
@@ -216,35 +34,160 @@
     });
   }
 
-  function scheduleScan() {
-    if (!selectionMode || !adapter || scanTimer) return;
+  function ensureDockRoot() {
+    if (dockRoot) return dockRoot;
 
-    scanTimer = window.setTimeout(() => {
-      scanTimer = null;
-      renderSelectionOverlays();
-    }, 220);
+    dockHost = document.createElement("div");
+    dockHost.id = "quietly-reference-dock-root";
+    dockHost.style.all = "initial";
+    document.documentElement.appendChild(dockHost);
+    dockRoot = dockHost.attachShadow({ mode: "open" });
+    dockRoot.innerHTML = `
+      <style>
+        :host {
+          color-scheme: dark;
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .dock {
+          position: fixed;
+          left: 50%;
+          bottom: 24px;
+          z-index: 2147483647;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          transform: translateX(-50%);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 22px;
+          background: rgba(13, 13, 13, 0.92);
+          padding: 10px 12px;
+          color: white;
+          pointer-events: auto;
+          box-shadow: 0 18px 52px rgba(0, 0, 0, 0.36);
+        }
+
+        .dock strong {
+          color: rgba(255, 255, 255, 0.86);
+          font-size: 13px;
+          font-weight: 740;
+          white-space: nowrap;
+        }
+
+        .dock em {
+          color: rgba(255, 255, 255, 0.64);
+          font-size: 13px;
+          font-style: normal;
+          white-space: nowrap;
+        }
+
+        .dock em[data-tone="success"] {
+          color: #9fceff;
+        }
+
+        .dock em[data-tone="error"] {
+          color: #ffb29f;
+        }
+
+        button {
+          min-height: 42px;
+          border: 0;
+          border-radius: 17px;
+          padding: 0 14px;
+          font: inherit;
+          font-size: 14px;
+          cursor: pointer;
+          transition:
+            transform 160ms ease,
+            opacity 160ms ease,
+            border-color 160ms ease;
+        }
+
+        button:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+
+        button:disabled {
+          cursor: not-allowed;
+          opacity: 0.48;
+        }
+
+        .primary {
+          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
+          color: #07101f;
+          font-weight: 760;
+        }
+
+        .ghost {
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: transparent;
+          color: white;
+        }
+
+        @media (max-width: 560px) {
+          .dock {
+            right: 14px;
+            bottom: 14px;
+            left: 14px;
+            justify-content: center;
+            transform: none;
+          }
+        }
+      </style>
+      <div class="dock"></div>
+    `;
+
+    return dockRoot;
   }
 
-  function scheduleScrollUpdate() {
-    if (!selectionMode || !adapter) return;
+  function getDock() {
+    return ensureDockRoot().querySelector(".dock");
+  }
 
-    if (!positionFrame) {
-      positionFrame = window.requestAnimationFrame(() => {
-        positionFrame = null;
-        updateOverlayPositions();
+  function getSelectedCount() {
+    return selectedCandidates.size;
+  }
+
+  function renderDock() {
+    const dock = getDock();
+    const count = getSelectedCount();
+    const messageHtml = panelMessage
+      ? `<em data-tone="${panelTone}">${escapeText(panelMessage)}</em>`
+      : "";
+
+    if (!selectionMode) {
+      dock.innerHTML = `
+        <button class="primary" type="button">Сохранить референсы</button>
+        ${messageHtml}
+      `;
+      dock.querySelector(".primary")?.addEventListener("click", () => {
+        startSelectionMode();
       });
+      return;
     }
 
-    window.clearTimeout(rescanTimer);
-    rescanTimer = window.setTimeout(() => {
-      rescanTimer = null;
-      renderSelectionOverlays();
-    }, 320);
+    dock.innerHTML = `
+      <strong>${count} выбрано</strong>
+      ${messageHtml}
+      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}>Сохранить во входящие</button>
+      <button class="ghost" type="button">Очистить</button>
+      <button class="ghost" type="button">Отмена</button>
+    `;
+    dock.querySelector(".primary")?.addEventListener("click", () => {
+      void saveSelectedCandidates();
+    });
+    dock.querySelectorAll("button")[1]?.addEventListener("click", () => {
+      selectedCandidates.clear();
+      panelMessage = "";
+      panelTone = "";
+      syncCandidateControls();
+    });
+    dock.querySelectorAll("button")[2]?.addEventListener("click", () => {
+      stopSelectionMode();
+    });
   }
 
   function scanCandidates() {
-    if (!adapter) return [];
-
     lastCandidates = adapter.scanVisibleCandidates().filter((candidate) => {
       const element = adapter.getCandidateElement(candidate.id);
 
@@ -254,44 +197,168 @@
     return lastCandidates;
   }
 
-  function isRectInViewport(rect) {
-    return (
-      rect.width >= 72 &&
-      rect.height >= 72 &&
-      rect.bottom > 0 &&
-      rect.right > 0 &&
-      rect.top < window.innerHeight &&
-      rect.left < window.innerWidth
+  function scheduleScan() {
+    if (!selectionMode || scanTimer) return;
+
+    scanTimer = window.setTimeout(() => {
+      scanTimer = null;
+      syncCandidateControls();
+    }, 320);
+  }
+
+  function rememberPosition(element) {
+    if (positionedElements.has(element)) return;
+
+    originalPositionByElement.set(element, element.style.position || "");
+    positionedElements.add(element);
+
+    if (window.getComputedStyle(element).position === "static") {
+      element.style.position = "relative";
+    }
+  }
+
+  function restorePositions() {
+    positionedElements.forEach((element) => {
+      element.style.position = originalPositionByElement.get(element) || "";
+    });
+    positionedElements.clear();
+  }
+
+  function removeControlHost(candidateId) {
+    const host = controlHostsById.get(candidateId);
+
+    if (!host) return;
+
+    host.remove();
+    controlHostsById.delete(candidateId);
+  }
+
+  function updateControlState(candidate, host) {
+    const button = host.shadowRoot?.querySelector("button");
+    const selected = selectedCandidates.has(candidate.id);
+
+    if (!button) return;
+
+    button.dataset.selected = String(selected);
+    button.setAttribute("aria-pressed", String(selected));
+    button.setAttribute(
+      "aria-label",
+      selected
+        ? `Убрать ${candidate.title || candidate.sourceUrl}`
+        : `Выбрать ${candidate.title || candidate.sourceUrl}`,
     );
   }
 
-  function positionOverlay(overlay, element, checkStyle = true) {
-    const rect = element.getBoundingClientRect();
+  function createControlHost(candidate, element) {
+    rememberPosition(element);
 
-    overlay.hidden = checkStyle
-      ? !helpers.isElementVisible(element)
-      : !isRectInViewport(rect);
-    overlay.style.left = `${Math.max(0, rect.left)}px`;
-    overlay.style.top = `${Math.max(0, rect.top)}px`;
-    overlay.style.width = `${Math.max(0, rect.width)}px`;
-    overlay.style.height = `${Math.max(0, rect.height)}px`;
+    const host = document.createElement("div");
+    host.dataset.quietlyReferenceId = candidate.id;
+    host.style.all = "initial";
+    host.style.position = "absolute";
+    host.style.top = "10px";
+    host.style.right = "10px";
+    host.style.zIndex = "2147483646";
+    host.style.width = "32px";
+    host.style.height = "32px";
+    host.style.pointerEvents = "auto";
+    element.appendChild(host);
+
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML = `
+      <style>
+        button {
+          display: grid;
+          width: 32px;
+          height: 32px;
+          place-items: center;
+          border: 1.5px solid rgba(255, 255, 255, 0.86);
+          border-radius: 10px;
+          background: rgba(13, 13, 13, 0.74);
+          color: white;
+          cursor: pointer;
+          font: inherit;
+          font-size: 18px;
+          font-weight: 850;
+          line-height: 1;
+          padding: 0;
+          transition:
+            transform 120ms ease,
+            border-color 120ms ease,
+            background 120ms ease;
+        }
+
+        button:hover {
+          transform: scale(1.04);
+          border-color: #9fceff;
+        }
+
+        button[data-selected="true"] {
+          border-color: transparent;
+          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
+          color: #07101f;
+        }
+
+        button[data-selected="true"]::before {
+          content: "✓";
+        }
+
+        button:focus-visible {
+          outline: 2px solid #9fceff;
+          outline-offset: 3px;
+        }
+      </style>
+      <button type="button"></button>
+    `;
+    root.querySelector("button")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCandidate(candidate);
+    });
+
+    controlHostsById.set(candidate.id, host);
+    updateControlState(candidate, host);
+    return host;
   }
 
-  function updateOverlayPositions() {
-    for (const candidate of lastCandidates) {
-      const overlay = overlayElementsById.get(candidate.id);
-      const element = adapter.getCandidateElement(candidate.id);
+  function attachControl(candidate) {
+    const element = adapter.getCandidateElement(candidate.id);
 
-      if (!overlay || !element) continue;
+    if (!element) return;
 
-      positionOverlay(overlay, element, false);
+    let host = controlHostsById.get(candidate.id);
+
+    if (host && host.parentElement !== element) {
+      removeControlHost(candidate.id);
+      host = null;
     }
+
+    if (!host) {
+      host = createControlHost(candidate, element);
+    }
+
+    updateControlState(candidate, host);
   }
 
-  function updateSelectedCandidate(candidate) {
-    if (selectedCandidates.has(candidate.id)) {
-      selectedCandidates.set(candidate.id, candidate);
-    }
+  function syncCandidateControls() {
+    if (!selectionMode) return;
+
+    const candidates = scanCandidates();
+    const visibleIds = new Set(candidates.map((candidate) => candidate.id));
+
+    candidates.forEach((candidate) => {
+      if (selectedCandidates.has(candidate.id)) {
+        selectedCandidates.set(candidate.id, candidate);
+      }
+
+      attachControl(candidate);
+    });
+    Array.from(controlHostsById.keys()).forEach((candidateId) => {
+      if (!visibleIds.has(candidateId)) {
+        removeControlHost(candidateId);
+      }
+    });
+    renderDock();
   }
 
   function toggleCandidate(candidate) {
@@ -303,115 +370,27 @@
 
     panelMessage = "";
     panelTone = "";
-    renderSelectionOverlays();
-  }
-
-  function renderPanel(layer) {
-    const panel = document.createElement("div");
-    const count = getSelectedCount();
-
-    panel.className = "panel";
-    panel.innerHTML = `
-      <strong>${count} выбрано</strong>
-      ${panelMessage ? `<em data-tone="${panelTone}">${escapePanelText(panelMessage)}</em>` : ""}
-      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}>Сохранить</button>
-      <button type="button">Очистить</button>
-      <button type="button">Отмена</button>
-    `;
-    panel.querySelector(".primary")?.addEventListener("click", () => {
-      void saveSelectedFromPanel();
-    });
-    panel.querySelectorAll("button")[1]?.addEventListener("click", () => {
-      selectedCandidates.clear();
-      panelMessage = "";
-      panelTone = "";
-      renderSelectionOverlays();
-    });
-    panel.querySelectorAll("button")[2]?.addEventListener("click", () => {
-      stopSelectionMode();
-    });
-    layer.appendChild(panel);
-  }
-
-  function renderSelectionOverlays() {
-    if (!selectionMode) return;
-
-    const layer = getLayer();
-    const candidates = scanCandidates();
-
-    layer.replaceChildren();
-    overlayElementsById.clear();
-
-    for (const candidate of candidates) {
-      const element = adapter.getCandidateElement(candidate.id);
-
-      if (!element) continue;
-
-      updateSelectedCandidate(candidate);
-      const overlay = document.createElement("div");
-
-      overlay.className = "overlay";
-      overlay.dataset.candidateId = candidate.id;
-      overlay.dataset.selected = String(selectedCandidates.has(candidate.id));
-      positionOverlay(overlay, element);
-      overlay.tabIndex = 0;
-      overlay.setAttribute("role", "button");
-      overlay.setAttribute("aria-label", `Выбрать ${candidate.title || candidate.sourceUrl}`);
-      overlay.innerHTML = `
-        <span class="check" aria-hidden="true"></span>
-        <button class="quickSave" type="button">Сохранить</button>
-      `;
-      overlay.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        toggleCandidate(candidate);
-      });
-      overlay.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        toggleCandidate(candidate);
-      });
-      overlay.querySelector(".quickSave")?.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        void saveCandidates([candidate]);
-      });
-      overlayElementsById.set(candidate.id, overlay);
-      layer.appendChild(overlay);
-    }
-
-    renderPanel(layer);
+    attachControl(candidate);
+    renderDock();
   }
 
   function startSelectionMode() {
-    if (!adapter) {
-      return {
-        active: false,
-        error: "Unsupported site",
-        selectedCount: 0,
-        supported: false
-      };
-    }
-
     selectionMode = true;
-    ensureShadowRoot();
-    renderSelectionOverlays();
+    panelMessage = "";
+    panelTone = "";
+    syncCandidateControls();
 
     if (!observer) {
       observer = new MutationObserver(scheduleScan);
       observer.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: true,
       });
     }
 
-    window.addEventListener("scroll", scheduleScrollUpdate, {
-      capture: true,
-      passive: true
-    });
+    window.addEventListener("scroll", scheduleScan, { passive: true });
     window.addEventListener("resize", scheduleScan);
+    renderDock();
 
     return getSelectionState();
   }
@@ -419,20 +398,17 @@
   function stopSelectionMode() {
     selectionMode = false;
     selectedCandidates.clear();
-    overlayElementsById.clear();
     panelMessage = "";
     panelTone = "";
-    window.cancelAnimationFrame(positionFrame);
-    window.clearTimeout(rescanTimer);
-    positionFrame = null;
-    rescanTimer = null;
-    shadowHost?.remove();
-    shadowHost = null;
-    shadowRoot = null;
+    window.clearTimeout(scanTimer);
+    scanTimer = null;
     observer?.disconnect();
     observer = null;
-    window.removeEventListener("scroll", scheduleScrollUpdate, true);
+    window.removeEventListener("scroll", scheduleScan);
     window.removeEventListener("resize", scheduleScan);
+    Array.from(controlHostsById.keys()).forEach(removeControlHost);
+    restorePositions();
+    renderDock();
   }
 
   function getSelectionState() {
@@ -440,8 +416,8 @@
       active: selectionMode,
       candidateCount: lastCandidates.length,
       selectedCount: getSelectedCount(),
-      source: adapter?.source || null,
-      supported: Boolean(adapter)
+      source: adapter.source,
+      supported: true,
     };
   }
 
@@ -464,7 +440,9 @@
       return `${result.saved} сохранено, ${result.duplicates} уже были`;
     }
 
-    return result.saved === 1 ? "Сохранено во входящие" : `${result.saved} сохранено`;
+    return result.saved === 1
+      ? "Сохранено во входящие"
+      : `${result.saved} сохранено`;
   }
 
   async function saveCandidates(candidates, { clearSelected = false } = {}) {
@@ -472,34 +450,35 @@
 
     panelMessage = "Сохраняю...";
     panelTone = "";
-    renderSelectionOverlays();
+    renderDock();
 
     const result = await chrome.runtime.sendMessage({
       candidates,
-      type: "QUIETLY_SAVE_SELECTED_FROM_CONTENT"
+      type: "QUIETLY_SAVE_SELECTED_FROM_CONTENT",
     });
 
     if (result?.ok) {
       if (clearSelected) {
         selectedCandidates.clear();
+        syncCandidateControls();
       }
 
       panelMessage = getSaveResultMessage(result.result);
       panelTone = result.result?.failed > 0 ? "error" : "success";
-      renderSelectionOverlays();
+      renderDock();
       window.setTimeout(() => {
         panelMessage = "";
         panelTone = "";
-        renderSelectionOverlays();
-      }, 1200);
+        renderDock();
+      }, 1400);
     } else {
       panelMessage = result?.error || "Не удалось сохранить";
       panelTone = "error";
-      renderSelectionOverlays();
+      renderDock();
     }
   }
 
-  async function saveSelectedFromPanel() {
+  async function saveSelectedCandidates() {
     await saveCandidates(getSelectedCandidates(), { clearSelected: true });
   }
 
@@ -522,9 +501,7 @@
 
     if (message?.type === "QUIETLY_CLEAR_SELECTION") {
       selectedCandidates.clear();
-      panelMessage = "";
-      panelTone = "";
-      renderSelectionOverlays();
+      syncCandidateControls();
       sendResponse(getSelectionState());
       return false;
     }
@@ -532,11 +509,13 @@
     if (message?.type === "QUIETLY_GET_SELECTED_CANDIDATES") {
       sendResponse({
         candidates: getSelectedCandidates(),
-        state: getSelectionState()
+        state: getSelectionState(),
       });
       return false;
     }
 
     return false;
   });
+
+  renderDock();
 })();
