@@ -1,4 +1,9 @@
 (function () {
+  if (globalThis.__quietlyReferenceSaver?.renderDock) {
+    globalThis.__quietlyReferenceSaver.renderDock();
+    return;
+  }
+
   const adapters = globalThis.QuietlyReferenceAdapters || [];
   const helpers = globalThis.QuietlyAdapterHelpers;
   const adapter = adapters.find((candidate) => candidate.isSupportedPage());
@@ -483,6 +488,12 @@
   }
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "QUIETLY_SHOW_DOCK") {
+      renderDock();
+      sendResponse(getSelectionState());
+      return false;
+    }
+
     if (message?.type === "QUIETLY_GET_SELECTION_STATE") {
       sendResponse(getSelectionState());
       return false;
@@ -516,6 +527,11 @@
 
     return false;
   });
+
+  globalThis.__quietlyReferenceSaver = {
+    renderDock,
+    startSelectionMode,
+  };
 
   renderDock();
 })();

@@ -2,19 +2,20 @@
   "manifest_version": 3,
   "name": "Quietly Reference Saver",
   "description": "Save selected visual references from Are.na, Pinterest, and Dribbble into Quietly Inbox.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "permissions": ["activeTab", "contextMenus", "scripting", "storage"],
   "host_permissions": [
     "https://www.are.na/*",
     "https://are.na/*",
+    "https://pinterest.com/*",
     "https://www.pinterest.com/*",
     "https://*.pinterest.com/*",
     "https://dribbble.com/*",
+    "https://www.dribbble.com/*",
     "https://you-notebook.vercel.app/*",
     "http://localhost:3000/*"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_title": "Quietly"
   },
   "background": {
@@ -33,9 +34,11 @@
       "matches": [
         "https://www.are.na/*",
         "https://are.na/*",
+        "https://pinterest.com/*",
         "https://www.pinterest.com/*",
         "https://*.pinterest.com/*",
-        "https://dribbble.com/*"
+        "https://dribbble.com/*",
+        "https://www.dribbble.com/*"
       ],
       "js": [
         "shared/dom-helpers.js",

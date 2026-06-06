@@ -9,7 +9,7 @@
   const dribbbleAdapter = {
     source: "dribbble",
     isSupportedPage() {
-      return window.location.hostname === "dribbble.com";
+      return /(^|\.)dribbble\.com$/i.test(window.location.hostname);
     },
     scanVisibleCandidates() {
       elementById.clear();

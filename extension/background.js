@@ -23,6 +23,51 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+const SUPPORTED_PAGE_PATTERNS = [
+  /(^|\.)are\.na$/i,
+  /(^|\.)pinterest\./i,
+  /(^|\.)dribbble\.com$/i
+];
+
+const CONTENT_SCRIPT_FILES = [
+  "shared/dom-helpers.js",
+  "adapters/arena-adapter.js",
+  "adapters/pinterest-adapter.js",
+  "adapters/dribbble-adapter.js",
+  "content/content-script.js"
+];
+
+function isSupportedTabUrl(url) {
+  try {
+    const { hostname, protocol } = new URL(url || "");
+
+    return (
+      protocol === "https:" &&
+      SUPPORTED_PAGE_PATTERNS.some((pattern) => pattern.test(hostname))
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function showDockInTab(tab) {
+  if (!tab?.id || !isSupportedTabUrl(tab.url)) {
+    return;
+  }
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: "QUIETLY_SHOW_DOCK" });
+    return;
+  } catch {
+    // The page may have been open before the extension was reloaded.
+  }
+
+  await chrome.scripting.executeScript({
+    files: CONTENT_SCRIPT_FILES,
+    target: { tabId: tab.id }
+  });
+}
+
 function getDomain(url) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -72,6 +117,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       }
     }
   })();
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  void showDockInTab(tab);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
