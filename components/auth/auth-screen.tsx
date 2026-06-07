@@ -35,7 +35,6 @@ const COPY = {
     button: "Войти",
     loading: "Входим...",
     passwordLabel: "Пароль",
-    passwordPlaceholder: "Введите пароль",
     subtitle: "Войдите, чтобы продолжить работу со своим пространством",
     switchHref: "/register",
     switchText: "Нет аккаунта? Создать",
@@ -45,7 +44,6 @@ const COPY = {
     button: "Создать аккаунт",
     loading: "Создаём...",
     passwordLabel: "Пароль",
-    passwordPlaceholder: "Придумайте пароль",
     subtitle:
       "Нужен аккаунт, чтобы Refound понял, куда складывать рефы из плагина и Telegram-бота",
     switchHref: "/login",
@@ -163,7 +161,7 @@ export function AuthForm({
         error={errorTarget === "email" ? error : ""}
         inputMode="email"
         label="E-mail"
-        placeholder="Введите E-mail"
+        placeholder="E-mail"
         type="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
@@ -174,7 +172,7 @@ export function AuthForm({
         disabled={isSubmitting}
         error={errorTarget === "password" ? error : ""}
         label={copy.passwordLabel}
-        placeholder={copy.passwordPlaceholder}
+        placeholder="Пароль"
         type="password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
