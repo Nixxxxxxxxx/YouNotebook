@@ -4,23 +4,37 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 
-import { AnimatedGradientButton } from "@/components/ui/animated-gradient-button";
-import { MorphicBackground } from "@/components/ui/morphic-background";
+import { RefoundButton } from "@/components/ui/refound-button";
+import { RefoundInput } from "@/components/ui/refound-input";
+import { AuthError } from "@/lib/auth/types";
 import { validateAuthInput } from "@/lib/auth/validation";
 
 import styles from "./auth-screen.module.css";
 
 type AuthMode = "login" | "register";
+type FieldErrorTarget = "email" | "password" | "form" | "";
 
 type AuthScreenProps = {
   mode: AuthMode;
   switchHref?: string;
 };
 
+type AuthFormProps = {
+  buttonLabel?: string;
+  className?: string;
+  loadingLabel?: string;
+  mode: AuthMode;
+  onSuccess?: () => Promise<void> | void;
+  showLegal?: boolean;
+  showSwitch?: boolean;
+  switchHref?: string;
+};
+
 const COPY = {
   login: {
     button: "Войти",
-    loading: "Входим…",
+    loading: "Входим...",
+    passwordLabel: "Пароль",
     passwordPlaceholder: "Введите пароль",
     subtitle: "Войдите, чтобы продолжить работу со своим пространством",
     switchHref: "/register",
@@ -28,36 +42,63 @@ const COPY = {
     title: "С возвращением",
   },
   register: {
-    button: "Создать пространство",
-    loading: "Создаём…",
+    button: "Создать аккаунт",
+    loading: "Создаём...",
+    passwordLabel: "Пароль",
     passwordPlaceholder: "Придумайте пароль",
     subtitle:
-      "Место, где можно записывать мысли, планировать день и сохранять полезное без лишнего шума",
+      "Нужен аккаунт, чтобы Refound понял, куда складывать рефы из плагина и Telegram-бота",
     switchHref: "/login",
     switchText: "Уже есть аккаунт? Войти",
-    title: "Создайте своё пространство",
+    title: "Создай своё место для рефов",
   },
 } satisfies Record<AuthMode, Record<string, string>>;
 
+function getFieldTarget(code?: string): FieldErrorTarget {
+  if (code?.startsWith("email")) return "email";
+  if (code?.startsWith("password")) return "password";
+
+  return "form";
+}
+
 async function readError(response: Response) {
   try {
-    const data = (await response.json()) as { error?: string };
-    return data.error || "Не получилось продолжить. Попробуйте ещё раз";
+    const data = (await response.json()) as {
+      code?: string;
+      error?: string;
+    };
+
+    return {
+      message: data.error || "Не получилось продолжить. Попробуйте ещё раз",
+      target: getFieldTarget(data.code),
+    };
   } catch {
-    return "Не получилось продолжить. Попробуйте ещё раз";
+    return {
+      message: "Не получилось продолжить. Попробуйте ещё раз",
+      target: "form" as const,
+    };
   }
 }
 
-export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
+export function AuthForm({
+  buttonLabel,
+  className,
+  loadingLabel,
+  mode,
+  onSuccess,
+  showLegal = mode === "register",
+  showSwitch = true,
+  switchHref,
+}: AuthFormProps) {
   const router = useRouter();
+  const copy = COPY[mode];
   const emailId = useId();
   const passwordId = useId();
-  const errorId = useId();
-  const hintId = useId();
-  const copy = COPY[mode];
+  const formErrorId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorTarget, setErrorTarget] = useState<FieldErrorTarget>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -71,11 +112,17 @@ export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
           ? validationError.message
           : "Не получилось продолжить. Попробуйте ещё раз",
       );
+      setErrorTarget(
+        validationError instanceof AuthError
+          ? getFieldTarget(validationError.code)
+          : "form",
+      );
       return;
     }
 
     setIsSubmitting(true);
     setError("");
+    setErrorTarget("");
 
     try {
       const response = await fetch(`/api/auth/${mode}`, {
@@ -85,7 +132,15 @@ export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
       });
 
       if (!response.ok) {
-        setError(await readError(response));
+        const nextError = await readError(response);
+
+        setError(nextError.message);
+        setErrorTarget(nextError.target);
+        return;
+      }
+
+      if (onSuccess) {
+        await onSuccess();
         return;
       }
 
@@ -93,110 +148,88 @@ export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
       router.refresh();
     } catch {
       setError("Не получилось продолжить. Попробуйте ещё раз");
+      setErrorTarget("form");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
+    <form className={`${styles.form} ${className || ""}`} onSubmit={submit} noValidate>
+      <RefoundInput
+        id={emailId}
+        autoComplete="email"
+        disabled={isSubmitting}
+        error={errorTarget === "email" ? error : ""}
+        inputMode="email"
+        label="E-mail"
+        placeholder="Введите E-mail"
+        type="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+      />
+      <RefoundInput
+        id={passwordId}
+        autoComplete={mode === "register" ? "new-password" : "current-password"}
+        disabled={isSubmitting}
+        error={errorTarget === "password" ? error : ""}
+        label={copy.passwordLabel}
+        placeholder={copy.passwordPlaceholder}
+        type="password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+      />
+      {mode === "register" ? (
+        <p className={styles.hint}>Минимум 8 символов</p>
+      ) : null}
+      <p
+        className={styles.formError}
+        data-visible={errorTarget === "form" && error ? "true" : "false"}
+        id={formErrorId}
+        role="status"
+        aria-live="polite"
+      >
+        {errorTarget === "form" ? error : " "}
+      </p>
+      <RefoundButton
+        className={styles.submitButton}
+        disabled={isSubmitting}
+        fullWidth
+        type="submit"
+        aria-busy={isSubmitting}
+      >
+        {isSubmitting ? loadingLabel || copy.loading : buttonLabel || copy.button}
+      </RefoundButton>
+      {showSwitch ? (
+        <Link className={styles.switchLink} href={switchHref || copy.switchHref}>
+          {copy.switchText}
+        </Link>
+      ) : null}
+      {showLegal ? (
+        <p className={styles.legal}>
+          Создавая аккаунт, вы соглашаетесь с условиями сервиса и политикой
+          конфиденциальности.
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+export function AuthScreen({ mode, switchHref }: AuthScreenProps) {
+  const copy = COPY[mode];
+
+  return (
     <main className={styles.screen} data-mode={mode}>
-      <section className={styles.formPanel} aria-labelledby="auth-title">
-        <div className={styles.logo} aria-label="Quietly">
-          Q
-        </div>
+      <section className={styles.panel} aria-labelledby="auth-title">
+        <Link className={styles.logo} href="/auth" aria-label="Refound">
+          Refound
+        </Link>
         <div className={styles.copy}>
           <h1 id="auth-title">{copy.title}</h1>
           <p>{copy.subtitle}</p>
         </div>
-        <form className={styles.form} onSubmit={submit} noValidate>
-          <label className={styles.field} htmlFor={emailId}>
-            <span>Email</span>
-            <input
-              id={emailId}
-              autoComplete="email"
-              disabled={isSubmitting}
-              inputMode="email"
-              placeholder="Введите E-mail"
-              type="email"
-              value={email}
-              aria-invalid={error ? "true" : "false"}
-              aria-describedby={error ? errorId : undefined}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <label className={styles.field} htmlFor={passwordId}>
-            <span>Пароль</span>
-            <input
-              id={passwordId}
-              autoComplete={
-                mode === "register" ? "new-password" : "current-password"
-              }
-              disabled={isSubmitting}
-              placeholder={copy.passwordPlaceholder}
-              type="password"
-              value={password}
-              aria-invalid={error ? "true" : "false"}
-              aria-describedby={
-                [mode === "register" ? hintId : "", error ? errorId : ""]
-                  .filter(Boolean)
-                  .join(" ") || undefined
-              }
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          {mode === "register" ? (
-            <p className={styles.hint} id={hintId}>
-              Минимум 8 символов
-            </p>
-          ) : null}
-          <p
-            className={styles.error}
-            id={errorId}
-            role="status"
-            aria-live="polite"
-            data-visible={error ? "true" : "false"}
-          >
-            {error || " "}
-          </p>
-          <AnimatedGradientButton
-            className={styles.submitButton}
-            disabled={isSubmitting}
-            fullWidth
-            type="submit"
-            aria-busy={isSubmitting}
-          >
-            {isSubmitting ? copy.loading : copy.button}
-          </AnimatedGradientButton>
-        </form>
-        <Link className={styles.switchLink} href={switchHref || copy.switchHref}>
-          {copy.switchText}
-        </Link>
-        {mode === "register" ? (
-          <p className={styles.legal}>
-            Создавая аккаунт, вы соглашаетесь с условиями сервиса и политикой
-            конфиденциальности.
-          </p>
-        ) : null}
+        <AuthForm mode={mode} switchHref={switchHref} />
       </section>
-      <AuthQuietIllustration />
     </main>
-  );
-}
-
-function AuthQuietIllustration() {
-  return (
-    <section className={styles.visual} aria-hidden="true">
-      <div className={styles.unionShape}>
-        <MorphicBackground className={styles.morphicLayer} />
-        <div className={styles.dividers}>
-          <span data-divider="vertical-one" />
-          <span data-divider="vertical-two" />
-          <span data-divider="vertical-three" />
-          <span data-divider="horizontal-one" />
-          <span data-divider="horizontal-two" />
-          <span data-divider="horizontal-three" />
-        </div>
-      </div>
-    </section>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Caveat, Lacquer } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const caveat = Caveat({
@@ -15,9 +16,15 @@ const lacquer = Lacquer({
   display: "swap",
 });
 
+const pixpopenei = localFont({
+  src: "../public/fonts/pixpopenei.ttf",
+  variable: "--font-refound",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Quietly",
-  description: "Тихое пространство для мыслей, задач и заметок",
+  title: "Refound",
+  description: "Пространство для рефов, мыслей и быстрых входящих",
 };
 
 export const viewport: Viewport = {
@@ -34,7 +41,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={`${caveat.variable} ${lacquer.variable}`}>
+      <body
+        className={`${caveat.variable} ${lacquer.variable} ${pixpopenei.variable}`}
+      >
         {children}
       </body>
     </html>

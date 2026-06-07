@@ -50,7 +50,7 @@
     dockRoot.innerHTML = `
       <style>
         :host {
-          color-scheme: dark;
+          color-scheme: light;
           font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
@@ -61,54 +61,57 @@
           z-index: 2147483647;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           transform: translateX(-50%);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 22px;
-          background: rgba(13, 13, 13, 0.92);
-          padding: 10px 12px;
-          color: white;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.94);
+          padding: 8px;
+          color: #000;
           pointer-events: auto;
-          box-shadow: 0 18px 52px rgba(0, 0, 0, 0.36);
+          box-shadow: 0 18px 52px rgba(0, 0, 0, 0.14);
         }
 
         .dock strong {
-          color: rgba(255, 255, 255, 0.86);
+          color: rgba(0, 0, 0, 0.76);
           font-size: 13px;
           font-weight: 740;
+          padding: 0 6px 0 8px;
           white-space: nowrap;
         }
 
         .dock em {
-          color: rgba(255, 255, 255, 0.64);
+          color: rgba(0, 0, 0, 0.56);
           font-size: 13px;
           font-style: normal;
+          padding: 0 8px;
           white-space: nowrap;
         }
 
         .dock em[data-tone="success"] {
-          color: #9fceff;
+          color: #0b8f3d;
         }
 
         .dock em[data-tone="error"] {
-          color: #ffb29f;
+          color: #d80000;
         }
 
         button {
           min-height: 42px;
           border: 0;
-          border-radius: 17px;
-          padding: 0 14px;
+          border-radius: 18px;
+          padding: 0 16px;
           font: inherit;
           font-size: 14px;
           cursor: pointer;
           transition:
-            transform 160ms ease,
-            opacity 160ms ease,
-            border-color 160ms ease;
+            border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         button:hover:not(:disabled) {
+          border-radius: 100px;
           transform: translateY(-1px);
         }
 
@@ -118,24 +121,57 @@
         }
 
         .primary {
-          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
-          color: #07101f;
+          position: relative;
+          overflow: hidden;
+          background: #000;
+          color: #fff;
           font-weight: 760;
         }
 
+        .primary::before {
+          display: inline-block;
+          width: 18px;
+          height: 18px;
+          margin-right: 8px;
+          border: 1.5px solid #ff1f1f;
+          border-radius: 999px;
+          vertical-align: -4px;
+          content: "";
+          animation: ringFlow 3.8s linear infinite;
+        }
+
         .ghost {
-          border: 1px solid rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(0, 0, 0, 0.1);
           background: transparent;
-          color: white;
+          color: rgba(0, 0, 0, 0.7);
+        }
+
+        .ghost:hover:not(:disabled) {
+          border-color: rgba(0, 0, 0, 0.2);
+          color: #000;
+        }
+
+        @keyframes ringFlow {
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         @media (max-width: 560px) {
           .dock {
-            right: 14px;
-            bottom: 14px;
-            left: 14px;
+            right: 12px;
+            bottom: 12px;
+            left: 12px;
             justify-content: center;
             transform: none;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          button,
+          .primary::before {
+            animation: none;
+            transition: none;
           }
         }
       </style>
@@ -162,7 +198,7 @@
 
     if (!selectionMode) {
       dock.innerHTML = `
-        <button class="primary" type="button">Сохранить референсы</button>
+        <button class="primary" type="button">Забрать рефы</button>
         ${messageHtml}
       `;
       dock.querySelector(".primary")?.addEventListener("click", () => {
@@ -174,7 +210,7 @@
     dock.innerHTML = `
       <strong>${count} выбрано</strong>
       ${messageHtml}
-      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}>Сохранить во входящие</button>
+      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}>Сохранить</button>
       <button class="ghost" type="button">Очистить</button>
       <button class="ghost" type="button">Отмена</button>
     `;
@@ -274,34 +310,36 @@
       <style>
         button {
           display: grid;
-          width: 32px;
-          height: 32px;
+          width: 30px;
+          height: 30px;
           place-items: center;
-          border: 1.5px solid rgba(255, 255, 255, 0.86);
+          border: 1.5px solid rgba(0, 0, 0, 0.62);
           border-radius: 10px;
-          background: rgba(13, 13, 13, 0.74);
-          color: white;
+          background: rgba(255, 255, 255, 0.76);
+          color: #fff;
           cursor: pointer;
           font: inherit;
           font-size: 18px;
           font-weight: 850;
           line-height: 1;
           padding: 0;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
           transition:
-            transform 120ms ease,
-            border-color 120ms ease,
-            background 120ms ease;
+            border-color 140ms cubic-bezier(0.22, 1, 0.36, 1),
+            box-shadow 140ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         button:hover {
-          transform: scale(1.04);
-          border-color: #9fceff;
+          border-color: #000;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+          transform: scale(1.03);
         }
 
         button[data-selected="true"] {
-          border-color: transparent;
-          background: linear-gradient(135deg, #9fceff 0%, #5d8bff 100%);
-          color: #07101f;
+          border-color: #000;
+          background: #000;
+          color: #fff;
         }
 
         button[data-selected="true"]::before {
@@ -309,8 +347,14 @@
         }
 
         button:focus-visible {
-          outline: 2px solid #9fceff;
+          outline: 2px solid #ff1f1f;
           outline-offset: 3px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          button {
+            transition: none;
+          }
         }
       </style>
       <button type="button"></button>

@@ -14,6 +14,14 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSessionCookie = request.cookies.has(SESSION_COOKIE_NAME);
 
+  if (pathname === "/" && !hasSessionCookie) {
+    const authUrl = request.nextUrl.clone();
+    authUrl.pathname = "/auth";
+    authUrl.search = "";
+
+    return NextResponse.redirect(authUrl);
+  }
+
   if (isProtectedPath(pathname) && !hasSessionCookie) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
