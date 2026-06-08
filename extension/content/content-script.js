@@ -86,6 +86,7 @@
     dockHost = document.createElement("div");
     dockHost.id = "quietly-reference-dock-root";
     dockHost.style.all = "initial";
+    dockHost.style.fontFamily = '"Inter", "Helvetica Neue", Arial, sans-serif';
     document.documentElement.appendChild(dockHost);
     dockRoot = dockHost.attachShadow({ mode: "open" });
 
@@ -95,7 +96,14 @@
 
         :host {
           color-scheme: light;
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        :host,
+        :host *,
+        :host *::before,
+        :host *::after {
+          font-family: "Inter", "Helvetica Neue", Arial, sans-serif !important;
         }
 
         .dock {
@@ -112,6 +120,7 @@
           background: transparent;
           padding: 0;
           color: #050505;
+          font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
           pointer-events: auto;
         }
 
@@ -151,9 +160,10 @@
           border: 1px solid transparent;
           border-radius: 24px;
           padding: 0 20px;
-          font: inherit;
+          font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
           font-size: 14px;
           font-weight: 500;
+          line-height: 1;
           cursor: pointer;
           transition:
             border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -243,7 +253,7 @@
         .chaos-ring {
           stroke: #ff1f1f;
           stroke-width: 2.15;
-          opacity: 0;
+          opacity: 0.95;
           transform-box: fill-box;
           transform-origin: center;
           animation:
@@ -255,8 +265,8 @@
           stroke: #ff1f1f;
           stroke-width: 2.15;
           stroke-dasharray: 116;
-          stroke-dashoffset: 116;
-          opacity: 0;
+          stroke-dashoffset: 0;
+          opacity: 0.18;
           transform-origin: 22px 22px;
           animation: refoundOrderRing 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }
@@ -329,16 +339,21 @@
           }
 
           62% {
-            opacity: 0.58;
+            opacity: 0.26;
             stroke-dasharray: 114 18;
             stroke-dashoffset: -22;
           }
 
-          76%,
-          100% {
-            opacity: 0;
+          78% {
+            opacity: 0.14;
             stroke-dasharray: 132;
-            stroke-dashoffset: -132;
+            stroke-dashoffset: -48;
+          }
+
+          100% {
+            opacity: 0.95;
+            stroke-dasharray: 52 8 42 12 66 10;
+            stroke-dashoffset: 0;
           }
         }
 
@@ -350,13 +365,13 @@
 
         @keyframes refoundOrderRing {
           0% {
-            opacity: 0;
-            stroke-dashoffset: 116;
+            opacity: 0.18;
+            stroke-dashoffset: 0;
           }
 
           50% {
-            opacity: 0;
-            stroke-dashoffset: 116;
+            opacity: 0.2;
+            stroke-dashoffset: 0;
           }
 
           70% {
@@ -370,8 +385,8 @@
           }
 
           100% {
-            opacity: 0;
-            stroke-dashoffset: -116;
+            opacity: 0.18;
+            stroke-dashoffset: 0;
           }
         }
 
@@ -399,7 +414,7 @@
           }
 
           .chaos-ring {
-            opacity: 0;
+            opacity: 0.18;
           }
         }
       </style>
@@ -463,6 +478,18 @@
     const messageHtml = panelMessage
       ? `<em data-tone="${panelTone}">${escapeText(panelMessage)}</em>`
       : "";
+    const renderKey = [
+      selectionMode ? "selection" : "idle",
+      count,
+      panelMessage,
+      panelTone,
+    ].join("|");
+
+    if (dock.dataset.renderKey === renderKey) {
+      return;
+    }
+
+    dock.dataset.renderKey = renderKey;
 
     if (!selectionMode) {
       dock.innerHTML = `
@@ -588,7 +615,7 @@
           background: rgba(255, 255, 255, 0.76);
           color: #fff;
           cursor: pointer;
-          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: "Inter", "Helvetica Neue", Arial, sans-serif !important;
           font-size: 18px;
           font-weight: 850;
           line-height: 1;
