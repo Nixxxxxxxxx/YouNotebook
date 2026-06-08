@@ -51,7 +51,7 @@
       <style>
         :host {
           color-scheme: light;
-          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         .dock {
@@ -61,54 +61,14 @@
           z-index: 2147483647;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           transform: translateX(-50%);
-          isolation: isolate;
-          overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.58);
-          border-radius: 30px;
-          background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.14)),
-            rgba(255, 255, 255, 0.2);
-          padding: 7px;
+          overflow: visible;
+          border: 0;
+          background: transparent;
+          padding: 0;
           color: #050505;
           pointer-events: auto;
-          box-shadow:
-            0 18px 46px rgba(11, 17, 28, 0.18),
-            inset 0 1px 0 rgba(255, 255, 255, 0.72),
-            inset 0 -1px 0 rgba(255, 255, 255, 0.24);
-          backdrop-filter: blur(18px) saturate(1.45);
-          -webkit-backdrop-filter: blur(18px) saturate(1.45);
-        }
-
-        .dock::before {
-          position: absolute;
-          inset: -1px;
-          z-index: -2;
-          border-radius: inherit;
-          background:
-            radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.88), transparent 34%),
-            radial-gradient(circle at 84% 110%, rgba(255, 31, 31, 0.16), transparent 36%),
-            linear-gradient(110deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0.28));
-          content: "";
-          filter: url(#quietly-liquid-refraction);
-          pointer-events: none;
-        }
-
-        .dock::after {
-          position: absolute;
-          inset: 0;
-          z-index: -1;
-          border-radius: inherit;
-          border: 1px solid rgba(255, 255, 255, 0.36);
-          background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.46), transparent 38%),
-            linear-gradient(315deg, rgba(255, 255, 255, 0.18), transparent 42%);
-          box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-            inset 0 12px 24px rgba(255, 255, 255, 0.2);
-          content: "";
-          pointer-events: none;
         }
 
         .dock strong {
@@ -136,17 +96,45 @@
         }
 
         button {
-          min-height: 44px;
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          isolation: isolate;
+          overflow: hidden;
+          min-height: 54px;
           border: 1px solid transparent;
-          border-radius: 18px;
-          padding: 0 16px;
+          border-radius: 24px;
+          padding: 0 20px;
           font: inherit;
           font-size: 14px;
+          font-weight: 760;
           cursor: pointer;
           transition:
             border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1),
             opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
             transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        button::after {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          border-radius: inherit;
+          background:
+            radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.72), transparent 34%),
+            radial-gradient(circle at 86% 110%, rgba(255, 31, 31, 0.12), transparent 38%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08));
+          content: "";
+          filter: url(#quietly-liquid-refraction);
+          opacity: 0.56;
+          pointer-events: none;
+        }
+
+        .button-label {
+          position: relative;
+          z-index: 1;
         }
 
         button:hover:not(:disabled) {
@@ -164,16 +152,11 @@
         }
 
         .primary {
-          position: relative;
-          overflow: hidden;
-          min-height: 54px;
           border-color: rgba(255, 255, 255, 0.72);
-          border-radius: 24px;
           background:
             linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.34)),
             rgba(255, 255, 255, 0.28);
           color: #050505;
-          font-weight: 760;
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.82),
             inset 0 -1px 0 rgba(255, 255, 255, 0.3),
@@ -190,32 +173,52 @@
         }
 
         .primary::before {
-          display: inline-block;
+          display: block;
+          flex: 0 0 auto;
           width: 18px;
           height: 18px;
-          margin-right: 8px;
           border: 1.5px solid #ff1f1f;
           border-radius: 999px;
           box-shadow:
             0 0 0 1px rgba(255, 31, 31, 0.08),
             0 0 14px rgba(255, 31, 31, 0.18);
-          vertical-align: -4px;
           content: "";
+          position: relative;
+          z-index: 2;
           animation: ringFlow 3.8s linear infinite;
         }
 
         .ghost {
-          border: 1px solid rgba(255, 255, 255, 0.5);
-          background: rgba(255, 255, 255, 0.22);
-          color: rgba(5, 5, 5, 0.74);
-          backdrop-filter: blur(12px) saturate(1.2);
-          -webkit-backdrop-filter: blur(12px) saturate(1.2);
+          width: 54px;
+          min-width: 54px;
+          padding: 0;
+          border-color: rgba(255, 255, 255, 0.62);
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28)),
+            rgba(255, 255, 255, 0.2);
+          color: rgba(5, 5, 5, 0.8);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.74),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+            0 10px 24px rgba(0, 0, 0, 0.08);
+          backdrop-filter: blur(16px) saturate(1.28);
+          -webkit-backdrop-filter: blur(16px) saturate(1.28);
         }
 
         .ghost:hover:not(:disabled) {
           border-color: rgba(255, 255, 255, 0.76);
           color: #050505;
-          background: rgba(255, 255, 255, 0.34);
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.36)),
+            rgba(255, 255, 255, 0.3);
+        }
+
+        .ghost svg {
+          display: block;
+          width: 20px;
+          height: 20px;
+          position: relative;
+          z-index: 1;
         }
 
         @keyframes ringFlow {
@@ -256,6 +259,22 @@
     return dockRoot;
   }
 
+  function getTrashIcon() {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="M6 6L6 15C6 16.8638 6 17.7956 6.30448 18.5307C6.71046 19.5108 7.48915 20.2895 8.46927 20.6955C9.20435 21 10.1362 21 12 21H12.5C13.8956 21 14.5933 21 15.1611 20.8278C16.4395 20.44 17.44 19.4395 17.8278 18.1611C18 17.5933 18 16.8956 18 15.5M6 6H4M6 6L18 6M18 6H20M18 6V11.5M9 3L15 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+  }
+
+  function getCloseIcon() {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="M6.5 6.5L17.5 17.5M17.5 6.5L6.5 17.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+    `;
+  }
+
   function getDock() {
     return ensureDockRoot().querySelector(".dock");
   }
@@ -273,7 +292,7 @@
 
     if (!selectionMode) {
       dock.innerHTML = `
-        <button class="primary" type="button">Забрать рефы</button>
+        <button class="primary" type="button"><span class="button-label">Забрать рефы</span></button>
         ${messageHtml}
       `;
       dock.querySelector(".primary")?.addEventListener("click", () => {
@@ -285,20 +304,20 @@
     dock.innerHTML = `
       <strong>${count} выбрано</strong>
       ${messageHtml}
-      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}>Сохранить</button>
-      <button class="ghost" type="button">Очистить</button>
-      <button class="ghost" type="button">Отмена</button>
+      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}><span class="button-label">Сохранить</span></button>
+      <button class="ghost clear-button" type="button" aria-label="Очистить выбранные">${getTrashIcon()}</button>
+      <button class="ghost cancel-button" type="button" aria-label="Отмена">${getCloseIcon()}</button>
     `;
     dock.querySelector(".primary")?.addEventListener("click", () => {
       void saveSelectedCandidates();
     });
-    dock.querySelectorAll("button")[1]?.addEventListener("click", () => {
+    dock.querySelector(".clear-button")?.addEventListener("click", () => {
       selectedCandidates.clear();
       panelMessage = "";
       panelTone = "";
       syncCandidateControls();
     });
-    dock.querySelectorAll("button")[2]?.addEventListener("click", () => {
+    dock.querySelector(".cancel-button")?.addEventListener("click", () => {
       stopSelectionMode();
     });
   }
@@ -393,7 +412,7 @@
           background: rgba(255, 255, 255, 0.76);
           color: #fff;
           cursor: pointer;
-          font: inherit;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           font-size: 18px;
           font-weight: 850;
           line-height: 1;
