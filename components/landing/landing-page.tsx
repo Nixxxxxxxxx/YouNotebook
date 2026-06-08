@@ -12,19 +12,19 @@ import { RefoundButton } from "@/components/ui/refound-button";
 import styles from "./landing-page.module.css";
 
 const CARD_IMAGES = [
-  { className: styles.cardOne, src: "/refound/ref-1.png" },
-  { className: styles.cardTwo, src: "/refound/ref-2.png" },
-  { className: styles.cardThree, src: "/refound/ref-3.png" },
-  { className: styles.cardFour, src: "/refound/ref-4.png" },
-  { className: styles.cardFive, src: "/refound/ref-5.png" },
-  { className: styles.cardSix, src: "/refound/ref-6.png" },
-  { className: styles.cardSeven, src: "/refound/ref-7.png" },
+  { className: styles.cardOne, height: 1497, src: "/refound/ref-1.png", width: 1200 },
+  { className: styles.cardTwo, height: 630, src: "/refound/ref-2.png", width: 1200 },
+  { className: styles.cardThree, height: 552, src: "/refound/ref-3.png", width: 736 },
+  { className: styles.cardFour, height: 453, src: "/refound/ref-4.png", width: 684 },
+  { className: styles.cardFive, height: 438, src: "/refound/ref-5.png", width: 736 },
+  { className: styles.cardSix, height: 361, src: "/refound/ref-6.png", width: 523 },
+  { className: styles.cardSeven, height: 736, src: "/refound/ref-7.png", width: 736 },
 ] as const;
 
-const STEP_PROGRESS = [0, 0.13, 0.32, 0.53, 0.76, 1] as const;
+const STEP_PROGRESS = [0, 0.58, 0.82, 1] as const;
 const LINE_EASING = [0.22, 1, 0.36, 1] as const;
 
-type Step = 0 | 1 | 2 | 3 | 4 | 5;
+type Step = 0 | 1 | 2 | 3;
 
 export function LandingPage() {
   const router = useRouter();
@@ -56,7 +56,7 @@ export function LandingPage() {
       timeoutRef.current = window.setTimeout(() => {
         setIsAnimating(false);
         timeoutRef.current = null;
-      }, 820);
+      }, 1180);
     }
   }
 
@@ -103,47 +103,25 @@ export function LandingPage() {
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.32, ease: LINE_EASING }}
+              transition={{ duration: 0.62, ease: LINE_EASING }}
             >
-              {step > 1 ? <OnboardingPath progress={STEP_PROGRESS[step]} /> : null}
+              <OnboardingPath progress={STEP_PROGRESS[step]} />
               <button
                 className={styles.backButton}
                 type="button"
                 disabled={isAnimating}
-                onClick={() => moveToStep((step - 1) as Step)}
+                onClick={() => moveToStep(step === 1 ? 0 : ((step - 1) as Step))}
               >
                 Назад
               </button>
               <AnimatePresence mode="wait">
                 {step === 1 ? (
-                  <AuthWelcomeStep
-                    key="auth-welcome"
-                    onDone={() => moveToStep(2)}
-                  />
-                ) : null}
-                {step === 2 ? (
-                  <StepShell key="welcome">
-                    <h1>Спасибо, что зашёл потыкать сервис</h1>
-                    <p>
-                      Refound помогает быстро забирать рефы из Pinterest,
-                      Are.na, Dribbble и Telegram, складывать их в одно место и
-                      потом спокойно разбирать по коллекциям
-                    </p>
-                    <RefoundButton
-                      disabled={isAnimating}
-                      onClick={() => moveToStep(3)}
-                    >
-                      Поехали
-                    </RefoundButton>
-                  </StepShell>
-                ) : null}
-                {step === 3 ? (
-                  <StepShell key="account" wide>
-                    <h1>Создай своё место для рефов</h1>
-                    <p>
-                      Нужен аккаунт, чтобы Refound понял, куда складывать рефы
-                      из плагина и Telegram-бота
-                    </p>
+                  <StepShell
+                    key="account"
+                    wide
+                    title="Создай своё место для рефов"
+                    description="Нужен аккаунт, чтобы Refound понял, куда складывать рефы из плагина и Telegram-бота"
+                  >
                     <AuthForm
                       className={styles.accountForm}
                       buttonLabel="Создать аккаунт"
@@ -151,21 +129,19 @@ export function LandingPage() {
                       mode="register"
                       onSuccess={() => {
                         router.refresh();
-                        moveToStep(4);
+                        moveToStep(2);
                       }}
                       showSwitch
                       switchHref="/login"
                     />
                   </StepShell>
                 ) : null}
-                {step === 4 ? (
-                  <StepShell key="connect">
-                    <h1>Сначала подключим входы</h1>
-                    <p>
-                      Refound работает через два быстрых входа: плагин и
-                      Telegram-бота. Без них рефы просто неоткуда будет
-                      забирать
-                    </p>
+                {step === 2 ? (
+                  <StepShell
+                    key="connect"
+                    title="Сначала подключим входы"
+                    description="Refound работает через два быстрых входа: плагин и Telegram-бота. Без них рефы просто неоткуда будет забирать"
+                  >
                     <div className={styles.connectActions}>
                       <RefoundButton
                         variant="secondary"
@@ -197,20 +173,18 @@ export function LandingPage() {
                     </p>
                     <RefoundButton
                       disabled={isAnimating}
-                      onClick={() => moveToStep(5)}
+                      onClick={() => moveToStep(3)}
                     >
                       Готово, дальше
                     </RefoundButton>
                   </StepShell>
                 ) : null}
-                {step === 5 ? (
-                  <StepShell key="final">
-                    <h1>Сначала кидай. Разберёшь потом.</h1>
-                    <p>
-                      Все новые рефы попадают во входящие. Там можно быстро
-                      убрать лишнее, раскидать находки по коллекциям и собрать
-                      shortlist под проект
-                    </p>
+                {step === 3 ? (
+                  <StepShell
+                    key="final"
+                    title="Сначала кидай. Разберёшь потом."
+                    description="Все новые рефы попадают во входящие. Там можно быстро убрать лишнее, раскидать находки по коллекциям и собрать shortlist под проект"
+                  >
                     <RefoundButton href="/">Открыть Refound</RefoundButton>
                   </StepShell>
                 ) : null}
@@ -255,31 +229,15 @@ function CoverStep({
       transition={{ duration: 0.34, ease: LINE_EASING }}
     >
       <div className={styles.fallingCards} aria-hidden="true">
-        {CARD_IMAGES.map((card, index) => (
-          <motion.img
+        {CARD_IMAGES.map((card) => (
+          <Image
             alt=""
             className={`${styles.fallingCard} ${card.className}`}
-            initial={
-              reduceMotion
-                ? false
-                : {
-                    opacity: 0,
-                    rotate: index % 2 === 0 ? -4 : 4,
-                    y: -220 - index * 26,
-                  }
-            }
-            animate={{
-              opacity: 0.8,
-              rotate: index % 2 === 0 ? -2 : 2,
-              y: 0,
-            }}
-            transition={{
-              delay: reduceMotion ? 0 : 0.08 + index * 0.08,
-              duration: 0.9,
-              ease: LINE_EASING,
-            }}
+            data-motion={reduceMotion ? "off" : "on"}
+            height={card.height}
             key={card.src}
             src={card.src}
+            width={card.width}
           />
         ))}
       </div>
@@ -320,67 +278,13 @@ function CoverStep({
   );
 }
 
-function AuthWelcomeStep({ onDone }: { onDone: () => void }) {
-  const reduceMotion = useReducedMotion();
-  const onDoneRef = useRef(onDone);
-
-  useEffect(() => {
-    onDoneRef.current = onDone;
-  }, [onDone]);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(
-      () => onDoneRef.current(),
-      reduceMotion ? 420 : 1320,
-    );
-
-    return () => window.clearTimeout(timeout);
-  }, [reduceMotion]);
-
-  return (
-    <motion.div
-      className={styles.authWelcome}
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
-      transition={{
-        delay: reduceMotion ? 0 : 0.12,
-        duration: 0.48,
-        ease: LINE_EASING,
-      }}
-    >
-      <span>Добро пожаловать в</span>
-      <span className={styles.authLogoLockup} aria-label="Refound">
-        <Image
-          className={styles.authLogoLine}
-          src="/refound/auth-logo-line.svg"
-          alt=""
-          width={366}
-          height={5}
-          priority
-        />
-        <span className={styles.authLogoBlob} />
-        <span className={styles.authLogoText}>Refound</span>
-      </span>
-      <Image
-        className={styles.authPathStart}
-        src="/refound/auth-path-start.svg"
-        alt=""
-        width={488}
-        height={739}
-        priority
-      />
-    </motion.div>
-  );
-}
-
 function OnboardingPath({ progress }: { progress: number }) {
   const reduceMotion = useReducedMotion();
 
   return (
     <svg
-      className={styles.pathSvg}
-      viewBox="0 0 1920 1080"
+      className={styles.authPathSvg}
+      viewBox="0 0 490 741"
       preserveAspectRatio="none"
       aria-hidden="true"
     >
@@ -393,17 +297,17 @@ function OnboardingPath({ progress }: { progress: number }) {
       </defs>
       <path
         className={styles.pathFuture}
-        d="M982 -34 C926 156 1042 262 900 330 C732 410 912 576 1004 484 C1084 404 1144 530 1008 610 C850 706 762 818 860 910 C940 986 898 1128 822 1170"
+        d="M489 1C488.788 1 443.441 1.19846 371.879 1.92003C339.484 2.24666 327.464 5.69534 311.449 10.8684C286.444 18.9456 261.037 32.7574 235.525 50.437C220.601 60.7788 203.386 76.2809 184.034 96.0843C164.682 115.888 144.157 140.131 124.077 169.085C103.997 198.039 84.9848 230.97 73.0716 255.681C44.7132 314.503 50.7907 351.79 57.8282 370.888C60.7286 378.759 94.955 382.832 147.66 391.576C201.1 400.442 233.319 397.729 245.664 395.16C293.177 385.27 324.746 356.999 338.445 342.746C355.05 325.47 357.59 292.088 357.477 274.315C357.437 268.004 350.355 263.705 342.678 259.465C334.339 254.858 302.372 254.25 260.447 253.936C241.491 253.794 228.997 257.562 209.432 264.371C185.717 272.624 157.418 292.836 121.547 324.168C75.6164 364.287 52.9525 401.761 43.3915 416.846C19.8783 453.943 13.0134 493.053 6.14599 538.102C-3.10635 598.796 2.68945 638.293 3.94799 648.043C8.00763 689.802 9.42545 724.442 11.2142 730.186C12.3149 733.053 13.8074 735.821 17.1709 740"
       />
       <motion.path
         className={styles.pathActive}
-        d="M982 -34 C926 156 1042 262 900 330 C732 410 912 576 1004 484 C1084 404 1144 530 1008 610 C850 706 762 818 860 910 C940 986 898 1128 822 1170"
+        d="M489 1C488.788 1 443.441 1.19846 371.879 1.92003C339.484 2.24666 327.464 5.69534 311.449 10.8684C286.444 18.9456 261.037 32.7574 235.525 50.437C220.601 60.7788 203.386 76.2809 184.034 96.0843C164.682 115.888 144.157 140.131 124.077 169.085C103.997 198.039 84.9848 230.97 73.0716 255.681C44.7132 314.503 50.7907 351.79 57.8282 370.888C60.7286 378.759 94.955 382.832 147.66 391.576C201.1 400.442 233.319 397.729 245.664 395.16C293.177 385.27 324.746 356.999 338.445 342.746C355.05 325.47 357.59 292.088 357.477 274.315C357.437 268.004 350.355 263.705 342.678 259.465C334.339 254.858 302.372 254.25 260.447 253.936C241.491 253.794 228.997 257.562 209.432 264.371C185.717 272.624 157.418 292.836 121.547 324.168C75.6164 364.287 52.9525 401.761 43.3915 416.846C19.8783 453.943 13.0134 493.053 6.14599 538.102C-3.10635 598.796 2.68945 638.293 3.94799 648.043C8.00763 689.802 9.42545 724.442 11.2142 730.186C12.3149 733.053 13.8074 735.821 17.1709 740"
         pathLength={1}
         strokeDasharray="1"
         initial={false}
         animate={{ strokeDashoffset: 1 - progress }}
         transition={{
-          duration: reduceMotion ? 0 : 0.78,
+          duration: reduceMotion ? 0 : 1.08,
           ease: LINE_EASING,
         }}
       />
@@ -413,9 +317,13 @@ function OnboardingPath({ progress }: { progress: number }) {
 
 function StepShell({
   children,
+  description,
+  title,
   wide = false,
 }: {
   children: React.ReactNode;
+  description: string;
+  title: string;
   wide?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
@@ -428,12 +336,73 @@ function StepShell({
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
       transition={{
-        delay: reduceMotion ? 0 : 0.16,
-        duration: 0.48,
+        delay: reduceMotion ? 0 : 0.26,
+        duration: 0.72,
         ease: LINE_EASING,
       }}
     >
-      {children}
+      <TypewriterHeading text={title} />
+      <motion.p
+        initial={reduceMotion ? false : { opacity: 0, y: 18, filter: "blur(6px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{
+          delay: reduceMotion ? 0 : 0.58,
+          duration: 0.72,
+          ease: LINE_EASING,
+        }}
+      >
+        {description}
+      </motion.p>
+      <motion.div
+        className={styles.stepBody}
+        initial={reduceMotion ? false : { opacity: 0, y: 20, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{
+          delay: reduceMotion ? 0 : 0.74,
+          duration: 0.7,
+          ease: LINE_EASING,
+        }}
+      >
+        {children}
+      </motion.div>
     </motion.div>
+  );
+}
+
+function TypewriterHeading({ text }: { text: string }) {
+  const reduceMotion = useReducedMotion();
+  let characterIndex = 0;
+
+  return (
+    <h1 aria-label={text}>
+      {text.split(" ").map((word, wordIndex) => (
+        <span
+          className={styles.typeWord}
+          key={`${word}-${wordIndex}`}
+          aria-hidden="true"
+        >
+          {Array.from(word).map((character) => {
+            const currentIndex = characterIndex;
+            characterIndex += 1;
+
+            return (
+              <motion.span
+                className={styles.typeChar}
+                key={`${character}-${currentIndex}`}
+                initial={reduceMotion ? false : { opacity: 0, y: "0.55em" }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  delay: reduceMotion ? 0 : 0.2 + currentIndex * 0.024,
+                  duration: 0.22,
+                  ease: LINE_EASING,
+                }}
+              >
+                {character}
+              </motion.span>
+            );
+          })}
+        </span>
+      ))}
+    </h1>
   );
 }
