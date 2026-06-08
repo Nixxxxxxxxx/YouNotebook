@@ -63,13 +63,52 @@
           align-items: center;
           gap: 8px;
           transform: translateX(-50%);
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 24px;
-          background: rgba(255, 255, 255, 0.94);
-          padding: 8px;
-          color: #000;
+          isolation: isolate;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.58);
+          border-radius: 30px;
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.14)),
+            rgba(255, 255, 255, 0.2);
+          padding: 7px;
+          color: #050505;
           pointer-events: auto;
-          box-shadow: 0 18px 52px rgba(0, 0, 0, 0.14);
+          box-shadow:
+            0 18px 46px rgba(11, 17, 28, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.72),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.24);
+          backdrop-filter: blur(18px) saturate(1.45);
+          -webkit-backdrop-filter: blur(18px) saturate(1.45);
+        }
+
+        .dock::before {
+          position: absolute;
+          inset: -1px;
+          z-index: -2;
+          border-radius: inherit;
+          background:
+            radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.88), transparent 34%),
+            radial-gradient(circle at 84% 110%, rgba(255, 31, 31, 0.16), transparent 36%),
+            linear-gradient(110deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0.28));
+          content: "";
+          filter: url(#quietly-liquid-refraction);
+          pointer-events: none;
+        }
+
+        .dock::after {
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          border-radius: inherit;
+          border: 1px solid rgba(255, 255, 255, 0.36);
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.46), transparent 38%),
+            linear-gradient(315deg, rgba(255, 255, 255, 0.18), transparent 42%);
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+            inset 0 12px 24px rgba(255, 255, 255, 0.2);
+          content: "";
+          pointer-events: none;
         }
 
         .dock strong {
@@ -97,8 +136,8 @@
         }
 
         button {
-          min-height: 42px;
-          border: 0;
+          min-height: 44px;
+          border: 1px solid transparent;
           border-radius: 18px;
           padding: 0 16px;
           font: inherit;
@@ -112,7 +151,11 @@
 
         button:hover:not(:disabled) {
           border-radius: 100px;
-          transform: translateY(-1px);
+          transform: translateY(-1px) scale(1.01);
+        }
+
+        button:active:not(:disabled) {
+          transform: translateY(0) scale(0.985);
         }
 
         button:disabled {
@@ -123,9 +166,27 @@
         .primary {
           position: relative;
           overflow: hidden;
-          background: #000;
-          color: #fff;
+          min-height: 54px;
+          border-color: rgba(255, 255, 255, 0.72);
+          border-radius: 24px;
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.34)),
+            rgba(255, 255, 255, 0.28);
+          color: #050505;
           font-weight: 760;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.82),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+            0 10px 24px rgba(0, 0, 0, 0.1);
+          backdrop-filter: blur(16px) saturate(1.34);
+          -webkit-backdrop-filter: blur(16px) saturate(1.34);
+        }
+
+        .primary:hover:not(:disabled) {
+          border-color: rgba(255, 255, 255, 0.9);
+          background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.42)),
+            rgba(255, 255, 255, 0.34);
         }
 
         .primary::before {
@@ -135,20 +196,26 @@
           margin-right: 8px;
           border: 1.5px solid #ff1f1f;
           border-radius: 999px;
+          box-shadow:
+            0 0 0 1px rgba(255, 31, 31, 0.08),
+            0 0 14px rgba(255, 31, 31, 0.18);
           vertical-align: -4px;
           content: "";
           animation: ringFlow 3.8s linear infinite;
         }
 
         .ghost {
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          background: transparent;
-          color: rgba(0, 0, 0, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          background: rgba(255, 255, 255, 0.22);
+          color: rgba(5, 5, 5, 0.74);
+          backdrop-filter: blur(12px) saturate(1.2);
+          -webkit-backdrop-filter: blur(12px) saturate(1.2);
         }
 
         .ghost:hover:not(:disabled) {
-          border-color: rgba(0, 0, 0, 0.2);
-          color: #000;
+          border-color: rgba(255, 255, 255, 0.76);
+          color: #050505;
+          background: rgba(255, 255, 255, 0.34);
         }
 
         @keyframes ringFlow {
@@ -175,6 +242,14 @@
           }
         }
       </style>
+      <svg class="liquid-glass-filter" aria-hidden="true" focusable="false" width="0" height="0">
+        <filter id="quietly-liquid-refraction" x="-20%" y="-40%" width="140%" height="180%" color-interpolation-filters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.018 0.032" numOctaves="2" seed="8" result="noise" />
+          <feGaussianBlur in="noise" stdDeviation="1.2" result="softNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="12" xChannelSelector="R" yChannelSelector="G" result="refracted" />
+          <feColorMatrix in="refracted" type="matrix" values="1.02 0 0 0 0  0 1.02 0 0 0  0 0 1.02 0 0  0 0 0 1 0" />
+        </filter>
+      </svg>
       <div class="dock"></div>
     `;
 
