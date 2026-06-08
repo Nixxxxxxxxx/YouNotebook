@@ -244,26 +244,14 @@ function CoverStep({
       <div className={styles.coverGlass}>
         <div className={styles.coverCopy}>
           <p className={styles.coverTitle}>Кидай рефы</p>
-          <div className={styles.brandLockup}>
-            <Image
-              className={styles.coverMark}
-              src="/refound/cover-mark.svg"
-              alt=""
-              width={970}
-              height={294}
-              priority
-            />
-            <Image
-              className={styles.coverLine}
-              src="/refound/cover-line.svg"
-              alt=""
-              width={922}
-              height={345}
-              priority
-            />
-            <span className={styles.refoundStamp}>Refound</span>
-            <span className={styles.sorts}>разберёт</span>
-          </div>
+          <Image
+            className={styles.coverHeroMark}
+            src="/refound/group-3.svg"
+            alt="Refound разберёт"
+            width={1060}
+            height={512}
+            priority
+          />
         </div>
         <div className={styles.coverActions}>
           <RefoundButton disabled={isAnimating} onClick={onStart}>
