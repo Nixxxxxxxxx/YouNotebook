@@ -97,7 +97,7 @@
   inset: 18px 27px 17px;
   z-index: 1;
   display: grid;
-  align-items: center;
+  align-content: center;
   justify-items: center;
   overflow: hidden;
   border-radius: 24px;
@@ -111,14 +111,10 @@
 }
 
 .coverCopy {
-  position: absolute;
-  top: clamp(118px, 16.1vh, 174px);
-  left: 50%;
   display: grid;
   justify-items: center;
   width: min(1060px, 72vw);
   gap: clamp(24px, 3.5vh, 44px);
-  transform: translateX(-50%);
 }
 
 .coverTitle {
@@ -140,13 +136,10 @@
 }
 
 .coverActions {
-  position: absolute;
-  bottom: clamp(58px, 6.95vh, 75px);
-  left: 50%;
   display: grid;
   justify-items: center;
   gap: 14px;
-  transform: translateX(-50%);
+  margin-top: 64px;
 }
 
 .loginLink {
@@ -480,9 +473,7 @@
 
 @media (max-height: 780px) and (min-width: 1200px) {
   .coverCopy {
-    top: 80px;
     gap: 22px;
-    transform: translateX(-50%);
   }
 
   .coverTitle {

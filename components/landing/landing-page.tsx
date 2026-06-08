@@ -21,10 +21,10 @@ const CARD_IMAGES = [
   { className: styles.cardSeven, height: 736, src: "/refound/ref-7.png", width: 736 },
 ] as const;
 
-const STEP_PROGRESS = [0, 0.58, 0.82, 1] as const;
+const STEP_PROGRESS = [0, 0.34, 0.58, 0.82, 1] as const;
 const LINE_EASING = [0.22, 1, 0.36, 1] as const;
 
-type Step = 0 | 1 | 2 | 3;
+type Step = 0 | 1 | 2 | 3 | 4;
 
 export function LandingPage() {
   const router = useRouter();
@@ -117,6 +117,20 @@ export function LandingPage() {
               <AnimatePresence mode="wait">
                 {step === 1 ? (
                   <StepShell
+                    key="welcome"
+                    title="Спасибо, что зашёл потыкать сервис"
+                    description="Refound помогает быстро забирать рефы из Pinterest, Are.na, Dribbble и Telegram, складывать их в одно место и потом спокойно разбирать по коллекциям"
+                  >
+                    <RefoundButton
+                      disabled={isAnimating}
+                      onClick={() => moveToStep(2)}
+                    >
+                      Поехали
+                    </RefoundButton>
+                  </StepShell>
+                ) : null}
+                {step === 2 ? (
+                  <StepShell
                     key="account"
                     wide
                     title="Создай своё место для рефов"
@@ -129,14 +143,14 @@ export function LandingPage() {
                       mode="register"
                       onSuccess={() => {
                         router.refresh();
-                        moveToStep(2);
+                        moveToStep(3);
                       }}
                       showSwitch
                       switchHref="/login"
                     />
                   </StepShell>
                 ) : null}
-                {step === 2 ? (
+                {step === 3 ? (
                   <StepShell
                     key="connect"
                     title="Сначала подключим входы"
@@ -173,13 +187,13 @@ export function LandingPage() {
                     </p>
                     <RefoundButton
                       disabled={isAnimating}
-                      onClick={() => moveToStep(3)}
+                      onClick={() => moveToStep(4)}
                     >
                       Готово, дальше
                     </RefoundButton>
                   </StepShell>
                 ) : null}
-                {step === 3 ? (
+                {step === 4 ? (
                   <StepShell
                     key="final"
                     title="Сначала кидай. Разберёшь потом."
