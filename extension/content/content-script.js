@@ -220,8 +220,8 @@
           position: relative;
           z-index: 2;
           display: block;
-          width: 50px;
-          height: 41px;
+          width: 44px;
+          height: 44px;
           flex: 0 0 auto;
         }
 
@@ -233,37 +233,56 @@
           fill: none;
         }
 
-        .ring-one,
-        .ring-two,
-        .thread {
+        .chaos-ring,
+        .order-ring {
           vector-effect: non-scaling-stroke;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
 
-        .ring-one {
+        .chaos-ring {
           stroke: #ff1f1f;
-          stroke-width: 1.35;
-          stroke-dasharray: 22 8 14 10;
-          transform-origin: 18px 23px;
-          animation: refoundRingSpin 4.8s linear infinite;
+          stroke-width: 2.15;
+          opacity: 0;
+          transform-box: fill-box;
+          transform-origin: center;
+          animation:
+            refoundChaosRing 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite,
+            refoundGlyphSpin 4.8s linear infinite;
         }
 
-        .ring-two {
+        .order-ring {
           stroke: #ff1f1f;
-          stroke-width: 1;
-          opacity: 0.86;
-          stroke-dasharray: 16 9 12 8;
-          transform-origin: 18px 23px;
-          animation: refoundRingSpinReverse 6.2s linear infinite;
+          stroke-width: 2.15;
+          stroke-dasharray: 116;
+          stroke-dashoffset: 116;
+          opacity: 0;
+          transform-origin: 22px 22px;
+          animation: refoundOrderRing 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }
 
-        .thread {
-          stroke: url("#quietly-refound-button-thread");
-          stroke-width: 1.55;
-          stroke-dasharray: 80;
-          stroke-dashoffset: 80;
-          animation: refoundThread 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        .chaos-ring:nth-child(1) {
+          animation-delay: 0ms, 0ms;
+        }
+
+        .chaos-ring:nth-child(2) {
+          animation-delay: 70ms, 0ms;
+        }
+
+        .chaos-ring:nth-child(3) {
+          animation-delay: 140ms, 0ms;
+        }
+
+        .chaos-ring:nth-child(4) {
+          animation-delay: 210ms, 0ms;
+        }
+
+        .chaos-ring:nth-child(5) {
+          animation-delay: 280ms, 0ms;
+        }
+
+        .chaos-ring:nth-child(6) {
+          animation-delay: 350ms, 0ms;
         }
 
         .ghost {
@@ -297,33 +316,62 @@
           z-index: 1;
         }
 
-        @keyframes refoundRingSpin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @keyframes refoundRingSpinReverse {
-          to {
-            transform: rotate(-360deg);
-          }
-        }
-
-        @keyframes refoundThread {
+        @keyframes refoundChaosRing {
           0% {
-            opacity: 0;
-            stroke-dashoffset: 80;
+            opacity: 0.95;
+            stroke-dasharray: 52 8 42 12 66 10;
+            stroke-dashoffset: 0;
           }
 
-          20%,
-          64% {
-            opacity: 1;
+          34% {
+            opacity: 0.95;
+            stroke-dasharray: 38 9 54 8 60 13;
           }
 
-          78%,
+          62% {
+            opacity: 0.58;
+            stroke-dasharray: 114 18;
+            stroke-dashoffset: -22;
+          }
+
+          76%,
           100% {
             opacity: 0;
-            stroke-dashoffset: -80;
+            stroke-dasharray: 132;
+            stroke-dashoffset: -132;
+          }
+        }
+
+        @keyframes refoundGlyphSpin {
+          to {
+            rotate: 360deg;
+          }
+        }
+
+        @keyframes refoundOrderRing {
+          0% {
+            opacity: 0;
+            stroke-dashoffset: 116;
+          }
+
+          50% {
+            opacity: 0;
+            stroke-dashoffset: 116;
+          }
+
+          70% {
+            opacity: 1;
+            stroke-dashoffset: 0;
+          }
+
+          84% {
+            opacity: 1;
+            stroke-dashoffset: 0;
+          }
+
+          100% {
+            opacity: 0;
+            stroke-dashoffset: -116;
           }
         }
 
@@ -339,16 +387,19 @@
 
         @media (prefers-reduced-motion: reduce) {
           button,
-          .ring-one,
-          .ring-two,
-          .thread {
+          .chaos-ring,
+          .order-ring {
             animation: none;
             transition: none;
           }
 
-          .thread {
+          .order-ring {
             opacity: 1;
             stroke-dashoffset: 0;
+          }
+
+          .chaos-ring {
+            opacity: 0;
           }
         }
       </style>
@@ -385,17 +436,14 @@
   function getRefoundGlyph() {
     return `
       <span class="refound-glyph" aria-hidden="true">
-        <svg viewBox="0 0 56 46" role="presentation">
-          <defs>
-            <linearGradient id="quietly-refound-button-thread" x1="8" x2="54" y1="23" y2="23">
-              <stop stop-color="#ff1f1f" />
-              <stop offset="0.55" stop-color="#d9d900" />
-              <stop offset="1" stop-color="#04d95a" />
-            </linearGradient>
-          </defs>
-          <circle class="ring-one" cx="18" cy="23" r="15" />
-          <circle class="ring-two" cx="18" cy="23" r="13" />
-          <path class="thread" d="M10 25 C22 3 30 40 46 26 C51 22 52 18 53 15" />
+        <svg viewBox="0 0 44 44" role="presentation">
+          <path class="chaos-ring" d="M7.5 24.2C5.8 16.4 10.5 8.4 18.4 6.6C28.2 4.3 37.2 10.6 38.2 20C39.4 31.3 28.6 39.8 17.6 36.7C8.8 34.3 4.3 25.6 7.6 17.2" />
+          <path class="chaos-ring" d="M6.4 22C6.3 12.8 13.6 5.4 23.2 6.2C34.7 7.1 40.9 18.4 35.9 29C31.5 38.2 18.6 40.4 10.9 33.1C4.4 27 5.9 15.4 14.2 10.2" />
+          <path class="chaos-ring" d="M8.8 27.5C4.1 19.5 8 9.2 17.5 6.4C29.7 2.8 40.2 12.6 37.2 25.1C34.7 35.7 22.2 40.9 12.6 35.1C6.2 31.2 4.7 22.2 9.8 15.6" />
+          <path class="chaos-ring" d="M10.1 14.5C16.4 4.8 31.2 5.4 37 15.5C43.3 26.5 34.8 39.8 21.8 38C10.4 36.4 4.8 25.2 9.2 15.8C13.8 5.9 28.7 4.9 36 13" />
+          <path class="chaos-ring" d="M5.9 19.8C7 10 16 4.2 25.9 6.3C36.4 8.6 41.4 20.2 35.8 29.5C29.9 39.4 14.5 39.1 8.8 29C3.7 20 9.3 8.3 20 6.1" />
+          <path class="chaos-ring" d="M8.3 28.4C2.7 17.5 10.1 5.9 22.9 5.8C36.5 5.8 43 20.6 34 31C26.2 40.1 11.2 37.5 6.8 26.6C3.7 18.9 9.5 9.9 18.7 7.5" />
+          <circle class="order-ring" cx="22" cy="22" r="18.2" />
         </svg>
       </span>
     `;
