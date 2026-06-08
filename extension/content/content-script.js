@@ -118,7 +118,7 @@
         .dock strong {
           color: rgba(0, 0, 0, 0.76);
           font-size: 13px;
-          font-weight: 700;
+          font-weight: 600;
           padding: 0 6px 0 8px;
           white-space: nowrap;
         }
@@ -144,7 +144,7 @@
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 10px;
           isolation: isolate;
           overflow: hidden;
           min-height: 54px;
@@ -153,7 +153,7 @@
           padding: 0 20px;
           font: inherit;
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 500;
           cursor: pointer;
           transition:
             border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -197,6 +197,7 @@
         }
 
         .primary {
+          gap: 12px;
           border-color: rgba(255, 255, 255, 0.72);
           background:
             linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.16)),
@@ -215,20 +216,54 @@
             rgba(255, 255, 255, 0.16);
         }
 
-        .primary::before {
-          display: block;
-          flex: 0 0 auto;
-          width: 18px;
-          height: 18px;
-          border: 1.5px solid #ff1f1f;
-          border-radius: 999px;
-          box-shadow:
-            0 0 0 1px rgba(255, 31, 31, 0.08),
-            0 0 14px rgba(255, 31, 31, 0.18);
-          content: "";
+        .refound-glyph {
           position: relative;
           z-index: 2;
-          animation: ringFlow 3.8s linear infinite;
+          display: block;
+          width: 50px;
+          height: 41px;
+          flex: 0 0 auto;
+        }
+
+        .refound-glyph svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
+          fill: none;
+        }
+
+        .ring-one,
+        .ring-two,
+        .thread {
+          vector-effect: non-scaling-stroke;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .ring-one {
+          stroke: #ff1f1f;
+          stroke-width: 1.35;
+          stroke-dasharray: 22 8 14 10;
+          transform-origin: 18px 23px;
+          animation: refoundRingSpin 4.8s linear infinite;
+        }
+
+        .ring-two {
+          stroke: #ff1f1f;
+          stroke-width: 1;
+          opacity: 0.86;
+          stroke-dasharray: 16 9 12 8;
+          transform-origin: 18px 23px;
+          animation: refoundRingSpinReverse 6.2s linear infinite;
+        }
+
+        .thread {
+          stroke: url("#quietly-refound-button-thread");
+          stroke-width: 1.55;
+          stroke-dasharray: 80;
+          stroke-dashoffset: 80;
+          animation: refoundThread 3.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
         }
 
         .ghost {
@@ -262,9 +297,33 @@
           z-index: 1;
         }
 
-        @keyframes ringFlow {
+        @keyframes refoundRingSpin {
           to {
             transform: rotate(360deg);
+          }
+        }
+
+        @keyframes refoundRingSpinReverse {
+          to {
+            transform: rotate(-360deg);
+          }
+        }
+
+        @keyframes refoundThread {
+          0% {
+            opacity: 0;
+            stroke-dashoffset: 80;
+          }
+
+          20%,
+          64% {
+            opacity: 1;
+          }
+
+          78%,
+          100% {
+            opacity: 0;
+            stroke-dashoffset: -80;
           }
         }
 
@@ -280,9 +339,16 @@
 
         @media (prefers-reduced-motion: reduce) {
           button,
-          .primary::before {
+          .ring-one,
+          .ring-two,
+          .thread {
             animation: none;
             transition: none;
+          }
+
+          .thread {
+            opacity: 1;
+            stroke-dashoffset: 0;
           }
         }
       </style>
@@ -316,6 +382,25 @@
     `;
   }
 
+  function getRefoundGlyph() {
+    return `
+      <span class="refound-glyph" aria-hidden="true">
+        <svg viewBox="0 0 56 46" role="presentation">
+          <defs>
+            <linearGradient id="quietly-refound-button-thread" x1="8" x2="54" y1="23" y2="23">
+              <stop stop-color="#ff1f1f" />
+              <stop offset="0.55" stop-color="#d9d900" />
+              <stop offset="1" stop-color="#04d95a" />
+            </linearGradient>
+          </defs>
+          <circle class="ring-one" cx="18" cy="23" r="15" />
+          <circle class="ring-two" cx="18" cy="23" r="13" />
+          <path class="thread" d="M10 25 C22 3 30 40 46 26 C51 22 52 18 53 15" />
+        </svg>
+      </span>
+    `;
+  }
+
   function getDock() {
     return ensureDockRoot().querySelector(".dock");
   }
@@ -333,7 +418,7 @@
 
     if (!selectionMode) {
       dock.innerHTML = `
-        <button class="primary" type="button"><span class="button-label">Забрать рефы</span></button>
+        <button class="primary" type="button">${getRefoundGlyph()}<span class="button-label">Забрать рефы</span></button>
         ${messageHtml}
       `;
       dock.querySelector(".primary")?.addEventListener("click", () => {
@@ -345,7 +430,7 @@
     dock.innerHTML = `
       <strong>${count} выбрано</strong>
       ${messageHtml}
-      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}><span class="button-label">Сохранить</span></button>
+      <button class="primary" type="button" ${count === 0 ? "disabled" : ""}>${getRefoundGlyph()}<span class="button-label">Сохранить</span></button>
       <button class="ghost clear-button" type="button" aria-label="Очистить выбранные">${getTrashIcon()}</button>
       <button class="ghost cancel-button" type="button" aria-label="Отмена">${getCloseIcon()}</button>
     `;
