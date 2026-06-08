@@ -255,6 +255,38 @@ function CoverStep({
           />
         ))}
       </div>
+      <svg className={styles.coverGlassFilter} aria-hidden="true" focusable="false">
+        <filter
+          id="refound-cover-liquid-glass"
+          x="-12%"
+          y="-12%"
+          width="124%"
+          height="124%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.006 0.011"
+            numOctaves="2"
+            seed="21"
+            result="noise"
+          />
+          <feGaussianBlur in="noise" stdDeviation="0.8" result="softNoise" />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="softNoise"
+            scale="34"
+            xChannelSelector="R"
+            yChannelSelector="G"
+            result="refracted"
+          />
+          <feColorMatrix
+            in="refracted"
+            type="matrix"
+            values="1.04 0 0 0 0  0 1.04 0 0 0  0 0 1.04 0 0  0 0 0 1 0"
+          />
+        </filter>
+      </svg>
       <div className={styles.coverGlass}>
         <div className={styles.coverCopy}>
           <p className={styles.coverTitle}>Кидай рефы</p>
