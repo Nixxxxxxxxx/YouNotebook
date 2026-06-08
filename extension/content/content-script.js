@@ -25,6 +25,47 @@
   const originalPositionByElement = new WeakMap();
   const positionedElements = new Set();
 
+  function getInterFontFaceCss() {
+    const interRegularUrl = chrome.runtime.getURL("assets/fonts/Inter-Regular.ttf");
+    const interMediumUrl = chrome.runtime.getURL("assets/fonts/Inter-Medium.ttf");
+    const interSemiBoldUrl = chrome.runtime.getURL("assets/fonts/Inter-SemiBold.ttf");
+    const interBoldUrl = chrome.runtime.getURL("assets/fonts/Inter-Bold.ttf");
+
+    return `
+      @font-face {
+        font-family: "Inter";
+        src: url("${interRegularUrl}") format("truetype");
+        font-display: swap;
+        font-style: normal;
+        font-weight: 400;
+      }
+
+      @font-face {
+        font-family: "Inter";
+        src: url("${interMediumUrl}") format("truetype");
+        font-display: swap;
+        font-style: normal;
+        font-weight: 500;
+      }
+
+      @font-face {
+        font-family: "Inter";
+        src: url("${interSemiBoldUrl}") format("truetype");
+        font-display: swap;
+        font-style: normal;
+        font-weight: 600;
+      }
+
+      @font-face {
+        font-family: "Inter";
+        src: url("${interBoldUrl}") format("truetype");
+        font-display: swap;
+        font-style: normal;
+        font-weight: 700;
+      }
+    `;
+  }
+
   function escapeText(value) {
     return String(value).replace(/[&<>"']/g, (character) => {
       const replacements = {
@@ -47,8 +88,11 @@
     dockHost.style.all = "initial";
     document.documentElement.appendChild(dockHost);
     dockRoot = dockHost.attachShadow({ mode: "open" });
+
     dockRoot.innerHTML = `
       <style>
+        ${getInterFontFaceCss()}
+
         :host {
           color-scheme: light;
           font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -74,7 +118,7 @@
         .dock strong {
           color: rgba(0, 0, 0, 0.76);
           font-size: 13px;
-          font-weight: 740;
+          font-weight: 700;
           padding: 0 6px 0 8px;
           white-space: nowrap;
         }
@@ -109,7 +153,7 @@
           padding: 0 20px;
           font: inherit;
           font-size: 14px;
-          font-weight: 760;
+          font-weight: 700;
           cursor: pointer;
           transition:
             border-radius 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -123,13 +167,14 @@
           z-index: 0;
           border-radius: inherit;
           background:
-            radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.72), transparent 34%),
-            radial-gradient(circle at 86% 110%, rgba(255, 31, 31, 0.12), transparent 38%),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08));
+            radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.62), transparent 34%),
+            radial-gradient(circle at 86% 110%, rgba(255, 31, 31, 0.1), transparent 38%),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
           content: "";
-          filter: url(#quietly-liquid-refraction);
-          opacity: 0.56;
+          opacity: 0.96;
           pointer-events: none;
+          backdrop-filter: url(#quietly-liquid-refraction) blur(10px) saturate(1.5) brightness(1.06);
+          -webkit-backdrop-filter: url(#quietly-liquid-refraction) blur(10px) saturate(1.5) brightness(1.06);
         }
 
         .button-label {
@@ -154,22 +199,20 @@
         .primary {
           border-color: rgba(255, 255, 255, 0.72);
           background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.34)),
-            rgba(255, 255, 255, 0.28);
+            linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.16)),
+            rgba(255, 255, 255, 0.12);
           color: #050505;
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.82),
             inset 0 -1px 0 rgba(255, 255, 255, 0.3),
             0 10px 24px rgba(0, 0, 0, 0.1);
-          backdrop-filter: blur(16px) saturate(1.34);
-          -webkit-backdrop-filter: blur(16px) saturate(1.34);
         }
 
         .primary:hover:not(:disabled) {
           border-color: rgba(255, 255, 255, 0.9);
           background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.42)),
-            rgba(255, 255, 255, 0.34);
+            linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.2)),
+            rgba(255, 255, 255, 0.16);
         }
 
         .primary::before {
@@ -194,23 +237,21 @@
           padding: 0;
           border-color: rgba(255, 255, 255, 0.62);
           background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28)),
-            rgba(255, 255, 255, 0.2);
+            linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.14)),
+            rgba(255, 255, 255, 0.1);
           color: rgba(5, 5, 5, 0.8);
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.74),
             inset 0 -1px 0 rgba(255, 255, 255, 0.22),
             0 10px 24px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(16px) saturate(1.28);
-          -webkit-backdrop-filter: blur(16px) saturate(1.28);
         }
 
         .ghost:hover:not(:disabled) {
           border-color: rgba(255, 255, 255, 0.76);
           color: #050505;
           background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.36)),
-            rgba(255, 255, 255, 0.3);
+            linear-gradient(135deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.18)),
+            rgba(255, 255, 255, 0.14);
         }
 
         .ghost svg {
@@ -247,10 +288,10 @@
       </style>
       <svg class="liquid-glass-filter" aria-hidden="true" focusable="false" width="0" height="0">
         <filter id="quietly-liquid-refraction" x="-20%" y="-40%" width="140%" height="180%" color-interpolation-filters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.018 0.032" numOctaves="2" seed="8" result="noise" />
-          <feGaussianBlur in="noise" stdDeviation="1.2" result="softNoise" />
-          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="12" xChannelSelector="R" yChannelSelector="G" result="refracted" />
-          <feColorMatrix in="refracted" type="matrix" values="1.02 0 0 0 0  0 1.02 0 0 0  0 0 1.02 0 0  0 0 0 1 0" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.024" numOctaves="2" seed="11" result="noise" />
+          <feGaussianBlur in="noise" stdDeviation="0.55" result="softNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="28" xChannelSelector="R" yChannelSelector="G" result="refracted" />
+          <feColorMatrix in="refracted" type="matrix" values="1.05 0 0 0 0  0 1.05 0 0 0  0 0 1.05 0 0  0 0 0 1 0" />
         </filter>
       </svg>
       <div class="dock"></div>
@@ -402,6 +443,8 @@
     const root = host.attachShadow({ mode: "open" });
     root.innerHTML = `
       <style>
+        ${getInterFontFaceCss()}
+
         button {
           display: grid;
           width: 30px;

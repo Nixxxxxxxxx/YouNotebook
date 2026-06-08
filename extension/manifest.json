@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Quietly Reference Saver",
   "description": "Save selected visual references from Are.na, Pinterest, and Dribbble into Quietly Inbox.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "permissions": ["activeTab", "contextMenus", "scripting", "storage"],
   "host_permissions": [
     "https://www.are.na/*",
@@ -21,6 +21,20 @@
   "background": {
     "service_worker": "background.js"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/fonts/*.ttf"],
+      "matches": [
+        "https://www.are.na/*",
+        "https://are.na/*",
+        "https://pinterest.com/*",
+        "https://www.pinterest.com/*",
+        "https://*.pinterest.com/*",
+        "https://dribbble.com/*",
+        "https://www.dribbble.com/*"
+      ]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
